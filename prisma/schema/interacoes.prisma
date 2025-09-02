@@ -1,0 +1,27 @@
+enum InteracaoTipo {
+  MESSAGE
+  IMAGE
+  AUDIO
+  VIDEO
+  FILE
+  BUTTON
+  SET_VARIABLE
+  GET_VARIABLE
+  API_CALL
+  DB_QUERY
+}
+
+model Interacoes {
+  id              String        @id @default(uuid())
+  tenant_id       String        @db.Uuid
+  tipo            InteracaoTipo
+  conteudo        String        @db.Text // texto da mensagem
+  url_midia       String?       @db.VarChar(500) // link de imagem, audio, video, etc
+  metadados       Json?         @db.JsonB // botao, schema api, etc
+  created_at      DateTime      @default(now()) @db.Timestamp(6)
+  updated_at      DateTime      @updatedAt @db.Timestamp(6)
+
+  @@index([tenant_id, tipo])
+
+  @@map("interacoes")
+}

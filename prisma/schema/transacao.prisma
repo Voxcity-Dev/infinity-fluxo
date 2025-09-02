@@ -1,0 +1,60 @@
+enum TipoAcao {
+  // Navegação
+  GO_TO_ETAPA           // vai para outra etapa
+  GO_TO_FLUXO           // vai para outro fluxo
+  END_FLUXO             // encerra o fluxo
+
+  // Encaminhamentos
+  SEND_TO_QUEUE        // envia para fila de atendimento humano
+  SEND_TO_USER         // envia para atendente específico
+
+  // Variáveis / armazenamento
+  SET_VARIABLE         // atribui valor a variável do fluxo
+  GET_VARIABLE         // recupera valor de variável (ex: para lógica condicional)
+
+  // Integrações / automações
+  API_CALL             // chama uma API externa
+  DB_QUERY             // consulta ou grava no banco de dados
+}
+
+model Transacao {
+  id              String            @id @default(uuid())
+  tenant_id       String            @db.Uuid
+  etapa_id        String            @db.Uuid // pertence a qual etapa
+  created_at      DateTime          @default(now()) @db.Timestamp(6)
+  updated_at      DateTime          @updatedAt @db.Timestamp(6)
+
+  // Relação com Etapa
+  etapa           Etapas            @relation(fields: [etapa_id], references: [id])
+
+  // Relação com regras estruturadas
+  regras          TransacaoRegra[]
+
+  @@index([tenant_id, etapa_id])
+  @@map("transacoes")
+}
+
+model TransacaoRegra {
+  id              String      @id @default(uuid())
+  transacao_id    String      @db.Uuid
+  tenant_id       String      @db.Uuid
+  input           String      @db.VarChar(50) // valor ou regex da condição
+  action          TipoAcao
+  next_etapa_id   String?     @db.Uuid // se action = GO_TO_ETAPA
+  next_fluxo_id   String?     @db.Uuid // se action = GO_TO_FLUXO
+  queue_id        String?     @db.Uuid // se action = SEND_TO_QUEUE
+  user_id         String?     @db.Uuid // se action = SEND_TO_USER
+  variable_name   String?     @db.VarChar(50) // se action = SET_VARIABLE ou GET_VARIABLE
+  variable_value  String?     @db.VarChar(50) // valor para SET_VARIABLE
+  api_endpoint    String?     @db.VarChar(50) // se action = API_CALL
+  db_query        String?     @db.VarChar(50) // se action = DB_QUERY
+  priority        Int         @default(0) // ordem de execução
+  created_at      DateTime    @default(now()) @db.Timestamp(6)
+  updated_at      DateTime    @updatedAt @db.Timestamp(6)
+
+  // Relação com Transacao
+  transacao       Transacao   @relation(fields: [transacao_id], references: [id])
+
+  @@index([tenant_id, transacao_id])
+  @@map("transacao_regras")
+}

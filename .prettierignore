@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+dist/
+build/
+
+# Generated files
+*.d.ts
+*.js.map
+*.d.ts.map
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Coverage
+coverage/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Package manager
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Prisma generated
+prisma/generated/

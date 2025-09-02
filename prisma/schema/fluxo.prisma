@@ -1,0 +1,54 @@
+enum FluxoConfiguracaoChave {
+  // Mensagem enviada quando o bot direciona o atendimento para fila ou usuário
+  SEND_MESSAGE
+
+  // Mensagem de feedback caso a resposta do cliente não seja esperada
+  INVALID_RESPONSE_MESSAGE
+
+  // Tempo máximo (em minutos) de espera por uma resposta antes de tomar ação
+  TIMEOUT_MINUTES
+
+  // Fila padrão para encaminhamento
+  QUEUE_DEFAULT
+
+  // Usuário padrão para encaminhamento
+  USER_DEFAULT
+
+  // Número máximo de tentativas do bot para perguntar/resposta
+  MAX_RETRIES
+
+  // Política de distribuição automática de atendimento
+  AUTO_ASSIGNMENT   // valores possíveis: NONE, RANDOM, BALANCED
+
+  // Encerrar atendimento quando alguma condição for satisfeita
+  END_FLOW_ON_CONDITION
+}
+
+model FluxoConfiguracao {
+  id         String                @id @default(uuid())
+  tenant_id  String                @db.Uuid
+  fluxo_id   String                @db.Uuid
+  chave      FluxoConfiguracaoChave
+  valor      String                @db.Text
+  created_at DateTime              @default(now()) @db.Timestamp(6)
+  updated_at DateTime              @updatedAt @db.Timestamp(6)
+
+  // Relação
+  fluxo      Fluxo                 @relation(fields: [fluxo_id], references: [id])
+
+  @@index([tenant_id, fluxo_id, chave])
+  @@map("fluxo_configuracoes")
+}
+
+model Fluxo {
+  id             String                @id @default(uuid())
+  tenant_id      String                @db.Uuid
+  nome           String                @db.VarChar(50)
+  etapas         Etapas[]
+  configuracoes  FluxoConfiguracao[]
+  created_at     DateTime              @default(now()) @db.Timestamp(6)
+  updated_at     DateTime              @updatedAt @db.Timestamp(6)
+
+  @@index([tenant_id, nome])
+  @@map("fluxos")
+}

@@ -5,7 +5,7 @@ enum NodeType {
 }
 
 model Etapas {
-  id          String        @id @default(uuid())
+  id          String        @id @default(uuid()) @db.Uuid
   tenant_id   String        @db.Uuid
   fluxo_id    String        @db.Uuid
   nome        String        @db.VarChar(50)

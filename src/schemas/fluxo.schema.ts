@@ -30,8 +30,8 @@ export const FluxoSchema = z.object({
 	nome: z.string().max(50),
 	etapas: z.array(z.uuid()),
 	configuracoes: z.array(z.uuid()),
-	created_at: z.date(),
-	updated_at: z.date(),
+	created_at: z.string(),
+	updated_at: z.string(),
 });
 
 // Schema para resposta da API
@@ -58,8 +58,8 @@ export const FlowConfiguracaoSchema = z.object({
 	fluxo_id: z.uuid(),
 	chave: FlowConfiguracaoChaveSchema,
 	valor: z.string(),
-	created_at: z.date(),
-	updated_at: z.date(),
+	created_at: z.string(),
+	updated_at: z.string(),
 });
 
 // Schema para resposta da API

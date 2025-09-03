@@ -17,8 +17,8 @@ export const CreateTransacaoRegraResponseSchema = z.object({
 	api_endpoint: z.string().nullable(),
 	db_query: z.string().nullable(),
 	priority: z.number(),
-	created_at: z.date(),
-	updated_at: z.date(),
+	created_at: z.string(),
+	updated_at: z.string(),
 });
 
 export class CreateTransacaoRegraDto extends createZodDto(CreateTransacaoRegraSchema) {}

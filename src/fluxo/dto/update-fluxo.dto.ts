@@ -6,8 +6,8 @@ export const UpdateFluxoResponseSchema = z.object({
 	id: z.uuid(),
 	tenant_id: z.uuid(),
 	nome: z.string(),
-	created_at: z.date(),
-	updated_at: z.date(),
+	created_at: z.string(),
+	updated_at: z.string(),
 });
 
 export const FluxoParamsSchema = z.object({

@@ -6,8 +6,8 @@ export const UpdateTransacaoResponseSchema = z.object({
 	id: z.uuid(),
 	tenant_id: z.uuid(),
 	etapa_id: z.uuid(),
-	created_at: z.date(),
-	updated_at: z.date(),
+	created_at: z.string(),
+	updated_at: z.string(),
 });
 
 export const TransacaoParamsSchema = z.object({

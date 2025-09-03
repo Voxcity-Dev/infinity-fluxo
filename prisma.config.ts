@@ -5,6 +5,6 @@ export default {
 	schema: 'prisma/schema',
 	migrations: {
 		path: 'prisma/migrations',
-		// seed: 'ts-node prisma/seed/run.ts',
+		seed: 'ts-node prisma/seed/run.ts',
 	},
 } as PrismaConfig;

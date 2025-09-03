@@ -39,8 +39,8 @@ export const InteracaoSchema = z.object({
 	conteudo: z.string(),
 	url_midia: z.string().max(500).nullable(),
 	metadados: z.record(z.string(), z.any()).nullable(), // JsonB
-	created_at: z.date(),
-	updated_at: z.date(),
+	created_at: z.string(),
+	updated_at: z.string(),
 });
 
 // Schema para resposta da API

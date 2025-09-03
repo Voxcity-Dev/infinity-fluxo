@@ -29,23 +29,10 @@ async function bootstrap() {
 
 	app.useGlobalGuards(new RateLimitGuard());
 
-	app.setGlobalPrefix('api/v1');
-
 	const config = new DocumentBuilder()
-		.setTitle('Infinity Mensageria')
-		.setDescription('Documentação da API Mensageria do Infinity')
+		.setTitle('Infinity Dialog')
+		.setDescription('Documentação da API Dialog do Infinity')
 		.setVersion('1.0')
-		.addBearerAuth(
-			{
-				description: `Por favor, insira o token JWT desta forma: Bearer <JWT>`,
-				name: 'Authorization',
-				bearerFormat: 'JWT',
-				scheme: 'bearer',
-				type: 'http',
-				in: 'Header',
-			},
-			'access-token',
-		)
 		.build();
 
 	const document = SwaggerModule.createDocument(app, config);

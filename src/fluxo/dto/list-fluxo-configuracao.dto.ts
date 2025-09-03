@@ -13,8 +13,8 @@ export const ListFluxoConfiguracoesResponseSchema = z.object({
 			fluxo_id: z.uuid(),
 			chave: z.string(),
 			valor: z.string(),
-			created_at: z.date(),
-			updated_at: z.date(),
+			created_at: z.string(),
+			updated_at: z.string(),
 		}),
 	),
 });

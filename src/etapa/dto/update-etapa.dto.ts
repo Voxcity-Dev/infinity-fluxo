@@ -9,8 +9,8 @@ export const UpdateEtapaResponseSchema = z.object({
 	nome: z.string(),
 	tipo: z.string(),
 	interacoes_id: z.array(z.string()),
-	created_at: z.date(),
-	updated_at: z.date(),
+	created_at: z.string(),
+	updated_at: z.string(),
 });
 
 export const EtapaParamsSchema = z.object({

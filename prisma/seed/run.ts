@@ -7,7 +7,7 @@ import { createInteracoes } from './dev/interacao';
 const prisma = new PrismaClient();
 
 async function main() {
-	const nodeEnv = process.env.NODE_ENV || 'development';
+	const nodeEnv = 'development'; // Sempre usar desenvolvimento para seeds
 
 	console.log(`Iniciando o seeding para o ambiente: ${nodeEnv}`);
 
@@ -17,10 +17,18 @@ async function main() {
 		development: async () => {
 			console.log('--- Executando Seeders de Desenvolvimento ---');
 
-			await createFluxo(prisma);
-			await createEtapa(prisma);
-			await createTransacao(prisma);
+			// Limpar dados na ordem correta (respeitando foreign keys)
+			await prisma.transacaoRegra.deleteMany({});
+			await prisma.transacao.deleteMany({});
+			await prisma.etapas.deleteMany({});
+			await prisma.interacoes.deleteMany({});
+			await prisma.fluxoConfiguracao.deleteMany({});
+			await prisma.fluxo.deleteMany({});
+
+			const fluxos = await createFluxo(prisma);
 			await createInteracoes(prisma);
+			await createEtapa(prisma, fluxos);
+			await createTransacao(prisma, fluxos);
 		},
 		production: async () => {
 			console.log('--- Executando Seeders de Produção ---');

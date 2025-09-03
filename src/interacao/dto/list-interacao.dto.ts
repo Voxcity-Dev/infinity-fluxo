@@ -19,8 +19,8 @@ export const ListInteracoesResponseSchema = z.object({
 			conteudo: z.string(),
 			url_midia: z.string().nullable(),
 			metadados: z.record(z.string(), z.any()).nullable(),
-			created_at: z.date(),
-			updated_at: z.date(),
+			created_at: z.string(),
+			updated_at: z.string(),
 		}),
 	),
 	meta: z.object({

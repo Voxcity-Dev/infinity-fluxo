@@ -29,8 +29,8 @@ export const TransacaoSchema = z.object({
 	id: z.uuid(),
 	tenant_id: z.uuid(),
 	etapa_id: z.uuid(),
-	created_at: z.date(),
-	updated_at: z.date(),
+	created_at: z.string(),
+	updated_at: z.string(),
 });
 
 // Schema para resposta da API
@@ -84,8 +84,8 @@ export const TransacaoRegraSchema = z.object({
 	api_endpoint: z.string().max(50).nullable(),
 	db_query: z.string().max(50).nullable(),
 	priority: z.number().int(),
-	created_at: z.date(),
-	updated_at: z.date(),
+	created_at: z.string(),
+	updated_at: z.string(),
 });
 
 // Schema para resposta da API

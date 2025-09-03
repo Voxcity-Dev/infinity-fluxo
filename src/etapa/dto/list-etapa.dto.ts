@@ -20,8 +20,8 @@ export const ListEtapasResponseSchema = z.object({
 			nome: z.string(),
 			tipo: NodeTypeSchema,
 			interacoes_id: z.array(z.string()),
-			created_at: z.date(),
-			updated_at: z.date(),
+			created_at: z.string(),
+			updated_at: z.string(),
 		}),
 	),
 	meta: z.object({

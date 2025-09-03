@@ -7,7 +7,7 @@ export class EnvironmentValidator {
 	static validate(): void {
 		logger.log('🔍 Validando variáveis de ambiente...');
 
-		const requiredVars = ['NODE_ENV', 'DATABASE_URL', 'SECRET_TOKEN_CORE'];
+		const requiredVars = ['NODE_ENV', 'DATABASE_URL', 'MICROSERVICE_TOKEN'];
 
 		const missingVars: string[] = [];
 

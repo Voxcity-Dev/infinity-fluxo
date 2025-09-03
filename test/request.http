@@ -1,0 +1,262 @@
+### Testes do FluxoEngine - Infinity Dialog
+### Baseado nos dados criados pelo seed
+@microservice-token=dad38516a8c9a39564f4dbfa52b568e5748500d73e32be3096a36a4cb7d4d1fd2f04740614172e15be5a8e589cbd600c314aedcd942c2c90eb596b850f17063b
+
+@tenant_id=123e4567-e89b-12d3-a456-426614174000
+
+### 1. Listar todos os fluxos disponíveis
+POST http://localhost:3000/fluxo/listar
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
+
+{
+  "page": 1,
+  "limit": 10,
+  "search": "",
+  "tenant_id": "{{tenant_id}}"
+}
+
+###
+
+### 2. Buscar fluxo principal por ID
+GET http://localhost:3000/fluxo/06d4771b-a27d-4eea-998d-a832613642b3
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
+
+
+###
+
+### 3. Iniciar execução do fluxo principal
+POST http://localhost:3000/fluxo/06d4771b-a27d-4eea-998d-a832613642b3/executar
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
+
+
+{
+  "usuario_id": "user-test-001",
+  "variaveis_iniciais": {
+    "canal": "whatsapp",
+    "telefone": "+5511999999999"
+  }
+}
+
+###
+
+### 4. Processar resposta do usuário (etapa de menu) - Suporte Técnico
+### NOTA: Este endpoint usa contexto_id, não fluxo_id
+POST http://localhost:3000/fluxo/contexto/{contexto_id}/resposta
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
+
+
+{
+  "resposta": "1"
+}
+
+###
+
+### 5. Processar resposta para Vendas
+POST http://localhost:3000/fluxo/contexto/{contexto_id}/resposta
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
+
+{
+  "resposta": "2"
+}
+
+###
+
+### 6. Processar resposta para Financeiro
+POST http://localhost:3000/fluxo/contexto/{contexto_id}/resposta
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
+
+{
+  "resposta": "3"
+}
+
+###
+
+### 7. Processar resposta para Transferir Atendente
+POST http://localhost:3000/fluxo/contexto/{contexto_id}/resposta
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
+
+{
+  "resposta": "4"
+}
+
+###
+
+### 8. Testar resposta inválida (deve voltar ao menu)
+POST http://localhost:3000/fluxo/contexto/{contexto_id}/resposta
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
+
+{
+  "resposta": "opcao_invalida"
+}
+
+###
+
+### 9. Verificar status da execução
+GET http://localhost:3000/fluxo/contexto/{contexto_id}/estado
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
+
+###
+
+### 10. Listar todas as etapas do fluxo principal
+### NOTA: Este endpoint não existe no controller, seria necessário implementar
+GET http://localhost:3000/etapa?fluxo_id=06d4771b-a27d-4eea-998d-a832613642b3
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
+
+###
+
+### 11. Listar todas as transações do fluxo principal
+### NOTA: Este endpoint não existe no controller, seria necessário implementar
+GET http://localhost:3000/transacao?fluxo_id=06d4771b-a27d-4eea-998d-a832613642b3
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
+
+###
+
+### 12. Testar fluxo secundário (Suporte Técnico)
+POST http://localhost:3000/fluxo/071cbbe8-3f90-4d08-b2a3-cac1ab42cf6c/executar
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
+
+{
+  "usuario_id": "user-test-002",
+  "variaveis_iniciais": {
+    "canal": "web",
+    "origem": "fluxo_principal"
+  }
+}
+
+###
+
+### 13. Processar problema técnico
+POST http://localhost:3000/fluxo/contexto/{contexto_id}/resposta
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
+
+{
+  "resposta": "Meu computador não está ligando"
+}
+
+###
+
+### 14. Validar estrutura do fluxo principal
+GET http://localhost:3000/fluxo/06d4771b-a27d-4eea-998d-a832613642b3/validar
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
+
+###
+
+### 15. Obter configurações do fluxo principal
+GET http://localhost:3000/fluxo/06d4771b-a27d-4eea-998d-a832613642b3/configuracoes
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
+
+###
+
+### 16. Executar próxima etapa
+POST http://localhost:3000/fluxo/contexto/{contexto_id}/proxima-etapa
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
+
+###
+
+### 17. Pausar execução
+POST http://localhost:3000/fluxo/contexto/{contexto_id}/pausar
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
+
+###
+
+### 18. Retomar execução
+POST http://localhost:3000/fluxo/contexto/{contexto_id}/retomar
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
+
+###
+
+### 19. Finalizar execução
+POST http://localhost:3000/fluxo/contexto/{contexto_id}/finalizar
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
+
+{
+  "motivo": "Atendimento concluído"
+}
+
+###
+
+### 20. Listar fluxos ativos
+GET http://localhost:3000/fluxo/ativos
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
+
+###
+
+### 21. Obter estatísticas do fluxo
+GET http://localhost:3000/fluxo/06d4771b-a27d-4eea-998d-a832613642b3/estatisticas
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
+
+###
+
+### 22. Obter histórico do contexto
+GET http://localhost:3000/fluxo/contexto/{contexto_id}/historico
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
+
+###
+
+### 23. Obter variáveis do contexto
+GET http://localhost:3000/fluxo/contexto/{contexto_id}/variaveis
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
+
+###
+
+### 24. Definir variável no contexto
+POST http://localhost:3000/fluxo/contexto/{contexto_id}/variaveis
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
+
+{
+  "nome": "departamento",
+  "valor": "Suporte Técnico"
+}
+
+###
+
+### ========================================
+### INSTRUÇÕES PARA USAR ESTES TESTES:
+### ========================================
+### 
+### 1. Execute primeiro: npm run seed:dev
+### 2. Inicie o servidor: npm run start:dev
+### 3. Execute os testes na ordem sugerida
+### 
+### IDs dos fluxos (já configurados):
+### - Fluxo Principal: 06d4771b-a27d-4eea-998d-a832613642b3
+### - Fluxo Secundário: 071cbbe8-3f90-4d08-b2a3-cac1ab42cf6c
+### 
+### SEQUÊNCIA RECOMENDADA DE TESTES:
+### 1. Teste #1: Listar fluxos
+### 2. Teste #3: Iniciar execução (copie o contexto_id da resposta)
+### 3. Teste #4: Processar resposta "1" (substitua {contexto_id})
+### 4. Teste #9: Verificar status
+### 5. Teste #12: Testar fluxo secundário
+### 6. Teste #13: Processar problema técnico
+### 
+### IMPORTANTE:
+### - Substitua {contexto_id} pelo ID retornado no teste #3
+### - Os endpoints de etapas e transações precisam ser implementados
+### - Para obter novos IDs: node test/get-fluxo-ids.js
+###
+### ========================================

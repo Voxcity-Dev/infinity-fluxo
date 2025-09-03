@@ -27,8 +27,8 @@ export const EtapaSchema = z.object({
 	nome: z.string().max(50),
 	tipo: NodeTypeSchema,
 	interacoes_id: z.array(z.uuid()),
-	created_at: z.date(),
-	updated_at: z.date(),
+	created_at: z.string(),
+	updated_at: z.string(),
 });
 
 // Schema para resposta da API (sem campos sensíveis)

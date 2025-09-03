@@ -10,6 +10,7 @@ import { FluxoService } from './fluxo.service';
 import { CreateFluxoDto, CreateFluxoResponseDto } from './dto/create-fluxo.dto';
 import { CreateFluxoSchema } from 'src/schemas/fluxo.schema';
 import { MicroserviceTokenGuard } from 'src/common/middlewares/microservice-token.guard';
+import { ListFluxosInput, ListFluxosResponseDto } from './dto/list-fluxo.dto';
 
 @ApiTags('Fluxo')
 @Controller('fluxo')
@@ -18,26 +19,36 @@ export class FluxoController {
 	constructor(private readonly fluxoService: FluxoService) {}
 
 	// Exemplo de rota comentada
-	/*
-	@Post()
-	@HttpCode(201)
-	@ApiOperation({ summary: 'Criar um novo fluxo' })
-	@ApiOkResponse({
-		description: 'Fluxo criado com sucesso',
-		type: CreateFluxoResponseDto,
-	})
-	@ApiResponse({ status: 400, description: 'Erro ao criar fluxo' })
+	// @Post()
+	// @HttpCode(201)
+	// @ApiOperation({ summary: 'Criar um novo fluxo' })
+	// @ApiOkResponse({
+	// 	description: 'Fluxo criado com sucesso',
+	// 	type: CreateFluxoResponseDto,
+	// })
+	// @ApiResponse({ status: 400, description: 'Erro ao criar fluxo' })
+	// @ApiResponse({ status: 401, description: 'Não autorizado' })
+	// @ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
+	// async create(
+	// 	@Body(new ZodPipe(CreateFluxoSchema)) data: CreateFluxoDto,
+	// ) {
+	// 	const fluxo = await this.fluxoService.create(data);
+
+	// 	return {
+	// 		message: 'Fluxo criado com sucesso!',
+	// 		data: fluxo,
+	// 	};
+	// }
+
+	@Post('listar')
+	@HttpCode(200)
+	@ApiOperation({ summary: 'Listar todos os fluxos' })
+	@ApiOkResponse({ description: 'Fluxos listados com sucesso', type: ListFluxosResponseDto })
+	@ApiResponse({ status: 400, description: 'Erro ao listar fluxos' })
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
 	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
-	async create(
-		@Body(new ZodPipe(CreateFluxoSchema)) data: CreateFluxoDto,
-	) {
-		const fluxo = await this.fluxoService.create(data);
-
-		return {
-			message: 'Fluxo criado com sucesso!',
-			data: fluxo,
-		};
+	async listar(@Body() params: ListFluxosInput) {
+		const fluxos = await this.fluxoService.findAll(params);
+		return { message: 'Fluxos listados com sucesso!', data: fluxos };
 	}
-	*/
 }

@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/infra/database/prisma/prisma.service';
 import type { CreateFluxoInput } from './dto/create-fluxo.dto';
+import { ListEtapasInput } from 'src/etapa/dto/list-etapa.dto';
+import { ListFluxosInput } from './dto/list-fluxo.dto';
 
 @Injectable()
 export class FluxoService {
@@ -35,4 +37,29 @@ export class FluxoService {
 		}
 	}
 	*/
+
+	async findAll(params: ListFluxosInput) {
+		try {
+			const { page, limit, search, tenant_id } = params;
+
+			const fluxos = await this.prisma.fluxo.findMany({
+				where: {
+					tenant_id,
+					nome: {
+						contains: search,
+					},
+				},
+				skip: (page - 1) * limit,
+				take: limit,
+				orderBy: {
+					created_at: 'desc',
+				},
+			});
+
+			return fluxos;
+		} catch (error) {
+			console.error('Erro ao listar fluxos:', error);
+			throw new BadRequestException('Erro ao listar fluxos');
+		}
+	}
 }

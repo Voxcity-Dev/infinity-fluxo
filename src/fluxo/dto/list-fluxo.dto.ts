@@ -26,8 +26,17 @@ export const ListFluxosResponseSchema = z.object({
 	}),
 });
 
+export const FluxoResponseSchema = z.object({
+	id: z.uuid(),
+	tenant_id: z.uuid(),
+	nome: z.string(),
+	created_at: z.string(),
+	updated_at: z.string(),
+});
+
 export class ListFluxosDto extends createZodDto(ListFluxosSchema) {}
 export class ListFluxosResponseDto extends createZodDto(ListFluxosResponseSchema) {}
+export class FluxoResponseDto extends createZodDto(FluxoResponseSchema) {}
 
 export type ListFluxosInput = z.infer<typeof ListFluxosSchema>;
 export type ListFluxosResponse = z.infer<typeof ListFluxosResponseSchema>;

@@ -4,8 +4,9 @@
 
 @tenant_id=123e4567-e89b-12d3-a456-426614174000
 
-### 1. Listar todos os fluxos disponíveis
-POST http://localhost:3000/fluxo/listar
+### FLUXOS
+### LISTAR TODOS OS FLUXOS DISPONÍVEIS
+POST http://localhost:3000/fluxo/find
 Content-Type: application/json
 x-microservice-token: {{microservice-token}}
 
@@ -16,5 +17,17 @@ x-microservice-token: {{microservice-token}}
   "tenant_id": "{{tenant_id}}"
 }
 
-###
+### LISTAR POR FLUXO ID
+GET http://localhost:3000/fluxo/06d4771b-a27d-4eea-998d-a832613642b3
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
 
+### CRIA FLUXO
+POST http://localhost:3000/fluxo/create
+Content-Type: application/json
+x-microservice-token: {{microservice-token}}
+
+{
+  "tenant_id": "{{tenant_id}}",
+  "nome": "Fluxo de Teste"
+}

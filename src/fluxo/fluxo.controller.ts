@@ -1,4 +1,4 @@
-import { Body, Controller, Post, HttpCode, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, HttpCode, UseGuards, Get, Param } from '@nestjs/common';
 import {
 	ApiOkResponse,
 	ApiOperation,
@@ -7,10 +7,10 @@ import {
 } from '@nestjs/swagger';
 import { ZodPipe } from 'src/common/pipes/zod.pipe';
 import { FluxoService } from './fluxo.service';
-import { CreateFluxoDto, CreateFluxoResponseDto } from './dto/create-fluxo.dto';
+import { CreateFluxoDto, CreateFluxoInput, CreateFluxoResponseDto } from './dto/create-fluxo.dto';
 import { CreateFluxoSchema } from 'src/schemas/fluxo.schema';
 import { MicroserviceTokenGuard } from 'src/common/middlewares/microservice-token.guard';
-import { ListFluxosInput, ListFluxosResponseDto } from './dto/list-fluxo.dto';
+import { FluxoResponseDto, ListFluxosInput, ListFluxosResponseDto } from './dto/list-fluxo.dto';
 
 @ApiTags('Fluxo')
 @Controller('fluxo')
@@ -40,7 +40,7 @@ export class FluxoController {
 	// 	};
 	// }
 
-	@Post('listar')
+	@Post('find')
 	@HttpCode(200)
 	@ApiOperation({ summary: 'Listar todos os fluxos' })
 	@ApiOkResponse({ description: 'Fluxos listados com sucesso', type: ListFluxosResponseDto })
@@ -50,5 +50,27 @@ export class FluxoController {
 	async listar(@Body() params: ListFluxosInput) {
 		const fluxos = await this.fluxoService.findAll(params);
 		return { message: 'Fluxos listados com sucesso!', data: fluxos };
+	}
+
+	@Get(':fluxo_id')
+	@HttpCode(200)
+	@ApiOperation({ summary: 'Obter um fluxo pelo ID' })
+	@ApiOkResponse({ description: 'Fluxo obtido com sucesso', type: FluxoResponseDto })
+	@ApiResponse({ status: 400, description: 'Erro ao obter fluxo' })
+	@ApiResponse({ status: 401, description: 'Não autorizado' })
+	async obter(@Param('fluxo_id') fluxo_id: string) {
+		const fluxo = await this.fluxoService.findById(fluxo_id);
+		return { message: 'Fluxo obtido com sucesso!', data: fluxo };
+	}
+
+	@Post('create')
+	@HttpCode(200)
+	@ApiOperation({ summary: 'Obter um fluxo pelo ID' })
+	@ApiOkResponse({ description: 'Fluxo obtido com sucesso', type: FluxoResponseDto })
+	@ApiResponse({ status: 400, description: 'Erro ao obter fluxo' })
+	@ApiResponse({ status: 401, description: 'Não autorizado' })
+	async criar(@Body() data: CreateFluxoInput) {
+		const fluxo = await this.fluxoService.create(data);
+		return { message: 'Fluxo criado com sucesso!', data: fluxo };
 	}
 }

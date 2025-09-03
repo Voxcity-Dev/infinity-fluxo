@@ -3,6 +3,7 @@ import { PrismaService } from 'src/infra/database/prisma/prisma.service';
 import type { CreateFluxoInput } from './dto/create-fluxo.dto';
 import { ListEtapasInput } from 'src/etapa/dto/list-etapa.dto';
 import { ListFluxosInput } from './dto/list-fluxo.dto';
+import { FluxoConfiguracaoChave } from '@prisma/client';
 
 @Injectable()
 export class FluxoService {
@@ -60,6 +61,71 @@ export class FluxoService {
 		} catch (error) {
 			console.error('Erro ao listar fluxos:', error);
 			throw new BadRequestException('Erro ao listar fluxos');
+		}
+	}
+
+	async findById(fluxo_id: string) {
+		try {
+			const fluxo = await this.prisma.fluxo.findUnique({
+				where: { id: fluxo_id },
+			});
+			return fluxo;
+		} catch (error) {
+			console.error('Erro ao obter fluxo:', error);
+			throw new BadRequestException('Erro ao obter fluxo');
+		}
+	}
+
+	async create(data: CreateFluxoInput) {
+		try {
+			const fluxo = await this.prisma.fluxo.create({
+				data: {
+					tenant_id: data.tenant_id,
+					nome: data.nome,
+				},
+			});
+
+			// Criar configurações padrão após criar o fluxo
+			await this.configuracaoDefault(data.tenant_id, fluxo.id);
+
+			return fluxo;
+		} catch (error) {
+			console.error('Erro ao criar fluxo:', error);
+			throw new BadRequestException('Erro ao criar fluxo');
+		}
+	}
+
+
+	private readonly configuracaoDefaults = {
+		SEND_MESSAGE: 'Seu atendimento foi encaminhado para a fila! Aguarde a resposta do atendente.',
+		INVALID_RESPONSE_MESSAGE: 'Desculpe, não entendi sua resposta. Poderia repetir?',
+		TIMEOUT_MINUTES: 'NONE',
+		QUEUE_DEFAULT: '',
+		USER_DEFAULT: '',
+		MAX_RETRIES: '3',
+		AUTO_ASSIGNMENT: 'NONE', // NONE, RANDOM, BALANCED
+		END_FLOW_ON_CONDITION: 'encerrar'
+	} as const;
+
+	private async configuracaoDefault(tenant_id: string, fluxo_id: string) {
+		try {
+			// Criar todas as configurações de uma vez
+			const configuracoes = Object.entries(this.configuracaoDefaults).map(([chave, valor]) => ({
+				tenant_id,
+				fluxo_id,
+				chave: chave as FluxoConfiguracaoChave,
+				valor
+			}));
+
+			await this.prisma.fluxoConfiguracao.createMany({
+				data: configuracoes,
+				skipDuplicates: true // Evita erros se já existir
+			});
+
+			console.log(`Configurações padrão criadas para fluxo ${fluxo_id}`);
+		} catch (error) {
+			console.error('Erro ao criar configuração default:', error);
+			throw new BadRequestException('Erro ao criar configuração default');
 		}
 	}
 }

@@ -80,4 +80,17 @@ export class InteracaoService {
 			throw new BadRequestException('Erro ao atualizar interação');
 		}
 	}
+
+	async delete(id: string) {
+		try {
+			await this.prisma.interacoes.update({
+				where: { id: id },
+				data: { is_deleted: true },
+			});
+			return id;
+		} catch (error) {
+			console.error('Erro ao deletar interação:', error);
+			throw new BadRequestException('Erro ao deletar interação');
+		}
+	}
 }

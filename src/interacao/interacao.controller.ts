@@ -1,4 +1,4 @@
-import { Body, Controller, Post, HttpCode, UseGuards, Get, Param, Put } from '@nestjs/common';
+import { Body, Controller, Post, HttpCode, UseGuards, Get, Param, Put, Delete } from '@nestjs/common';
 import {
 	ApiOkResponse,
 	ApiOperation,
@@ -75,5 +75,16 @@ export class InteracaoController {
 		console.log(data);
 		const interacao = await this.interacaoService.update(data);
 		return { message: 'Interação atualizada com sucesso!', data: interacao };
+	}
+
+	@Delete(':id')
+	@HttpCode(200)
+	@ApiOperation({ summary: 'Deletar uma interação' })
+	@ApiOkResponse({ description: 'Interação deletada com sucesso', type: UpdateInteracaoResponseDto })
+	@ApiResponse({ status: 400, description: 'Erro ao deletar interação' })
+	@ApiResponse({ status: 401, description: 'Não autorizado' })
+	async deletar(@Param('id') id: string) {
+		const interacao = await this.interacaoService.delete(id);
+		return { message: 'Interação deletada com sucesso!', data: interacao };
 	}
 }

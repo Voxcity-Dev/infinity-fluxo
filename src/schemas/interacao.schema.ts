@@ -17,6 +17,7 @@ export const InteracaoTipoSchema = z.enum([
 // Schema para criação de interação
 export const CreateInteracaoSchema = z.object({
 	tenant_id: z.uuid(),
+	nome: z.string().max(50),
 	tipo: InteracaoTipoSchema,
 	conteudo: z.string(),
 	url_midia: z.string().max(500).optional(),
@@ -25,6 +26,8 @@ export const CreateInteracaoSchema = z.object({
 
 // Schema para atualização de interação
 export const UpdateInteracaoSchema = z.object({
+	id: z.uuid(),
+	nome: z.string().max(50).optional(),
 	tipo: InteracaoTipoSchema.optional(),
 	conteudo: z.string().optional(),
 	url_midia: z.string().max(500).optional(),
@@ -35,6 +38,7 @@ export const UpdateInteracaoSchema = z.object({
 export const InteracaoSchema = z.object({
 	id: z.uuid(),
 	tenant_id: z.uuid(),
+	nome: z.string().max(50),
 	tipo: InteracaoTipoSchema,
 	conteudo: z.string(),
 	url_midia: z.string().max(500).nullable(),

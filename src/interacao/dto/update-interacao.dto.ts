@@ -4,13 +4,10 @@ import { z } from 'zod';
 
 export const UpdateInteracaoResponseSchema = z.object({
 	id: z.uuid(),
-	tenant_id: z.uuid(),
-	tipo: z.string(),
-	conteudo: z.string(),
-	url_midia: z.string().nullable(),
-	metadados: z.record(z.string(), z.any()).nullable(),
-	created_at: z.string(),
-	updated_at: z.string(),
+	tipo: z.string().optional(),
+	conteudo: z.string().optional(),
+	url_midia: z.string().nullable().optional(),
+	metadados: z.record(z.string(), z.any()).nullable().optional(),
 });
 
 export const InteracaoParamsSchema = z.object({

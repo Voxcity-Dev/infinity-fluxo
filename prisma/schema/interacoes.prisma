@@ -13,6 +13,7 @@ enum InteracaoTipo {
 
 model Interacoes {
   id              String        @id @default(uuid()) @db.Uuid
+  nome            String        @db.VarChar(50)
   tenant_id       String        @db.Uuid
   tipo            InteracaoTipo
   conteudo        String        @db.Text // texto da mensagem

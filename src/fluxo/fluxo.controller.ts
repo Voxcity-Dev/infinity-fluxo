@@ -1,4 +1,4 @@
-import { Body, Controller, Post, HttpCode, UseGuards, Get, Param } from '@nestjs/common';
+import { Body, Controller, Post, HttpCode, UseGuards, Get, Param, Put } from '@nestjs/common';
 import {
 	ApiOkResponse,
 	ApiOperation,
@@ -11,6 +11,7 @@ import { CreateFluxoDto, CreateFluxoInput, CreateFluxoResponseDto } from './dto/
 import { CreateFluxoSchema } from 'src/schemas/fluxo.schema';
 import { MicroserviceTokenGuard } from 'src/common/middlewares/microservice-token.guard';
 import { FluxoResponseDto, ListFluxosInput, ListFluxosResponseDto } from './dto/list-fluxo.dto';
+import { UpdateFluxoConfiguracaoInput } from './dto/update-fluxo-configuracao.dto';
 
 @ApiTags('Fluxo')
 @Controller('fluxo')
@@ -72,5 +73,18 @@ export class FluxoController {
 	async criar(@Body() data: CreateFluxoInput) {
 		const fluxo = await this.fluxoService.create(data);
 		return { message: 'Fluxo criado com sucesso!', data: fluxo };
+	}
+
+	// @Put(':fluxo_id')
+
+	@Put('/configuracao')
+	@HttpCode(200)
+	@ApiOperation({ summary: 'Obter um fluxo pelo ID' })
+	@ApiOkResponse({ description: 'Fluxo obtido com sucesso', type: FluxoResponseDto })
+	@ApiResponse({ status: 400, description: 'Erro ao obter fluxo' })
+	@ApiResponse({ status: 401, description: 'Não autorizado' })
+	async atualizarConfiguracao(@Body() data: UpdateFluxoConfiguracaoInput) {
+		const configuracao = await this.fluxoService.updateConfiguracao(data);
+		return { message: 'Configuração atualizada com sucesso!', data: configuracao };
 	}
 }

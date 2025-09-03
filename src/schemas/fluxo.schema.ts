@@ -47,9 +47,13 @@ export const CreateFlowConfiguracaoSchema = z.object({
 
 // Schema para atualização de configuração de fluxo
 export const UpdateFlowConfiguracaoSchema = z.object({
-	chave: FlowConfiguracaoChaveSchema.optional(),
-	valor: z.string().optional(),
-});
+	configuracoes: z.array(
+	  z.object({
+		id: z.uuid(),
+		valor: z.string(),
+	  })
+	),
+  });
 
 // Schema completo da configuração de fluxo
 export const FlowConfiguracaoSchema = z.object({

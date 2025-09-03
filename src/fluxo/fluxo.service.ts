@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/infra/database/prisma/prisma.service';
 import type { CreateFluxoInput } from './dto/create-fluxo.dto';
-import { ListEtapasInput } from 'src/etapa/dto/list-etapa.dto';
 import { ListFluxosInput } from './dto/list-fluxo.dto';
 import { FluxoConfiguracaoChave } from '@prisma/client';
+import { UpdateFluxoConfiguracaoInput } from './dto/update-fluxo-configuracao.dto';
 
 @Injectable()
 export class FluxoService {
@@ -95,6 +95,26 @@ export class FluxoService {
 		}
 	}
 
+	async updateConfiguracao(data: UpdateFluxoConfiguracaoInput) {
+		try {
+			const { configuracoes } = data 
+			
+			// Usar transação para garantir consistência
+			const resultados = await this.prisma.$transaction(
+				configuracoes.map((config) =>
+					this.prisma.fluxoConfiguracao.update({
+						where: { id: config.id },
+						data: { valor: config.valor },
+					})
+				)
+			);
+			
+			return resultados;
+		} catch (error) {
+			console.error('Erro ao atualizar configurações:', error);
+			throw new BadRequestException('Erro ao atualizar configurações');
+		}
+	}
 
 	private readonly configuracaoDefaults = {
 		SEND_MESSAGE: 'Seu atendimento foi encaminhado para a fila! Aguarde a resposta do atendente.',

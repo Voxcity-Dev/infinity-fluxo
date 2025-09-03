@@ -88,7 +88,7 @@ export class FluxoController {
 
 	// @Put(':fluxo_id')
 
-	@Put('/configuracao')
+	@Put('configuracao')
 	@HttpCode(200)
 	@ApiOperation({ summary: 'Atualizar configuração do fluxo' })
 	@ApiOkResponse({ description: 'Configuração atualizada com sucesso', type: FluxoResponseDto })

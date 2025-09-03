@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/infra/database/prisma/prisma.service';
 import type { CreateInteracaoInput } from './dto/create-interacao.dto';
+import { ListInteracoesInput } from './dto/list-interacao.dto';
 
 @Injectable()
 export class InteracaoService {
@@ -27,4 +28,22 @@ export class InteracaoService {
 		}
 	}
 	*/
+
+	async findAll(params: ListInteracoesInput) {
+		try {
+			const { page, limit, search, tenant_id, tipo } = params;
+
+			const interacoes = await this.prisma.interacoes.findMany({
+				where: { tenant_id: params.tenant_id },
+				orderBy: { created_at: 'asc' },
+				skip: (page - 1) * limit,
+				take: limit,
+			});
+
+			return interacoes;
+		} catch (error) {
+			console.error('Erro ao listar interações:', error);
+			throw new BadRequestException('Erro ao listar interações');
+		}
+	}
 }

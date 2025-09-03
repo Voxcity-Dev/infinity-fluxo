@@ -1,4 +1,4 @@
-import { Body, Controller, Post, HttpCode, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, HttpCode, UseGuards, Get, Param } from '@nestjs/common';
 import {
 	ApiOkResponse,
 	ApiOperation,
@@ -10,6 +10,7 @@ import { InteracaoService } from './interacao.service';
 import { CreateInteracaoDto, CreateInteracaoResponseDto } from './dto/create-interacao.dto';
 import { CreateInteracaoSchema } from 'src/schemas/interacao.schema';
 import { MicroserviceTokenGuard } from 'src/common/middlewares/microservice-token.guard';
+import { ListInteracoesInput, ListInteracoesResponseDto } from './dto/list-interacao.dto';
 
 @ApiTags('Interação')
 @Controller('interacao')
@@ -40,4 +41,15 @@ export class InteracaoController {
 		};
 	}
 	*/
+
+	@Post('find')
+	@HttpCode(200)
+	@ApiOperation({ summary: 'Listar todas as interações' })
+	@ApiOkResponse({ description: 'Interações listadas com sucesso', type: ListInteracoesResponseDto })
+	@ApiResponse({ status: 400, description: 'Erro ao listar interações' })
+	@ApiResponse({ status: 401, description: 'Não autorizado' })
+	async listar(@Body() params: ListInteracoesInput) {
+		const interacoes = await this.interacaoService.findAll(params);
+		return { message: 'Interações listadas com sucesso!', data: interacoes };
+	}
 }

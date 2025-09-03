@@ -30,6 +30,7 @@ export const FluxoSchema = z.object({
 	nome: z.string().max(50),
 	etapas: z.array(z.uuid()),
 	configuracoes: z.array(z.uuid()),
+	is_deleted: z.boolean(),
 	created_at: z.string(),
 	updated_at: z.string(),
 });
@@ -62,6 +63,7 @@ export const FlowConfiguracaoSchema = z.object({
 	fluxo_id: z.uuid(),
 	chave: FlowConfiguracaoChaveSchema,
 	valor: z.string(),
+	is_deleted: z.boolean(),
 	created_at: z.string(),
 	updated_at: z.string(),
 });

@@ -49,6 +49,7 @@ export class FluxoService {
 					nome: {
 						contains: search,
 					},
+					is_deleted: false,
 				},
 				skip: (page - 1) * limit,
 				take: limit,
@@ -67,7 +68,7 @@ export class FluxoService {
 	async findById(fluxo_id: string) {
 		try {
 			const fluxo = await this.prisma.fluxo.findUnique({
-				where: { id: fluxo_id },
+				where: { id: fluxo_id, },
 			});
 			return fluxo;
 		} catch (error) {
@@ -95,6 +96,18 @@ export class FluxoService {
 		}
 	}
 
+	async delete(fluxo_id: string) {
+		try {
+			await this.prisma.fluxo.update({
+				where: { id: fluxo_id, },
+				data: { is_deleted: true, },
+			});
+		} catch (error) {
+			console.error('Erro ao deletar fluxo:', error);
+			throw new BadRequestException('Erro ao deletar fluxo');
+		}
+	}
+
 	async updateConfiguracao(data: UpdateFluxoConfiguracaoInput) {
 		try {
 			const { configuracoes } = data 
@@ -103,7 +116,7 @@ export class FluxoService {
 			const resultados = await this.prisma.$transaction(
 				configuracoes.map((config) =>
 					this.prisma.fluxoConfiguracao.update({
-						where: { id: config.id },
+						where: { id: config.id, },
 						data: { valor: config.valor },
 					})
 				)

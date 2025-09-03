@@ -39,6 +39,7 @@ export const InteracaoSchema = z.object({
 	conteudo: z.string(),
 	url_midia: z.string().max(500).nullable(),
 	metadados: z.record(z.string(), z.any()).nullable(), // JsonB
+	is_deleted: z.boolean(),
 	created_at: z.string(),
 	updated_at: z.string(),
 });

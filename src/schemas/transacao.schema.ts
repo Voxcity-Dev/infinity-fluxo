@@ -84,6 +84,7 @@ export const TransacaoRegraSchema = z.object({
 	api_endpoint: z.string().max(50).nullable(),
 	db_query: z.string().max(50).nullable(),
 	priority: z.number().int(),
+	is_deleted: z.boolean(),
 	created_at: z.string(),
 	updated_at: z.string(),
 });

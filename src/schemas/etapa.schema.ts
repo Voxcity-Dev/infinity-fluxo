@@ -27,6 +27,7 @@ export const EtapaSchema = z.object({
 	nome: z.string().max(50),
 	tipo: NodeTypeSchema,
 	interacoes_id: z.array(z.uuid()),
+	is_deleted: z.boolean(),
 	created_at: z.string(),
 	updated_at: z.string(),
 });

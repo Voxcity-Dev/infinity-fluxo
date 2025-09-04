@@ -206,6 +206,25 @@ export class TransacaoService {
 		}
 	}
 
+	async deletar(transacao_id: string) {
+		try {
+			const transacao = await this.prisma.transacao.update({
+				where: { id: transacao_id },
+				data: { is_deleted: true }
+			});
+
+			return transacao
+		} catch (error) {
+			console.error('Erro ao deletar transação:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+
+			throw new BadRequestException('Erro ao deletar transação');
+		}
+	}
+
 	/**
 	 * Mapper centralizado para converter regras de entrada em formato do banco
 	 * @param regra - Regra de entrada

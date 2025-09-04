@@ -1,4 +1,4 @@
-import { Body, Controller, Post, HttpCode, UseGuards, Put } from '@nestjs/common';
+import { Body, Controller, Post, HttpCode, UseGuards, Put, Delete, Param } from '@nestjs/common';
 import {
 	ApiHeader,
 	ApiOkResponse,
@@ -79,6 +79,17 @@ export class TransacaoController {
 	async atualizar(@Body() data: UpdateTransacaoRegraDto) {
 		const transacao = await this.transacaoService.updateRegras(data);
 		return { message: 'Regras atualizadas com sucesso!', data: transacao };
+	}
+
+	@Delete(':transacao_id')
+	@HttpCode(200)
+	@ApiOperation({ summary: 'Deletar uma transação' })
+	@ApiOkResponse({ description: 'Transação deletada com sucesso', type: CreateTransacaoResponseDto })
+	@ApiResponse({ status: 400, description: 'Erro ao deletar transação' })
+	@ApiResponse({ status: 401, description: 'Não autorizado' })
+	async deletar(@Param('transacao_id') transacao_id: string) {
+		const transacao = await this.transacaoService.deletar(transacao_id);
+		return { message: 'Transação deletada com sucesso!', data: transacao };
 	}
 
 }

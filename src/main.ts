@@ -29,13 +29,20 @@ async function bootstrap() {
 
 	app.useGlobalGuards(new RateLimitGuard());
 
+
 	const config = new DocumentBuilder()
 		.setTitle('Infinity Dialog')
 		.setDescription('Documentação da API Dialog do Infinity')
 		.setVersion('1.0')
+		.addApiKey({
+			type: 'apiKey',
+			in: 'header',
+			name: 'x-microservice-token',
+			description: 'Token do microserviço',
+		})
 		.build();
 
-	const document = SwaggerModule.createDocument(app, config);
+	const document = SwaggerModule.createDocument(app, config, { deepScanRoutes: true });
 	SwaggerModule.setup('/', app, document);
 
 	await app.listen(process.env.PORT ?? 3000);

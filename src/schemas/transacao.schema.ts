@@ -13,11 +13,6 @@ export const TipoAcaoSchema = z.enum([
 	'DB_QUERY',
 ]);
 
-// Schema para criação de transação
-export const CreateTransacaoSchema = z.object({
-	tenant_id: z.uuid(),
-	etapa_id: z.uuid(),
-});
 
 // Schema para atualização de transação
 export const UpdateTransacaoSchema = z.object({
@@ -53,20 +48,13 @@ export const CreateTransacaoRegraSchema = z.object({
 	priority: z.number().int().default(0),
 });
 
-// Schema para atualização de regra de transação
-export const UpdateTransacaoRegraSchema = z.object({
-	input: z.string().max(50).optional(),
-	action: TipoAcaoSchema.optional(),
-	next_etapa_id: z.uuid().optional(),
-	next_fluxo_id: z.uuid().optional(),
-	queue_id: z.uuid().optional(),
-	user_id: z.uuid().optional(),
-	variable_name: z.string().max(50).optional(),
-	variable_value: z.string().max(50).optional(),
-	api_endpoint: z.string().max(50).optional(),
-	db_query: z.string().max(50).optional(),
-	priority: z.number().int().optional(),
+// Schema para criação de transação
+export const CreateTransacaoSchema = z.object({
+	tenant_id: z.uuid(),
+	etapa_id: z.uuid(),
+	regras: z.array(CreateTransacaoRegraSchema),
 });
+
 
 // Schema completo da regra de transação
 export const TransacaoRegraSchema = z.object({
@@ -85,10 +73,15 @@ export const TransacaoRegraSchema = z.object({
 	db_query: z.string().max(50).nullable(),
 	priority: z.number().int(),
 	is_deleted: z.boolean(),
-	created_at: z.string(),
-	updated_at: z.string(),
+	created_at: z.string().optional(),
+	updated_at: z.string().optional(),
 });
 
+// Schema para atualização de regra de transação
+export const UpdateTransacaoRegraSchema = z.object({
+	transacao_id: z.uuid(),
+	regras: z.array(TransacaoRegraSchema),
+});
 // Schema para resposta da API
 export const TransacaoRegraResponseSchema = TransacaoRegraSchema;
 

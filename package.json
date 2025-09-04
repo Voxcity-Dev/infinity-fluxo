@@ -16,6 +16,7 @@
 		"code:organize": "npm run code:format && npm run build",
 		"seed:dev": "ts-node -r tsconfig-paths/register prisma/seed/run.ts",
 		"seed:prod": "ts-node -r tsconfig-paths/register prisma/seed/run.ts",
+		"reset:db": "prisma db push --force-reset && prisma db seed",
 		"start": "nest start",
 		"start:dev": "nest start --watch",
 		"start:debug": "nest start --debug --watch",

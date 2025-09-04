@@ -104,12 +104,45 @@ export class InteracaoService {
 
 	async update(data: UpdateInteracaoInput) {
 		try {
-			await this.prisma.interacoes.update({
-				where: { id: data.id },
-				data: data,
-			});
-			return data;
+			const { id, nome, tipo, conteudo, url_midia, metadados } = data;
 
+			// Construir objeto de dados apenas com campos não vazios
+			const updateData: any = {};
+			
+			if (nome !== undefined && nome !== null && nome !== '') {
+				updateData.nome = nome;
+			}
+			
+			if (tipo !== undefined && tipo !== null) {
+				updateData.tipo = tipo;
+			}
+			
+			if (conteudo !== undefined && conteudo !== null && conteudo !== '') {
+				updateData.conteudo = conteudo;
+			}
+			
+			if (url_midia !== undefined) {
+				updateData.url_midia = url_midia || null;
+			}
+			
+			if (metadados !== undefined) {
+				updateData.metadados = metadados;
+			}
+
+			// Verificar se há pelo menos um campo para atualizar
+			if (Object.keys(updateData).length === 0) {
+				throw new BadRequestException('Nenhum campo válido fornecido para atualização');
+			}
+
+			const interacao = await this.prisma.interacoes.update({
+				where: { 
+					id,
+					is_deleted: false // Garantir que não atualize interações deletadas
+				},
+				data: updateData,
+			});
+
+			return interacao;
 		} catch (error) {
 			console.error('Erro ao atualizar interação:', error);
 

@@ -2,6 +2,7 @@ import { BadRequestException, HttpException, Injectable, NotFoundException } fro
 import { PrismaService } from 'src/infra/database/prisma/prisma.service';
 import type { CreateEtapaInput } from './dto/create-etapa.dto';
 import { ListEtapasInput } from './dto/list-etapa.dto';
+import { UpdateEtapaInput } from './dto/update-etapa.dto';
 
 @Injectable()
 export class EtapaService {
@@ -132,6 +133,50 @@ export class EtapaService {
 			}
 			
 			throw new BadRequestException('Erro ao criar etapa');
+		}
+	}
+
+	async update(data: UpdateEtapaInput) {
+		try {
+			const { id, nome, tipo, interacoes_id } = data;
+
+			// Construir objeto de dados apenas com campos não vazios
+			const updateData: any = {};
+			
+			if (nome !== undefined && nome !== null && nome !== '') {
+				updateData.nome = nome;
+			}
+			
+			if (tipo !== undefined && tipo !== null) {
+				updateData.tipo = tipo;
+			}
+			
+			if (interacoes_id !== undefined) {
+				updateData.interacoes_id = interacoes_id || null;
+			}
+
+			// Verificar se há pelo menos um campo para atualizar
+			if (Object.keys(updateData).length === 0) {
+				throw new BadRequestException('Nenhum campo válido fornecido para atualização');
+			}
+
+			const etapa = await this.prisma.etapas.update({
+				where: { 
+					id,
+					is_deleted: false // Garantir que não atualize etapas deletadas
+				},
+				data: updateData,
+			});
+
+			return etapa;
+		} catch (error) {
+			console.error('Erro ao atualizar etapa:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+			
+			throw new BadRequestException('Erro ao atualizar etapa');
 		}
 	}
 

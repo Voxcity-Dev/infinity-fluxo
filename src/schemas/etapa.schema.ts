@@ -14,6 +14,7 @@ export const CreateEtapaSchema = z.object({
 
 // Schema para atualização de etapa
 export const UpdateEtapaSchema = z.object({
+	id: z.uuid(),
 	nome: z.string().min(1).max(50).optional(),
 	tipo: NodeTypeSchema.optional(),
 	interacoes_id: z.uuid().optional(),

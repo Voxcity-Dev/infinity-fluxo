@@ -119,6 +119,42 @@ export class FluxoService {
 		}
 	}
 
+	async update(data: { id: string; nome?: string }) {
+		try {
+			const { id, nome } = data;
+
+			// Construir objeto de dados apenas com campos não vazios
+			const updateData: any = {};
+			
+			if (nome !== undefined && nome !== null && nome !== '') {
+				updateData.nome = nome;
+			}
+
+			// Verificar se há pelo menos um campo para atualizar
+			if (Object.keys(updateData).length === 0) {
+				throw new BadRequestException('Nenhum campo válido fornecido para atualização');
+			}
+
+			const fluxo = await this.prisma.fluxo.update({
+				where: { 
+					id,
+					is_deleted: false // Garantir que não atualize fluxos deletados
+				},
+				data: updateData,
+			});
+
+			return fluxo;
+		} catch (error) {
+			console.error('Erro ao atualizar fluxo:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+			
+			throw new BadRequestException('Erro ao atualizar fluxo');
+		}
+	}
+
 	async delete(fluxo_id: string) {
 		try {
 			await this.prisma.fluxo.update({
@@ -138,13 +174,24 @@ export class FluxoService {
 
 	async updateConfiguracao(data: UpdateFluxoConfiguracaoInput) {
 		try {
-			const { configuracoes } = data 
+			const { configuracoes } = data;
+			
+			// Filtrar apenas configurações com valores válidos (não vazios)
+			const configuracoesValidas = configuracoes.filter(config => 
+				config.valor !== undefined && 
+				config.valor !== null && 
+				config.valor !== ''
+			);
+
+			if (configuracoesValidas.length === 0) {
+				throw new BadRequestException('Nenhuma configuração válida fornecida para atualização');
+			}
 			
 			// Usar transação para garantir consistência
 			const resultados = await this.prisma.$transaction(
-				configuracoes.map((config) =>
+				configuracoesValidas.map((config) =>
 					this.prisma.fluxoConfiguracao.update({
-						where: { id: config.id, },
+						where: { id: config.id },
 						data: { valor: config.valor },
 					})
 				)

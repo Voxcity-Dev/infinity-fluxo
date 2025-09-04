@@ -79,17 +79,17 @@ export class EtapaService {
 			if (error instanceof HttpException) {
 				throw error;
 			}
-			
+
 			throw new BadRequestException('Erro ao listar etapas');
 		}
 	}
 
 	async findById(id: string) {
 		try {
-			const etapa = await this.prisma.etapas.findUnique({ 
-				where: { 
+			const etapa = await this.prisma.etapas.findUnique({
+				where: {
 					id,
-					is_deleted: false // Garantir que não retorne etapas deletadas
+					is_deleted: false, // Garantir que não retorne etapas deletadas
 				},
 				omit: {
 					created_at: true,
@@ -101,12 +101,12 @@ export class EtapaService {
 						select: {
 							id: true,
 							nome: true,
-						}
+						},
 					},
 					// Interação associada à etapa
 					interacoes: {
 						where: {
-							is_deleted: false
+							is_deleted: false,
 						},
 						select: {
 							id: true,
@@ -115,12 +115,12 @@ export class EtapaService {
 							conteudo: true,
 							url_midia: true,
 							metadados: true,
-						}
+						},
 					},
 					// Transações da etapa com suas regras
 					transacoes: {
 						where: {
-							is_deleted: false
+							is_deleted: false,
 						},
 						omit: {
 							tenant_id: true,
@@ -130,7 +130,7 @@ export class EtapaService {
 						include: {
 							regras: {
 								where: {
-									is_deleted: false
+									is_deleted: false,
 								},
 								select: {
 									id: true,
@@ -148,15 +148,15 @@ export class EtapaService {
 									priority: true,
 								},
 								orderBy: {
-									priority: 'asc'
-								}
-							}
+									priority: 'asc',
+								},
+							},
 						},
 						orderBy: {
-							created_at: 'desc'
-						}
-					}
-				} 
+							created_at: 'desc',
+						},
+					},
+				},
 			});
 
 			if (!etapa) {
@@ -164,14 +164,13 @@ export class EtapaService {
 			}
 
 			return etapa;
-
 		} catch (error) {
 			console.error('Erro ao buscar etapa:', error);
 
 			if (error instanceof HttpException) {
 				throw error;
 			}
-			
+
 			throw new BadRequestException('Erro ao buscar etapa');
 		}
 	}
@@ -197,7 +196,7 @@ export class EtapaService {
 			if (error instanceof HttpException) {
 				throw error;
 			}
-			
+
 			throw new BadRequestException('Erro ao criar etapa');
 		}
 	}
@@ -208,15 +207,15 @@ export class EtapaService {
 
 			// Construir objeto de dados apenas com campos não vazios
 			const updateData: any = {};
-			
+
 			if (nome !== undefined && nome !== null && nome !== '') {
 				updateData.nome = nome;
 			}
-			
+
 			if (tipo !== undefined && tipo !== null) {
 				updateData.tipo = tipo;
 			}
-			
+
 			if (interacoes_id !== undefined) {
 				updateData.interacoes_id = interacoes_id || null;
 			}
@@ -227,9 +226,9 @@ export class EtapaService {
 			}
 
 			const etapa = await this.prisma.etapas.update({
-				where: { 
+				where: {
 					id,
-					is_deleted: false // Garantir que não atualize etapas deletadas
+					is_deleted: false, // Garantir que não atualize etapas deletadas
 				},
 				data: updateData,
 			});
@@ -241,7 +240,7 @@ export class EtapaService {
 			if (error instanceof HttpException) {
 				throw error;
 			}
-			
+
 			throw new BadRequestException('Erro ao atualizar etapa');
 		}
 	}
@@ -249,7 +248,7 @@ export class EtapaService {
 	async delete(id: string) {
 		try {
 			const etapa = await this.prisma.etapas.findUnique({
-				where: { id, },
+				where: { id },
 			});
 
 			if (!etapa) {
@@ -257,18 +256,54 @@ export class EtapaService {
 			}
 
 			await this.prisma.etapas.update({
-				where: { id, },
-				data: { is_deleted: true, },
+				where: { id },
+				data: { is_deleted: true },
 			});
-			
 		} catch (error) {
 			console.error('Erro ao deletar etapa:', error);
 
 			if (error instanceof HttpException) {
 				throw error;
 			}
-			
+
 			throw new BadRequestException('Erro ao deletar etapa');
+		}
+	}
+
+	async getEtapaInicio(fluxo_id: string) {
+		try {
+			const etapa = await this.prisma.etapas.findFirst({
+				where: {
+					fluxo_id,
+					tipo: 'START',
+				},
+				omit: {
+					tenant_id: true,
+					fluxo_id: true,
+					created_at: true,
+					updated_at: true,
+					is_deleted: true,
+				},
+				include: {
+					interacoes: {
+						select: { conteudo: true, tipo: true, url_midia: true, metadados: true },
+					}
+				}
+			});
+
+			if (!etapa) {
+				throw new NotFoundException('Etapa de início não encontrada');
+			}
+
+			return etapa;
+		} catch (error) {
+			console.error('Erro ao buscar etapa de início:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+
+			throw new BadRequestException('Erro ao buscar etapa de início');
 		}
 	}
 }

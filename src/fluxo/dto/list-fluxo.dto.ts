@@ -35,12 +35,26 @@ export const FluxoResponseSchema = z.object({
 });
 
 export const FluxoEngineResponseSchema = z.object({
-	body: z.string(),
+	etapa_id: z.uuid(),
+	fluxo_id: z.uuid(),
+	conteudo: z.object({
+		mensagem: z.string().optional(),
+		file: z.object({
+			nome: z.string(),
+			url: z.string(),
+			tipo: z.enum(['imagem', 'audio', 'video', 'arquivo']),
+		}).optional(),
+	}).refine(({ file, mensagem}) => {
+		return file || mensagem;
+	}, {
+		message: 'Deve ter mensagem ou arquivo',
+		path: ['conteudo'],
+	}),
 });
 
 export const FluxoEngineInputSchema = z.object({
 	ticket_id: z.string(),
-	message: z.string(),
+	...FluxoEngineResponseSchema.shape,
 });
 
 export class ListFluxosDto extends createZodDto(ListFluxosSchema) {}

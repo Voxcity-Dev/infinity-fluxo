@@ -2,48 +2,28 @@ import { BadRequestException, HttpException, Injectable, NotFoundException } fro
 import { PrismaService } from 'src/infra/database/prisma/prisma.service';
 import type { CreateFluxoInput } from './dto/create-fluxo.dto';
 import { FluxoEngineInput, ListFluxosInput } from './dto/list-fluxo.dto';
-import { FluxoConfiguracaoChave } from '@prisma/client';
+import { Etapas, FluxoConfiguracaoChave } from '@prisma/client';
 import { UpdateFluxoConfiguracaoInput } from './dto/update-fluxo-configuracao.dto';
+import { EtapaService } from 'src/etapa/etapa.service';
+import { InteracaoTipo } from 'src/schemas';
 
 @Injectable()
 export class FluxoService {
 	constructor(
 		private readonly prisma: PrismaService,
+		private readonly etapaService: EtapaService,
 	) {}
-
-	// Exemplo de método comentado
-	/*
-	async create(data: CreateFluxoInput) {
-		try {
-			const fluxo = await this.prisma.fluxo.create({
-				data: {
-					tenant_id: data.tenant_id,
-					nome: data.nome,
-				},
-			});
-
-			return fluxo;
-		} catch (error) {
-			if (
-				error instanceof PrismaClientKnownRequestError &&
-				error.code === 'P2002' &&
-				(error.meta?.target as string[])?.includes('tenant_id') &&
-				(error.meta?.target as string[])?.includes('nome')
-			) {
-				throw new BadRequestException('Já existe um fluxo com este nome para este tenant');
-			}
-
-			console.error('Erro ao criar fluxo:', error);
-			throw new BadRequestException('Erro ao criar fluxo');
-		}
-	}
-	*/
 
 	async engine(data: FluxoEngineInput) {
 		try {
-			const { ticket_id, message } = data;
+			const { etapa_id, fluxo_id, conteudo, ticket_id } = data;
 
-			return data;
+			if (!etapa_id) {
+				const etapa = await this.etapaService.getEtapaInicio(fluxo_id);
+				return this.responseFluxoEnginer(etapa, { etapa_id: etapa.id, fluxo_id, ticket_id });
+			}
+
+			// return this.responseFluxoEnginer(data, { etapa_id, fluxo_id, ticket_id });
 			
 		} catch (error) {
 			console.error('Erro ao executar fluxo:', error);
@@ -262,5 +242,78 @@ export class FluxoService {
 			
 			throw new BadRequestException('Erro ao criar configuração default');
 		}
+	}
+
+	private responseFluxoEnginer(
+		{interacoes}: Awaited<ReturnType<typeof this.etapaService.getEtapaInicio>>, 
+		{etapa_id, fluxo_id, ticket_id}: {etapa_id: string, fluxo_id: string, ticket_id: string}
+	) {
+		if (!interacoes) return null;
+
+		// Mapear tipo de interação para função de processamento
+		const processadoresConteudo: Record<InteracaoTipo, () => any> = {
+			MESSAGE: () => ({
+				mensagem: interacoes.conteudo || '',
+			}),
+			IMAGE: () => ({
+				file: {
+					nome: this.extrairNomeArquivo(interacoes.url_midia),
+					url: interacoes.url_midia || '',
+					tipo: 'imagem'
+				}
+			}),
+			AUDIO: () => ({
+				file: {
+					nome: this.extrairNomeArquivo(interacoes.url_midia),
+					url: interacoes.url_midia || '',
+					tipo: 'audio'
+				}
+			}),
+			VIDEO: () => ({
+				file: {
+					nome: this.extrairNomeArquivo(interacoes.url_midia),
+					url: interacoes.url_midia || '',
+					tipo: 'video'
+				}
+			}),
+			FILE: () => ({
+				file: {
+					nome: this.extrairNomeArquivo(interacoes.url_midia),
+					url: interacoes.url_midia || '',
+					tipo: 'arquivo'
+				}
+			}),
+			BUTTON: () => ({
+				mensagem: JSON.stringify(interacoes.metadados) || '',
+			}),
+			SET_VARIABLE: () => ({
+				mensagem: JSON.stringify(interacoes.metadados) || '',
+			}),
+			GET_VARIABLE: () => ({
+				mensagem: JSON.stringify(interacoes.metadados) || '',
+			}),
+			API_CALL: () => ({
+				mensagem: JSON.stringify(interacoes.metadados) || '',
+			}),
+			DB_QUERY: () => ({
+				mensagem: JSON.stringify(interacoes.metadados) || '',
+			}),
+		};
+
+		// Processar conteúdo baseado no tipo
+		const conteudo = processadoresConteudo[interacoes.tipo]?.() || {};
+
+		return {
+			etapa_id,
+			fluxo_id,
+			ticket_id,
+			conteudo,
+		};
+	}
+
+	// Método auxiliar para extrair nome do arquivo da URL
+	private extrairNomeArquivo(url: string | null): string {
+		if (!url) return '';
+		return url.split('/').pop() || '';
 	}
 }

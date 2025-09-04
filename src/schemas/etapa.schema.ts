@@ -9,14 +9,14 @@ export const CreateEtapaSchema = z.object({
 	fluxo_id: z.uuid(),
 	nome: z.string().min(1).max(50),
 	tipo: NodeTypeSchema,
-	interacoes_id: z.array(z.uuid()),
+	interacoes_id: z.uuid().optional(),
 });
 
 // Schema para atualização de etapa
 export const UpdateEtapaSchema = z.object({
 	nome: z.string().min(1).max(50).optional(),
 	tipo: NodeTypeSchema.optional(),
-	interacoes_id: z.array(z.uuid()).optional(),
+	interacoes_id: z.uuid().optional(),
 });
 
 // Schema completo da etapa
@@ -26,7 +26,7 @@ export const EtapaSchema = z.object({
 	fluxo_id: z.uuid(),
 	nome: z.string().max(50),
 	tipo: NodeTypeSchema,
-	interacoes_id: z.array(z.uuid()),
+	interacoes_id: z.uuid().optional(),
 	is_deleted: z.boolean(),
 	created_at: z.string(),
 	updated_at: z.string(),

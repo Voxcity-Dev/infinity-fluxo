@@ -17,7 +17,7 @@ CREATE TABLE "SCHEMA"."etapas" (
     "fluxo_id" UUID NOT NULL,
     "nome" VARCHAR(50) NOT NULL,
     "tipo" "SCHEMA"."NodeType" NOT NULL,
-    "interacoes_id" TEXT[],
+    "interacoes_id" UUID,
     "is_deleted" BOOLEAN NOT NULL DEFAULT false,
     "created_at" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(6) NOT NULL,
@@ -121,6 +121,9 @@ CREATE INDEX "transacao_regras_tenant_id_transacao_id_idx" ON "SCHEMA"."transaca
 
 -- AddForeignKey
 ALTER TABLE "SCHEMA"."etapas" ADD CONSTRAINT "etapas_fluxo_id_fkey" FOREIGN KEY ("fluxo_id") REFERENCES "SCHEMA"."fluxos"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SCHEMA"."etapas" ADD CONSTRAINT "etapas_interacoes_id_fkey" FOREIGN KEY ("interacoes_id") REFERENCES "SCHEMA"."interacoes"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "SCHEMA"."fluxo_configuracoes" ADD CONSTRAINT "fluxo_configuracoes_fluxo_id_fkey" FOREIGN KEY ("fluxo_id") REFERENCES "SCHEMA"."fluxos"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

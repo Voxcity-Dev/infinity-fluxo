@@ -10,6 +10,7 @@ import { EtapaService } from './etapa.service';
 import { CreateEtapaDto, CreateEtapaResponseDto } from './dto/create-etapa.dto';
 import { CreateEtapaSchema } from 'src/schemas/etapa.schema';
 import { MicroserviceTokenGuard } from 'src/common/middlewares/microservice-token.guard';
+import { ListEtapasInput, ListEtapasResponseDto } from './dto/list-etapa.dto';
 
 @ApiTags('Etapa')
 @Controller('etapa')
@@ -40,4 +41,15 @@ export class EtapaController {
 		};
 	}
 	*/
+
+	@Post('find')
+	@HttpCode(200)
+	@ApiOperation({ summary: 'Listar todas as etapas' })
+	@ApiOkResponse({ description: 'Etapas listadas com sucesso', type: ListEtapasResponseDto })
+	@ApiResponse({ status: 400, description: 'Erro ao listar etapas' })
+	@ApiResponse({ status: 401, description: 'Não autorizado' })
+	async listar(@Body() params: ListEtapasInput) {
+		const etapas = await this.etapaService.findAll(params);
+		return { message: 'Etapas listadas com sucesso!', data: etapas };
+	}
 }

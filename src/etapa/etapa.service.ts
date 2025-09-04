@@ -30,10 +30,29 @@ export class EtapaService {
 	*/
 	async findAll(params: ListEtapasInput) {
 		try {
-			const { page, limit, search, tenant_id, fluxo_id, tipo } = params;
+			const { page, limit, search, tenant_id, fluxo_id, interacoes_id, tipo } = params;
+
+			// Construir o filtro where apenas com campos válidos da tabela
+			const where: any = {
+				tenant_id,
+				is_deleted: false, // Sempre filtrar registros não deletados
+			};
+
+			// Adicionar filtros opcionais apenas se fornecidos
+			if (fluxo_id) where.fluxo_id = fluxo_id;
+			if (interacoes_id) where.interacoes_id = interacoes_id;
+			if (tipo) where.tipo = tipo;
+
+			// Adicionar busca por texto no campo nome se search for fornecido
+			if (search) {
+				where.nome = {
+					contains: search,
+					mode: 'insensitive', // Busca case-insensitive
+				};
+			}
 
 			const etapas = await this.prisma.etapas.findMany({
-				where: params,
+				where,
 				skip: (page - 1) * limit,
 				take: limit,
 				orderBy: {
@@ -41,7 +60,18 @@ export class EtapaService {
 				},
 			});
 
-			return etapas;
+			// Contar total de registros para paginação
+			const total = await this.prisma.etapas.count({ where });
+
+			return {
+				data: etapas,
+				meta: {
+					page,
+					limit,
+					total,
+					totalPages: Math.ceil(total / limit),
+				},
+			};
 		} catch (error) {
 			console.error('Erro ao listar etapas:', error);
 			throw new BadRequestException('Erro ao listar etapas');

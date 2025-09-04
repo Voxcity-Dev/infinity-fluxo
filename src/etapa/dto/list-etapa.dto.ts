@@ -5,6 +5,7 @@ import { NodeTypeSchema } from 'src/schemas/etapa.schema';
 export const ListEtapasSchema = z.object({
 	tenant_id: z.uuid(),
 	fluxo_id: z.uuid().optional(),
+	interacoes_id: z.uuid().optional(),
 	page: z.number().int().min(1).default(1),
 	limit: z.number().int().min(1).max(100).default(10),
 	search: z.string().optional(),
@@ -19,7 +20,7 @@ export const ListEtapasResponseSchema = z.object({
 			fluxo_id: z.uuid(),
 			nome: z.string(),
 			tipo: NodeTypeSchema,
-			interacoes_id: z.array(z.string()),
+			interacoes_id: z.uuid(),
 			created_at: z.string(),
 			updated_at: z.string(),
 		}),

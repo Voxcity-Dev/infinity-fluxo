@@ -108,4 +108,56 @@ export class EtapaService {
 			throw new BadRequestException('Erro ao buscar etapa');
 		}
 	}
+
+	async create(data: CreateEtapaInput) {
+		try {
+			const { tenant_id, fluxo_id, nome, tipo, interacoes_id } = data;
+
+			const etapa = await this.prisma.etapas.create({
+				data: {
+					tenant_id,
+					fluxo_id,
+					nome,
+					tipo,
+					interacoes_id: interacoes_id || null,
+				},
+			});
+
+			return etapa;
+		} catch (error) {
+			console.error('Erro ao criar etapa:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+			
+			throw new BadRequestException('Erro ao criar etapa');
+		}
+	}
+
+	async delete(id: string) {
+		try {
+			const etapa = await this.prisma.etapas.findUnique({
+				where: { id, },
+			});
+
+			if (!etapa) {
+				throw new NotFoundException('Etapa não encontrada');
+			}
+
+			await this.prisma.etapas.update({
+				where: { id, },
+				data: { is_deleted: true, },
+			});
+			
+		} catch (error) {
+			console.error('Erro ao deletar etapa:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+			
+			throw new BadRequestException('Erro ao deletar etapa');
+		}
+	}
 }

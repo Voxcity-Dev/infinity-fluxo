@@ -1,4 +1,4 @@
-import { Body, Controller, Post, HttpCode, UseGuards, Param, Get } from '@nestjs/common';
+import { Body, Controller, Post, HttpCode, UseGuards, Param, Get, Delete } from '@nestjs/common';
 import {
 	ApiOkResponse,
 	ApiOperation,
@@ -7,7 +7,7 @@ import {
 } from '@nestjs/swagger';
 import { ZodPipe } from 'src/common/pipes/zod.pipe';
 import { EtapaService } from './etapa.service';
-import { CreateEtapaDto, CreateEtapaResponseDto } from './dto/create-etapa.dto';
+import { CreateEtapaDto, CreateEtapaInput, CreateEtapaResponseDto } from './dto/create-etapa.dto';
 import { CreateEtapaSchema, EtapaSchema } from 'src/schemas/etapa.schema';
 import { MicroserviceTokenGuard } from 'src/common/middlewares/microservice-token.guard';
 import { EtapaResponseDto, ListEtapasInput, ListEtapasResponseDto } from './dto/list-etapa.dto';
@@ -53,15 +53,39 @@ export class EtapaController {
 		return { message: 'Etapas listadas com sucesso!', data: etapas };
 	}
 
-	@Get(':id')
+	@Get(':etapa_id')
 	@HttpCode(200)
 	@ApiOperation({ summary: 'Buscar uma etapa por ID' })
 	@ApiOkResponse({ description: 'Etapa encontrada com sucesso', type: EtapaResponseDto })
 	@ApiResponse({ status: 400, description: 'Erro ao buscar etapa' })
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
 	@ApiResponse({ status: 404, description: 'Etapa não encontrada' })
-	async buscar(@Param('id') id: string) {
-		const etapa = await this.etapaService.findById(id);
+	async buscar(@Param('etapa_id') etapa_id: string) {
+		const etapa = await this.etapaService.findById(etapa_id);
 		return { message: 'Etapa encontrada com sucesso!', data: etapa };
 	}
+
+	@Post('create')
+	@HttpCode(200)
+	@ApiOperation({ summary: 'Criar uma nova etapa' })
+	@ApiOkResponse({ description: 'Etapa criada com sucesso', type: EtapaResponseDto })
+	@ApiResponse({ status: 400, description: 'Erro ao criar etapa' })
+	@ApiResponse({ status: 401, description: 'Não autorizado' })
+	async criar(@Body() data: CreateEtapaInput) {
+		const etapa = await this.etapaService.create(data);
+		return { message: 'Etapa criada com sucesso!', data: etapa };
+	}
+
+	@Delete(':etapa_id')
+	@HttpCode(200)
+	@ApiOperation({ summary: 'Deletar uma etapa' })
+	@ApiOkResponse({ description: 'Etapa deletada com sucesso', type: EtapaResponseDto })
+	@ApiResponse({ status: 400, description: 'Erro ao deletar etapa' })
+	@ApiResponse({ status: 401, description: 'Não autorizado' })
+	async deletar(@Param('etapa_id') etapa_id: string) {
+		const etapa = await this.etapaService.delete(etapa_id);
+		return { message: 'Etapa deletada com sucesso!', data: etapa };
+	}
+
+
 }

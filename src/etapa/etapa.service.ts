@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/infra/database/prisma/prisma.service';
 import type { CreateEtapaInput } from './dto/create-etapa.dto';
 import { ListEtapasInput } from './dto/list-etapa.dto';
@@ -74,7 +74,38 @@ export class EtapaService {
 			};
 		} catch (error) {
 			console.error('Erro ao listar etapas:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+			
 			throw new BadRequestException('Erro ao listar etapas');
+		}
+	}
+
+	async findById(id: string) {
+		try {
+			const etapa = await this.prisma.etapas.findUnique({ 
+				where: { 
+					id,
+					is_deleted: false // Garantir que não retorne etapas deletadas
+				} 
+			});
+
+			if (!etapa) {
+				throw new NotFoundException('Etapa não encontrada');
+			}
+
+			return etapa;
+
+		} catch (error) {
+			console.error('Erro ao buscar etapa:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+			
+			throw new BadRequestException('Erro ao buscar etapa');
 		}
 	}
 }

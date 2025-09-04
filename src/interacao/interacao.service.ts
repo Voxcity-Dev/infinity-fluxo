@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/infra/database/prisma/prisma.service';
 import type { CreateInteracaoInput } from './dto/create-interacao.dto';
 import { ListInteracoesInput } from './dto/list-interacao.dto';
@@ -44,7 +44,37 @@ export class InteracaoService {
 			return interacoes;
 		} catch (error) {
 			console.error('Erro ao listar interações:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+			
 			throw new BadRequestException('Erro ao listar interações');
+		}
+	}
+
+	async findById(id: string) {
+		try {
+			const interacao = await this.prisma.interacoes.findUnique({
+				where: { 
+					id,
+					is_deleted: false // Garantir que não retorne interações deletadas
+				},
+			});
+
+			if (!interacao) {
+				throw new NotFoundException('Interação não encontrada');
+			}
+
+			return interacao;
+		} catch (error) {
+			console.error('Erro ao buscar interação:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+			
+			throw new BadRequestException('Erro ao buscar interação');
 		}
 	}
 
@@ -63,6 +93,11 @@ export class InteracaoService {
 			return interacao;
 		} catch (error) {
 			console.error('Erro ao criar interação:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+			
 			throw new BadRequestException('Erro ao criar interação');
 		}
 	}
@@ -77,6 +112,11 @@ export class InteracaoService {
 
 		} catch (error) {
 			console.error('Erro ao atualizar interação:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+			
 			throw new BadRequestException('Erro ao atualizar interação');
 		}
 	}
@@ -90,6 +130,11 @@ export class InteracaoService {
 			return id;
 		} catch (error) {
 			console.error('Erro ao deletar interação:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+			
 			throw new BadRequestException('Erro ao deletar interação');
 		}
 	}

@@ -33,8 +33,20 @@ export const ListEtapasResponseSchema = z.object({
 	}),
 });
 
+export const EtapaResponseSchema = z.object({
+	id: z.uuid(),
+	tenant_id: z.uuid(),
+	fluxo_id: z.uuid(),
+	nome: z.string(),
+	tipo: NodeTypeSchema,
+	interacoes_id: z.uuid(),
+	created_at: z.string(),
+	updated_at: z.string(),
+});
+
 export class ListEtapasDto extends createZodDto(ListEtapasSchema) {}
 export class ListEtapasResponseDto extends createZodDto(ListEtapasResponseSchema) {}
+export class EtapaResponseDto extends createZodDto(EtapaResponseSchema) {}
 
 export type ListEtapasInput = z.infer<typeof ListEtapasSchema>;
 export type ListEtapasResponse = z.infer<typeof ListEtapasResponseSchema>;

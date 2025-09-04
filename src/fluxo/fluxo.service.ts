@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/infra/database/prisma/prisma.service';
 import type { CreateFluxoInput } from './dto/create-fluxo.dto';
 import { ListFluxosInput } from './dto/list-fluxo.dto';
@@ -61,6 +61,11 @@ export class FluxoService {
 			return fluxos;
 		} catch (error) {
 			console.error('Erro ao listar fluxos:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+			
 			throw new BadRequestException('Erro ao listar fluxos');
 		}
 	}
@@ -68,11 +73,24 @@ export class FluxoService {
 	async findById(fluxo_id: string) {
 		try {
 			const fluxo = await this.prisma.fluxo.findUnique({
-				where: { id: fluxo_id, },
+				where: { 
+					id: fluxo_id,
+					is_deleted: false // Garantir que não retorne fluxos deletados
+				},
 			});
+
+			if (!fluxo) {
+				throw new NotFoundException('Fluxo não encontrado');
+			}
+
 			return fluxo;
 		} catch (error) {
 			console.error('Erro ao obter fluxo:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+			
 			throw new BadRequestException('Erro ao obter fluxo');
 		}
 	}
@@ -92,6 +110,11 @@ export class FluxoService {
 			return fluxo;
 		} catch (error) {
 			console.error('Erro ao criar fluxo:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+			
 			throw new BadRequestException('Erro ao criar fluxo');
 		}
 	}
@@ -104,6 +127,11 @@ export class FluxoService {
 			});
 		} catch (error) {
 			console.error('Erro ao deletar fluxo:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+			
 			throw new BadRequestException('Erro ao deletar fluxo');
 		}
 	}
@@ -125,6 +153,11 @@ export class FluxoService {
 			return resultados;
 		} catch (error) {
 			console.error('Erro ao atualizar configurações:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+			
 			throw new BadRequestException('Erro ao atualizar configurações');
 		}
 	}
@@ -158,6 +191,11 @@ export class FluxoService {
 			console.log(`Configurações padrão criadas para fluxo ${fluxo_id}`);
 		} catch (error) {
 			console.error('Erro ao criar configuração default:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+			
 			throw new BadRequestException('Erro ao criar configuração default');
 		}
 	}

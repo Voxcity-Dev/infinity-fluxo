@@ -1,4 +1,4 @@
-import { Body, Controller, Post, HttpCode, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, HttpCode, UseGuards, Param, Get } from '@nestjs/common';
 import {
 	ApiOkResponse,
 	ApiOperation,
@@ -8,9 +8,9 @@ import {
 import { ZodPipe } from 'src/common/pipes/zod.pipe';
 import { EtapaService } from './etapa.service';
 import { CreateEtapaDto, CreateEtapaResponseDto } from './dto/create-etapa.dto';
-import { CreateEtapaSchema } from 'src/schemas/etapa.schema';
+import { CreateEtapaSchema, EtapaSchema } from 'src/schemas/etapa.schema';
 import { MicroserviceTokenGuard } from 'src/common/middlewares/microservice-token.guard';
-import { ListEtapasInput, ListEtapasResponseDto } from './dto/list-etapa.dto';
+import { EtapaResponseDto, ListEtapasInput, ListEtapasResponseDto } from './dto/list-etapa.dto';
 
 @ApiTags('Etapa')
 @Controller('etapa')
@@ -51,5 +51,17 @@ export class EtapaController {
 	async listar(@Body() params: ListEtapasInput) {
 		const etapas = await this.etapaService.findAll(params);
 		return { message: 'Etapas listadas com sucesso!', data: etapas };
+	}
+
+	@Get(':id')
+	@HttpCode(200)
+	@ApiOperation({ summary: 'Buscar uma etapa por ID' })
+	@ApiOkResponse({ description: 'Etapa encontrada com sucesso', type: EtapaResponseDto })
+	@ApiResponse({ status: 400, description: 'Erro ao buscar etapa' })
+	@ApiResponse({ status: 401, description: 'Não autorizado' })
+	@ApiResponse({ status: 404, description: 'Etapa não encontrada' })
+	async buscar(@Param('id') id: string) {
+		const etapa = await this.etapaService.findById(id);
+		return { message: 'Etapa encontrada com sucesso!', data: etapa };
 	}
 }

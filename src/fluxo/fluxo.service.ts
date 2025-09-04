@@ -1,7 +1,7 @@
 import { BadRequestException, HttpException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/infra/database/prisma/prisma.service';
 import type { CreateFluxoInput } from './dto/create-fluxo.dto';
-import { ListFluxosInput } from './dto/list-fluxo.dto';
+import { FluxoEngineInput, ListFluxosInput } from './dto/list-fluxo.dto';
 import { FluxoConfiguracaoChave } from '@prisma/client';
 import { UpdateFluxoConfiguracaoInput } from './dto/update-fluxo-configuracao.dto';
 
@@ -38,6 +38,23 @@ export class FluxoService {
 		}
 	}
 	*/
+
+	async engine(data: FluxoEngineInput) {
+		try {
+			const { ticket_id, message } = data;
+
+			return data;
+			
+		} catch (error) {
+			console.error('Erro ao executar fluxo:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+			
+			throw new BadRequestException('Erro ao executar fluxo');
+		}
+	}
 
 	async findAll(params: ListFluxosInput) {
 		try {

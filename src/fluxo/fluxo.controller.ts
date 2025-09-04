@@ -5,12 +5,10 @@ import {
 	ApiResponse,
 	ApiTags,
 } from '@nestjs/swagger';
-import { ZodPipe } from 'src/common/pipes/zod.pipe';
 import { FluxoService } from './fluxo.service';
-import { CreateFluxoDto, CreateFluxoInput, CreateFluxoResponseDto } from './dto/create-fluxo.dto';
-import { CreateFluxoSchema } from 'src/schemas/fluxo.schema';
+import { CreateFluxoInput } from './dto/create-fluxo.dto';
 import { MicroserviceTokenGuard } from 'src/common/middlewares/microservice-token.guard';
-import { FluxoResponseDto, ListFluxosInput, ListFluxosResponseDto } from './dto/list-fluxo.dto';
+import { FluxoEngineInput, FluxoEngineResponseDto, FluxoResponseDto, ListFluxosInput, ListFluxosResponseDto } from './dto/list-fluxo.dto';
 import { UpdateFluxoConfiguracaoInput } from './dto/update-fluxo-configuracao.dto';
 
 @ApiTags('Fluxo')
@@ -40,6 +38,17 @@ export class FluxoController {
 	// 		data: fluxo,
 	// 	};
 	// }
+
+	@Post()
+	@HttpCode(200)
+	@ApiOperation({ summary: 'Executar um fluxo' })
+	@ApiOkResponse({ description: 'Fluxo executado com sucesso', type: FluxoEngineResponseDto })
+	@ApiResponse({ status: 400, description: 'Erro ao executar fluxo' })
+	@ApiResponse({ status: 401, description: 'Não autorizado' })
+	async executar(@Body() data: FluxoEngineInput) {
+		const fluxo = await this.fluxoService.engine(data);
+		return { message: 'Fluxo executado com sucesso!', data: fluxo };
+	}
 
 	@Post('find')
 	@HttpCode(200)

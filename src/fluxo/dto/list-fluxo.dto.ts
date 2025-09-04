@@ -34,9 +34,20 @@ export const FluxoResponseSchema = z.object({
 	updated_at: z.string(),
 });
 
+export const FluxoEngineResponseSchema = z.object({
+	body: z.string(),
+});
+
+export const FluxoEngineInputSchema = z.object({
+	ticket_id: z.string(),
+	message: z.string(),
+});
+
 export class ListFluxosDto extends createZodDto(ListFluxosSchema) {}
 export class ListFluxosResponseDto extends createZodDto(ListFluxosResponseSchema) {}
 export class FluxoResponseDto extends createZodDto(FluxoResponseSchema) {}
+export class FluxoEngineResponseDto extends createZodDto(FluxoEngineResponseSchema) {}
 
 export type ListFluxosInput = z.infer<typeof ListFluxosSchema>;
 export type ListFluxosResponse = z.infer<typeof ListFluxosResponseSchema>;
+export type FluxoEngineInput = z.infer<typeof FluxoEngineInputSchema>;

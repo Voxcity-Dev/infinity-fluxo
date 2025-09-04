@@ -90,6 +90,72 @@ export class EtapaService {
 				where: { 
 					id,
 					is_deleted: false // Garantir que não retorne etapas deletadas
+				},
+				omit: {
+					created_at: true,
+					updated_at: true,
+				},
+				include: {
+					// Informações do fluxo pai
+					fluxo: {
+						select: {
+							id: true,
+							nome: true,
+						}
+					},
+					// Interação associada à etapa
+					interacoes: {
+						where: {
+							is_deleted: false
+						},
+						select: {
+							id: true,
+							nome: true,
+							tipo: true,
+							conteudo: true,
+							url_midia: true,
+							metadados: true,
+						}
+					},
+					// Transações da etapa com suas regras
+					transacoes: {
+						where: {
+							is_deleted: false
+						},
+						omit: {
+							tenant_id: true,
+							created_at: true,
+							updated_at: true,
+						},
+						include: {
+							regras: {
+								where: {
+									is_deleted: false
+								},
+								select: {
+									id: true,
+									transacao_id: true,
+									input: true,
+									action: true,
+									next_etapa_id: true,
+									next_fluxo_id: true,
+									queue_id: true,
+									user_id: true,
+									variable_name: true,
+									variable_value: true,
+									api_endpoint: true,
+									db_query: true,
+									priority: true,
+								},
+								orderBy: {
+									priority: 'asc'
+								}
+							}
+						},
+						orderBy: {
+							created_at: 'desc'
+						}
+					}
 				} 
 			});
 

@@ -10,6 +10,7 @@ import { TransacaoService } from './transacao.service';
 import { CreateTransacaoDto, CreateTransacaoResponseDto } from './dto/create-transacao.dto';
 import { CreateTransacaoSchema } from 'src/schemas/transacao.schema';
 import { MicroserviceTokenGuard } from 'src/common/middlewares/microservice-token.guard';
+import { ListTransacoesInput, ListTransacoesResponseDto } from './dto/list-transacao.dto';
 
 @ApiTags('Transação')
 @Controller('transacao')
@@ -40,4 +41,16 @@ export class TransacaoController {
 		};
 	}
 	*/
+	@Post('find')
+	@HttpCode(200)
+	@ApiOperation({ summary: 'Listar todas as transações' })
+	@ApiOkResponse({ description: 'Transações listadas com sucesso', type: ListTransacoesResponseDto })
+	@ApiResponse({ status: 400, description: 'Erro ao listar transações' })
+	@ApiResponse({ status: 401, description: 'Não autorizado' })
+	async listar(@Body() params: ListTransacoesInput) {
+		const transacoes = await this.transacaoService.find(params);
+		return { message: 'Transações listadas com sucesso!', data: transacoes };
+	}
+
+
 }

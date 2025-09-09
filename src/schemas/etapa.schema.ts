@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // Enum para o tipo de nó/etapa
-export const NodeTypeSchema = z.enum(['START', 'DIALOG', 'END']);
+export const NodeTypeSchema = z.enum(['INICIO', 'DIALOGO', 'FIM']);
 
 // Schema para criação de etapa
 export const CreateEtapaSchema = z.object({

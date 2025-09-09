@@ -2,12 +2,14 @@ import { Module } from '@nestjs/common';
 import { FluxoController } from './fluxo.controller';
 import { FluxoService } from './fluxo.service';
 import { PrismaModule } from 'src/infra/database/prisma/prisma.module';
-import { EtapaService } from 'src/etapa/etapa.service';
+import { EtapaModule } from 'src/etapa/etapa.module';
+import { CondicaoModule } from 'src/condicao/condicao.module';
+import { ConfigService } from 'src/common/services/config.service';
 
 @Module({
-	imports: [PrismaModule],
+	imports: [PrismaModule, EtapaModule, CondicaoModule],
 	controllers: [FluxoController],
-	providers: [FluxoService, EtapaService],
+	providers: [FluxoService, ConfigService],
 	exports: [FluxoService],
 })
 export class FluxoModule {}

@@ -2,16 +2,16 @@ import { z } from 'zod';
 
 // Enum para o tipo de interação
 export const InteracaoTipoSchema = z.enum([
-	'MESSAGE',
-	'IMAGE',
+	'MENSAGEM',
+	'IMAGEM',
 	'AUDIO',
 	'VIDEO',
-	'FILE',
-	'BUTTON',
-	'SET_VARIABLE',
-	'GET_VARIABLE',
-	'API_CALL',
-	'DB_QUERY',
+	'ARQUIVO',
+	'BOTAO',
+	'SETAR_VARIAVEL',
+	'OBTER_VARIAVEL',
+	'API',
+	'DB',
 ]);
 
 // Schema para criação de interação

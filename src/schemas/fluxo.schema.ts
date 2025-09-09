@@ -2,14 +2,14 @@ import { z } from 'zod';
 
 // Enum para as chaves de configuração do fluxo
 export const FlowConfiguracaoChaveSchema = z.enum([
-	'SEND_MESSAGE',
-	'INVALID_RESPONSE_MESSAGE',
-	'TIMEOUT_MINUTES',
-	'QUEUE_DEFAULT',
-	'USER_DEFAULT',
-	'MAX_RETRIES',
-	'AUTO_ASSIGNMENT',
-	'END_FLOW_ON_CONDITION',
+	'ENVIA_MENSAGEM',
+	'MENSAGEM_INVALIDA',
+	'TEMPO_MAXIMO',
+	'FILA_PADRAO',
+	'USUARIO_PADRAO',
+	'MAXIMO_TENTATIVAS',
+	'DISTRIBUICAO_AUTOMATICA',
+	'ENCERRAR_FLUXO_CONDIÇÃO',
 ]);
 
 // Schema para criação de fluxo

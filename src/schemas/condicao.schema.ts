@@ -2,25 +2,24 @@ import { z } from 'zod';
 
 // Enum para o tipo de ação
 export const TipoAcaoSchema = z.enum([
-	'GO_TO_ETAPA',
-	'GO_TO_FLUXO',
-	'END_FLUXO',
-	'SEND_TO_QUEUE',
-	'SEND_TO_USER',
-	'SET_VARIABLE',
-	'GET_VARIABLE',
-	'API_CALL',
-	'DB_QUERY',
+	'ETAPA',
+	'FLUXO',
+	'FILA',
+	'USUARIO',
+	'SETAR_VARIAVEL',
+	'OBTER_VARIAVEL',
+	'API',
+	'DB',
 ]);
 
 
 // Schema para atualização de transação
-export const UpdateTransacaoSchema = z.object({
+export const UpdateCondicaoSchema = z.object({
 	etapa_id: z.uuid().optional(),
 });
 
 // Schema completo da transação
-export const TransacaoSchema = z.object({
+export const CondicaoSchema = z.object({
 	id: z.uuid(),
 	tenant_id: z.uuid(),
 	etapa_id: z.uuid(),
@@ -29,14 +28,15 @@ export const TransacaoSchema = z.object({
 });
 
 // Schema para resposta da API
-export const TransacaoResponseSchema = TransacaoSchema;
+export const CondicaoResponseSchema = CondicaoSchema;
 
 // Schema para criação de regra de transação
-export const CreateTransacaoRegraSchema = z.object({
-	transacao_id: z.uuid(),
+export const CreateCondicaoRegraSchema = z.object({
+	condicao_id: z.uuid(),
 	tenant_id: z.uuid(),
 	input: z.string().max(50),
 	action: TipoAcaoSchema,
+	msg_exata: z.boolean(),
 	next_etapa_id: z.uuid().optional(),
 	next_fluxo_id: z.uuid().optional(),
 	queue_id: z.uuid().optional(),
@@ -48,21 +48,22 @@ export const CreateTransacaoRegraSchema = z.object({
 	priority: z.number().int().default(0),
 });
 
-// Schema para criação de transação
-export const CreateTransacaoSchema = z.object({
+// Schema para criação de condição
+export const CreateCondicaoSchema = z.object({
 	tenant_id: z.uuid(),
 	etapa_id: z.uuid(),
-	regras: z.array(CreateTransacaoRegraSchema),
+	regras: z.array(CreateCondicaoRegraSchema),
 });
 
 
 // Schema completo da regra de transação
-export const TransacaoRegraSchema = z.object({
+export const CondicaoRegraSchema = z.object({
 	id: z.uuid(),
-	transacao_id: z.uuid(),
+	condicao_id: z.uuid(),
 	tenant_id: z.uuid(),
 	input: z.string().max(50),
 	action: TipoAcaoSchema,
+	msg_exata: z.boolean(),
 	next_etapa_id: z.uuid().nullable(),
 	next_fluxo_id: z.uuid().nullable(),
 	queue_id: z.uuid().nullable(),
@@ -78,20 +79,20 @@ export const TransacaoRegraSchema = z.object({
 });
 
 // Schema para atualização de regra de transação
-export const UpdateTransacaoRegraSchema = z.object({
-	transacao_id: z.uuid(),
-	regras: z.array(TransacaoRegraSchema),
+export const UpdateCondicaoRegraSchema = z.object({
+	condicao_id: z.uuid(),
+	regras: z.array(CondicaoRegraSchema),
 });
 // Schema para resposta da API
-export const TransacaoRegraResponseSchema = TransacaoRegraSchema;
+export const CondicaoRegraResponseSchema = CondicaoRegraSchema;
 
 // Tipos TypeScript
 export type TipoAcao = z.infer<typeof TipoAcaoSchema>;
-export type CreateTransacao = z.infer<typeof CreateTransacaoSchema>;
-export type UpdateTransacao = z.infer<typeof UpdateTransacaoSchema>;
-export type Transacao = z.infer<typeof TransacaoSchema>;
-export type TransacaoResponse = z.infer<typeof TransacaoResponseSchema>;
-export type CreateTransacaoRegra = z.infer<typeof CreateTransacaoRegraSchema>;
-export type UpdateTransacaoRegra = z.infer<typeof UpdateTransacaoRegraSchema>;
-export type TransacaoRegra = z.infer<typeof TransacaoRegraSchema>;
-export type TransacaoRegraResponse = z.infer<typeof TransacaoRegraResponseSchema>;
+export type CreateCondicao = z.infer<typeof CreateCondicaoSchema>;
+export type UpdateCondicao = z.infer<typeof UpdateCondicaoSchema>;
+export type Condicao = z.infer<typeof CondicaoSchema>;
+export type CondicaoResponse = z.infer<typeof CondicaoResponseSchema>;
+export type CreateCondicaoRegra = z.infer<typeof CreateCondicaoRegraSchema>;
+export type UpdateCondicaoRegra = z.infer<typeof UpdateCondicaoRegraSchema>;
+export type CondicaoRegra = z.infer<typeof CondicaoRegraSchema>;
+export type CondicaoRegraResponse = z.infer<typeof CondicaoRegraResponseSchema>;

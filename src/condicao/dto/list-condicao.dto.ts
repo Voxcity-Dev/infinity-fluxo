@@ -1,14 +1,14 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
-export const ListTransacoesSchema = z.object({
+export const ListCondicoesSchema = z.object({
 	tenant_id: z.uuid(),
 	etapa_id: z.uuid().optional(),
 	page: z.number().int().min(1).default(1),
 	limit: z.number().int().min(1).max(100).default(10),
 });
 
-export const ListTransacoesResponseSchema = z.object({
+export const ListCondicoesResponseSchema = z.object({
 	data: z.array(
 		z.object({
 			id: z.uuid(),
@@ -26,8 +26,8 @@ export const ListTransacoesResponseSchema = z.object({
 	}),
 });
 
-export class ListTransacoesDto extends createZodDto(ListTransacoesSchema) {}
-export class ListTransacoesResponseDto extends createZodDto(ListTransacoesResponseSchema) {}
+export class ListCondicoesDto extends createZodDto(ListCondicoesSchema) {}
+export class ListCondicoesResponseDto extends createZodDto(ListCondicoesResponseSchema) {}
 
-export type ListTransacoesInput = z.infer<typeof ListTransacoesSchema>;
-export type ListTransacoesResponse = z.infer<typeof ListTransacoesResponseSchema>;
+export type ListCondicoesInput = z.infer<typeof ListCondicoesSchema>;
+export type ListCondicoesResponse = z.infer<typeof ListCondicoesResponseSchema>;

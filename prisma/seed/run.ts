@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { createFluxo } from './dev/fluxo';
 import { createEtapa } from './dev/etapa';
-import { createTransacao } from './dev/transacao';
+import { createCondicao } from './dev/condicao';
 import { createInteracoes } from './dev/interacao';
 
 const prisma = new PrismaClient();
@@ -18,8 +18,8 @@ async function main() {
 			console.log('--- Executando Seeders de Desenvolvimento ---');
 
 			// Limpar dados na ordem correta (respeitando foreign keys)
-			await prisma.transacaoRegra.deleteMany({});
-			await prisma.transacao.deleteMany({});
+			await prisma.condicaoRegra.deleteMany({});
+			await prisma.condicao.deleteMany({});
 			await prisma.etapas.deleteMany({});
 			await prisma.interacoes.deleteMany({});
 			await prisma.fluxoConfiguracao.deleteMany({});
@@ -28,7 +28,7 @@ async function main() {
 			const fluxos = await createFluxo(prisma);
 			await createInteracoes(prisma);
 			await createEtapa(prisma, fluxos);
-			await createTransacao(prisma, fluxos);
+			await createCondicao(prisma, fluxos);
 		},
 		production: async () => {
 			console.log('--- Executando Seeders de Produção ---');

@@ -1,18 +1,19 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
-export const ListTransacaoRegrasSchema = z.object({
-	transacao_id: z.uuid(),
+export const ListCondicaoRegrasSchema = z.object({
+	condicao_id: z.uuid(),
 });
 
-export const ListTransacaoRegrasResponseSchema = z.object({
+export const ListCondicaoRegrasResponseSchema = z.object({
 	data: z.array(
 		z.object({
 			id: z.uuid(),
-			transacao_id: z.uuid(),
+			condicao_id: z.uuid(),
 			tenant_id: z.uuid(),
 			input: z.string(),
 			action: z.string(),
+			msg_exata: z.boolean(),
 			next_etapa_id: z.string().nullable(),
 			next_fluxo_id: z.string().nullable(),
 			queue_id: z.string().nullable(),
@@ -28,10 +29,10 @@ export const ListTransacaoRegrasResponseSchema = z.object({
 	),
 });
 
-export class ListTransacaoRegrasDto extends createZodDto(ListTransacaoRegrasSchema) {}
-export class ListTransacaoRegrasResponseDto extends createZodDto(
-	ListTransacaoRegrasResponseSchema,
+export class ListCondicaoRegrasDto extends createZodDto(ListCondicaoRegrasSchema) {}
+export class ListCondicaoRegrasResponseDto extends createZodDto(
+	ListCondicaoRegrasResponseSchema,
 ) {}
 
-export type ListTransacaoRegrasInput = z.infer<typeof ListTransacaoRegrasSchema>;
-export type ListTransacaoRegrasResponse = z.infer<typeof ListTransacaoRegrasResponseSchema>;
+export type ListCondicaoRegrasInput = z.infer<typeof ListCondicaoRegrasSchema>;
+export type ListCondicaoRegrasResponse = z.infer<typeof ListCondicaoRegrasResponseSchema>;

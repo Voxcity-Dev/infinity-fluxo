@@ -1,27 +1,27 @@
 enum FluxoConfiguracaoChave {
   // Mensagem enviada quando o bot direciona o atendimento para fila ou usuário
-  SEND_MESSAGE
+  ENVIA_MENSAGEM
 
   // Mensagem de feedback caso a resposta do cliente não seja esperada
-  INVALID_RESPONSE_MESSAGE
+  MENSAGEM_INVALIDA
 
   // Tempo máximo (em minutos) de espera por uma resposta antes de tomar ação
-  TIMEOUT_MINUTES
+  TEMPO_MAXIMO
 
   // Fila padrão para encaminhamento
-  QUEUE_DEFAULT
+  FILA_PADRAO
 
   // Usuário padrão para encaminhamento
-  USER_DEFAULT
+  USUARIO_PADRAO
 
   // Número máximo de tentativas do bot para perguntar/resposta
-  MAX_RETRIES
+  MAXIMO_TENTATIVAS
 
   // Política de distribuição automática de atendimento
-  AUTO_ASSIGNMENT   // valores possíveis: NONE, RANDOM, BALANCED
+  DISTRIBUICAO_AUTOMATICA   // valores possíveis: NONE, RANDOM, BALANCED
 
   // Encerrar atendimento quando alguma condição for satisfeita
-  END_FLOW_ON_CONDITION
+  ENCERRAR_FLUXO_CONDIÇÃO
 }
 
 model FluxoConfiguracao {

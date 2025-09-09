@@ -1,7 +1,7 @@
 enum NodeType {
-  START
-  DIALOG
-  END
+  INICIO
+  DIALOGO
+  FIM
 }
 
 model Etapas {
@@ -18,7 +18,7 @@ model Etapas {
   // Relações
   fluxo       Fluxo         @relation(fields: [fluxo_id], references: [id])
   interacoes  Interacoes? @relation(fields: [interacoes_id], references: [id])
-  transacoes  Transacao[]
+  condicao  Condicao[]
 
   @@index([tenant_id, fluxo_id, tipo])
   @@map("etapas")

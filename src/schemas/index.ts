@@ -8,4 +8,4 @@ export * from './fluxo.schema';
 export * from './interacao.schema';
 
 // Exportações dos schemas de Transação
-export * from './transacao.schema';
+export * from './condicao.schema';

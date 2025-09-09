@@ -8,27 +8,6 @@ import { UpdateEtapaInput } from './dto/update-etapa.dto';
 export class EtapaService {
 	constructor(private readonly prisma: PrismaService) {}
 
-	// Exemplo de método comentado
-	/*
-	async create(data: CreateEtapaInput) {
-		try {
-			const etapa = await this.prisma.etapas.create({
-				data: {
-					tenant_id: data.tenant_id,
-					fluxo_id: data.fluxo_id,
-					nome: data.nome,
-					tipo: data.tipo,
-					interacoes_id: data.interacoes_id,
-				},
-			});
-
-			return etapa;
-		} catch (error) {
-			console.error('Erro ao criar etapa:', error);
-			throw new BadRequestException('Erro ao criar etapa');
-		}
-	}
-	*/
 	async findAll(params: ListEtapasInput) {
 		try {
 			const { page, limit, search, tenant_id, fluxo_id, interacoes_id, tipo } = params;
@@ -118,7 +97,7 @@ export class EtapaService {
 						},
 					},
 					// Transações da etapa com suas regras
-					transacoes: {
+					condicao: {
 						where: {
 							is_deleted: false,
 						},
@@ -134,7 +113,7 @@ export class EtapaService {
 								},
 								select: {
 									id: true,
-									transacao_id: true,
+									condicao_id: true,
 									input: true,
 									action: true,
 									next_etapa_id: true,
@@ -275,7 +254,7 @@ export class EtapaService {
 			const etapa = await this.prisma.etapas.findFirst({
 				where: {
 					fluxo_id,
-					tipo: 'START',
+					tipo: 'INICIO',
 				},
 				omit: {
 					tenant_id: true,
@@ -306,4 +285,32 @@ export class EtapaService {
 			throw new BadRequestException('Erro ao buscar etapa de início');
 		}
 	}
+
+	async getInteracoesByEtapaId(etapa_id: string) {
+		try {
+			const interacoes = await this.prisma.interacoes.findMany({
+				where: { etapas: { some: { id: etapa_id } }, is_deleted: false },
+			});
+
+			if (!interacoes) {
+				throw new NotFoundException('Interações não encontradas');
+			}
+
+			const interacoesMap = interacoes.map(interacao => ({
+				conteudo: interacao.conteudo,
+			}));
+
+			return interacoesMap;
+		} catch (error) {
+			console.error('Erro ao buscar interações:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+			
+			throw new BadRequestException('Erro ao buscar interações');
+		}
+	}
+
+	
 }

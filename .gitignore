@@ -61,3 +61,5 @@ test/request.http
 
 
 .gitignore
+
+prisma/migrations

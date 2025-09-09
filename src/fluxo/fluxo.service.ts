@@ -5,13 +5,17 @@ import { FluxoEngineInput, ListFluxosInput } from './dto/list-fluxo.dto';
 import { Etapas, FluxoConfiguracaoChave } from '@prisma/client';
 import { UpdateFluxoConfiguracaoInput } from './dto/update-fluxo-configuracao.dto';
 import { EtapaService } from 'src/etapa/etapa.service';
-import { InteracaoTipo } from 'src/schemas';
+import { CondicaoRegra, InteracaoTipo } from 'src/schemas';
+import { CondicaoService } from 'src/condicao/condicao.service';
+import { ConfigService } from 'src/common/services/config.service';
 
 @Injectable()
 export class FluxoService {
 	constructor(
 		private readonly prisma: PrismaService,
 		private readonly etapaService: EtapaService,
+		private readonly condicaoService: CondicaoService,
+		private readonly configService: ConfigService,
 	) {}
 
 	async engine(data: FluxoEngineInput) {
@@ -23,7 +27,22 @@ export class FluxoService {
 				return this.responseFluxoEnginer(etapa, { etapa_id: etapa.id, fluxo_id, ticket_id });
 			}
 
-			// return this.responseFluxoEnginer(data, { etapa_id, fluxo_id, ticket_id });
+			const mensagem = this.extrairMensagem(conteudo);
+			
+			// Buscar regra válida
+			const regraEncontrada = await this.condicaoService.buscarRegraValida(etapa_id, mensagem);
+			
+			// Executar ação da regra
+			const resultado = await this.executarAcaoRegra(regraEncontrada, fluxo_id, etapa_id);
+
+			return {
+				etapa_id: resultado.etapa_id,
+				conteudo: resultado.conteudo,
+				fluxo_id: resultado.fluxo_id || fluxo_id,
+				ticket_id,
+				queue_id: resultado.queue_id,
+				user_id: resultado.user_id,
+			}
 			
 		} catch (error) {
 			console.error('Erro ao executar fluxo:', error);
@@ -206,21 +225,26 @@ export class FluxoService {
 		}
 	}
 
-	private readonly configuracaoDefaults = {
-		SEND_MESSAGE: 'Seu atendimento foi encaminhado para a fila! Aguarde a resposta do atendente.',
-		INVALID_RESPONSE_MESSAGE: 'Desculpe, não entendi sua resposta. Poderia repetir?',
-		TIMEOUT_MINUTES: 'NONE',
-		QUEUE_DEFAULT: '',
-		USER_DEFAULT: '',
-		MAX_RETRIES: '3',
-		AUTO_ASSIGNMENT: 'NONE', // NONE, RANDOM, BALANCED
-		END_FLOW_ON_CONDITION: 'encerrar'
-	} as const;
+	async getInvalidResponseMessage(etapa_id: string) {
+		try {
+			const configuracao = await this.prisma.fluxoConfiguracao.findFirst({
+				where: { 
+					fluxo: { etapas: { some: { id: etapa_id } } },
+					chave: 'MENSAGEM_INVALIDA' 
+				},
+			});
+			
+			return configuracao?.valor || this.configService.configuracaoDefaults.MENSAGEM_INVALIDA;
+		} catch (error) {
+			console.error('Erro ao obter mensagem de resposta inválida:', error);
+			return this.configService.configuracaoDefaults.MENSAGEM_INVALIDA;
+		}
+	}
 
 	private async configuracaoDefault(tenant_id: string, fluxo_id: string) {
 		try {
 			// Criar todas as configurações de uma vez
-			const configuracoes = Object.entries(this.configuracaoDefaults).map(([chave, valor]) => ({
+			const configuracoes = Object.entries(this.configService.configuracaoDefaults).map(([chave, valor]) => ({
 				tenant_id,
 				fluxo_id,
 				chave: chave as FluxoConfiguracaoChave,
@@ -250,12 +274,11 @@ export class FluxoService {
 	) {
 		if (!interacoes) return null;
 
-		// Mapear tipo de interação para função de processamento
 		const processadoresConteudo: Record<InteracaoTipo, () => any> = {
-			MESSAGE: () => ({
+			MENSAGEM: () => ({
 				mensagem: interacoes.conteudo || '',
 			}),
-			IMAGE: () => ({
+			IMAGEM: () => ({
 				file: {
 					nome: this.extrairNomeArquivo(interacoes.url_midia),
 					url: interacoes.url_midia || '',
@@ -276,31 +299,30 @@ export class FluxoService {
 					tipo: 'video'
 				}
 			}),
-			FILE: () => ({
+			ARQUIVO: () => ({
 				file: {
 					nome: this.extrairNomeArquivo(interacoes.url_midia),
 					url: interacoes.url_midia || '',
 					tipo: 'arquivo'
 				}
 			}),
-			BUTTON: () => ({
+			BOTAO: () => ({
 				mensagem: JSON.stringify(interacoes.metadados) || '',
 			}),
-			SET_VARIABLE: () => ({
+			SETAR_VARIAVEL: () => ({
 				mensagem: JSON.stringify(interacoes.metadados) || '',
 			}),
-			GET_VARIABLE: () => ({
+			OBTER_VARIAVEL: () => ({
 				mensagem: JSON.stringify(interacoes.metadados) || '',
 			}),
-			API_CALL: () => ({
+			API: () => ({
 				mensagem: JSON.stringify(interacoes.metadados) || '',
 			}),
-			DB_QUERY: () => ({
+			DB: () => ({
 				mensagem: JSON.stringify(interacoes.metadados) || '',
 			}),
 		};
 
-		// Processar conteúdo baseado no tipo
 		const conteudo = processadoresConteudo[interacoes.tipo]?.() || {};
 
 		return {
@@ -311,9 +333,66 @@ export class FluxoService {
 		};
 	}
 
+	private async executarAcaoRegra(regraEncontrada: CondicaoRegra | null, fluxo_id: string, etapa_id: string) {
+		const data = {
+			etapa_id: '',
+			fluxo_id,
+			queue_id: '',
+			user_id: '',
+			conteudo: {
+				mensagem: '',
+			},
+		};
+
+		// se nenhuma regra válida encontrada, retorna resposta inválida
+		if (!regraEncontrada) {
+			console.log('Nenhuma regra válida encontrada');
+			data.conteudo.mensagem = await this.configService.getInvalidResponseMessage(etapa_id);
+			data.etapa_id = etapa_id;
+			return data;
+		}
+
+		// processa a ação da regra encontrada
+		const acao = await this.configService.verificarRegra(regraEncontrada);
+
+		// Processar mudança de etapa
+		if (acao.next_etapa_id) {
+			data.etapa_id = acao.next_etapa_id;
+			const interacoes = await this.etapaService.getInteracoesByEtapaId(acao.next_etapa_id);
+			data.conteudo = { mensagem: interacoes[0]?.conteudo || '' };
+		}
+
+		// Processar mudança de fluxo
+		if (acao.next_fluxo_id) {
+			data.fluxo_id = acao.next_fluxo_id;
+			
+			const etapaInicio = await this.etapaService.getEtapaInicio(acao.next_fluxo_id);
+			const interacoes = await this.etapaService.getInteracoesByEtapaId(etapaInicio.id);
+			
+			data.conteudo = { mensagem: interacoes[0]?.conteudo || '' };
+			data.etapa_id = etapaInicio.id;
+			data.conteudo = { mensagem: interacoes[0]?.conteudo || '' };
+		}
+
+		// Processar atribuição de fila ou usuário
+		if (acao.queue_id || acao.user_id) {
+			if (acao.queue_id) data.queue_id = acao.queue_id;
+			else if (acao.user_id) data.user_id = acao.user_id;
+			data.conteudo = { mensagem: await this.configService.getSendMessage(fluxo_id) };
+		}
+
+		return data;
+	}
+
 	// Método auxiliar para extrair nome do arquivo da URL
 	private extrairNomeArquivo(url: string | null): string {
 		if (!url) return '';
 		return url.split('/').pop() || '';
+	}
+
+	private extrairMensagem(conteudo: any): string {
+		if (conteudo.mensagem) return conteudo.mensagem;
+		if (conteudo.file) return conteudo.file.nome;
+		return '';
 	}
 }

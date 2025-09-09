@@ -12,7 +12,7 @@ import { RedisModuleConfig } from './infra/config/redis-module.config';
 
 import { FluxoModule } from './fluxo/fluxo.module';
 import { EtapaModule } from './etapa/etapa.module';
-import { TransacaoModule } from './transacao/transacao.module';
+import { CondicaoModule } from './condicao/condicao.module';
 import { InteracaoModule } from './interacao/interacao.module';
 
 @Module({
@@ -25,7 +25,7 @@ import { InteracaoModule } from './interacao/interacao.module';
 		// }),
 		FluxoModule,
 		EtapaModule,
-		TransacaoModule,
+		CondicaoModule,
 		InteracaoModule,
 	],
 	controllers: [AppController],

@@ -1,0 +1,351 @@
+import { BadRequestException, HttpException, Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from 'src/infra/database/prisma/prisma.service';
+import type { CreateCondicaoInput } from './dto/create-condicao.dto';
+import { ListCondicoesInput } from './dto/list-condicao.dto';
+import { CondicaoRegra } from 'src/schemas/condicao.schema';
+import { UpdateCondicaoRegraInput } from './dto/update-condicao-regra.dto';
+import { ConfigService } from 'src/common/services/config.service';
+import { EtapaService } from 'src/etapa/etapa.service';
+
+@Injectable()
+export class CondicaoService {
+	constructor(
+		private readonly prisma: PrismaService,
+		private readonly configService: ConfigService,
+		private readonly etapaService: EtapaService,
+	) {}
+
+	async find(params: ListCondicoesInput) {
+		try {
+			const { page, limit, tenant_id, etapa_id } = params;
+
+			const condicoes = await this.prisma.condicao.findMany({
+				where: {
+					tenant_id,
+					etapa_id,
+					is_deleted: false,
+				},
+				include: {
+					regras: true,
+				},
+				skip: (page - 1) * limit,
+				take: limit,
+				orderBy: {
+					created_at: 'desc',
+				},
+			});
+
+			const total = await this.prisma.condicao.count({
+				where: {
+					tenant_id,
+					etapa_id,
+					is_deleted: false,
+				},
+			});
+
+			// Mapear as condições para o formato de resposta
+			const condicoesMapeadas = condicoes.map(condicao => this.mapperCondicaoToResponse(condicao));
+
+			return {
+				data: condicoesMapeadas,
+				meta: {
+					page,
+					limit,
+					total,
+					totalPages: Math.ceil(total / limit),
+				},
+			};
+		} catch (error) {
+			console.error('Erro ao listar condições:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+
+			throw new BadRequestException('Erro ao listar condições');
+		}
+	}
+
+	async create(data: CreateCondicaoInput) {
+		try {
+			const { tenant_id, etapa_id, regras } = data;
+
+			// Usar condição para garantir consistência
+			const resultado = await this.prisma.$transaction(async prisma => {
+				// Criar a condição
+				const condicao = await prisma.condicao.create({
+					data: {
+						tenant_id,
+						etapa_id,
+					},
+				});
+
+				// Mapear e criar as regras usando o mapper centralizado
+				const regrasData = regras.map((regra, index) =>
+					this.mapperRegraToDatabase(regra, condicao.id, tenant_id, regra.priority || index),
+				);
+
+				console.dir(regrasData, { depth: null });
+
+				// Criar todas as regras de uma vez
+				await prisma.condicaoRegra.createMany({
+					data: regrasData,
+					skipDuplicates: true,
+				});
+
+				// Retornar a condição com suas regras
+				return await prisma.condicao.findUnique({
+					where: { id: condicao.id },
+					include: {
+						regras: {
+							where: { is_deleted: false },
+							orderBy: { priority: 'asc' },
+						},
+					},
+				});
+			});
+
+			return this.mapperCondicaoToResponse(resultado);
+		} catch (error) {
+			console.error('Erro ao criar condição:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+
+			throw new BadRequestException('Erro ao criar condição');
+		}
+	}
+
+	async updateRegras(data: UpdateCondicaoRegraInput) {
+		try {
+			const { condicao_id, regras } = data;
+
+			const resultado = await this.prisma.$transaction(async prisma => {
+				// Verificar se a condição existe
+				const condicao = await prisma.condicao.findUnique({
+					where: {
+						id: condicao_id,
+						is_deleted: false,
+					},
+				});
+
+				if (!condicao) {
+					throw new NotFoundException('Condição não encontrada');
+				}
+
+				// Se não há regras para processar, retornar condição vazia
+				if (!regras || regras.length === 0) {
+					return await prisma.condicao.findUnique({
+						where: { id: condicao_id },
+						include: {
+							regras: {
+								where: { is_deleted: false },
+								orderBy: { priority: 'asc' },
+							},
+						},
+					});
+				}
+
+				// Processar cada regra individualmente
+				for (const regra of regras) {
+					if (regra.id) {
+						// REGRA EXISTE: Atualizar apenas input, action e limpar outros campos
+						await prisma.condicaoRegra.update({
+							where: {
+								id: regra.id,
+								condicao_id,
+								is_deleted: false,
+							},
+							data: {
+								input: regra.input,
+								action: regra.action,
+								// Limpar todos os campos opcionais
+								next_etapa_id: null,
+								next_fluxo_id: null,
+								queue_id: null,
+								user_id: null,
+								variable_name: null,
+								variable_value: null,
+								api_endpoint: null,
+								db_query: null,
+								priority: regra.priority || 0,
+							},
+						});
+					} else {
+						// REGRA NÃO EXISTE: Criar nova regra
+						const novaRegra = this.mapperRegraToDatabase(
+							regra,
+							condicao_id,
+							condicao.tenant_id,
+							regra.priority || 0,
+						);
+
+						await prisma.condicaoRegra.create({
+							data: novaRegra,
+						});
+					}
+				}
+
+				// Retornar a condição com suas regras atualizadas
+				return await prisma.condicao.findUnique({
+					where: { id: condicao_id },
+					include: {
+						regras: {
+							where: { is_deleted: false },
+							orderBy: { priority: 'asc' },
+						},
+					},
+				});
+			});
+
+			return this.mapperCondicaoToResponse(resultado);
+		} catch (error) {
+			console.error('Erro ao atualizar regras da condição:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+
+			throw new BadRequestException('Erro ao atualizar regras da condição');
+		}
+	}
+
+	async deletar(condicao_id: string) {
+		try {
+			const condicao = await this.prisma.condicao.update({
+				where: { id: condicao_id },
+				data: { is_deleted: true },
+			});
+
+			return condicao;
+		} catch (error) {
+			console.error('Erro ao deletar condição:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+
+			throw new BadRequestException('Erro ao deletar condição');
+		}
+	}
+
+	async buscarRegraValida(etapa_id: string, mensagem: string) {
+		try {
+			const condicoes = await this.prisma.condicao.findMany({
+				where: { etapa_id },
+				omit: { is_deleted: true, created_at: true, updated_at: true, tenant_id: true },
+				include: {
+					regras: {
+						omit: { is_deleted: true, created_at: true, updated_at: true, tenant_id: true },
+					},
+				},
+			});
+
+			// procurar a primeira regra válida
+			let regraEncontrada: CondicaoRegra | null = null;
+
+			for (const condicao of condicoes) {
+				for (const regra of condicao.regras) {
+					if (regra.msg_exata) {
+						if (regra.input === mensagem) {
+							regraEncontrada = regra as CondicaoRegra;
+							break;
+						}
+					} else {
+						if (mensagem.includes(regra.input)) {
+							regraEncontrada = regra as CondicaoRegra;
+							break;
+						}
+					}
+				}
+				if (regraEncontrada) break;
+			}
+
+			return regraEncontrada;
+		} catch (error) {
+			console.error('Erro ao buscar regra válida:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+
+			throw new BadRequestException('Erro ao buscar regra válida');
+		}
+	}
+
+
+	/**
+	 * Mapper centralizado para converter regras de entrada em formato do banco
+	 * @param regra - Regra de entrada
+	 * @param condicao_id - ID da condição
+	 * @param tenant_id - ID do tenant
+	 * @param priority - Prioridade da regra (opcional)
+	 * @returns Objeto formatado para inserção no banco
+	 */
+	private mapperRegraToDatabase(
+		regra: any,
+		condicao_id: string,
+		tenant_id: string,
+		priority?: number,
+	) {
+		return {
+			condicao_id,
+			tenant_id,
+			input: regra.input,
+			action: regra.action,
+			msg_exata: regra.msg_exata,
+			next_etapa_id: regra.next_etapa_id || null,
+			next_fluxo_id: regra.next_fluxo_id || null,
+			queue_id: regra.queue_id || null,
+			user_id: regra.user_id || null,
+			variable_name: regra.variable_name || null,
+			variable_value: regra.variable_value || null,
+			api_endpoint: regra.api_endpoint || null,
+			db_query: regra.db_query || null,
+			priority: priority || regra.priority || 0,
+		};
+	}
+
+	/**
+	 * Mapper para converter regra do banco para formato de resposta
+	 * @param regra - Regra do banco de dados
+	 * @returns Regra formatada para resposta
+	 */
+	private mapperRegraToResponse(regra: any): CondicaoRegra {
+		return {
+			id: regra.id,
+			condicao_id: regra.condicao_id,
+			tenant_id: regra.tenant_id,
+			input: regra.input,
+			action: regra.action,
+			msg_exata: regra.msg_exata,
+			next_etapa_id: regra.next_etapa_id,
+			next_fluxo_id: regra.next_fluxo_id,
+			queue_id: regra.queue_id,
+			user_id: regra.user_id,
+			variable_name: regra.variable_name,
+			variable_value: regra.variable_value,
+			api_endpoint: regra.api_endpoint,
+			db_query: regra.db_query,
+			priority: regra.priority,
+			is_deleted: regra.is_deleted,
+			created_at: regra.created_at,
+			updated_at: regra.updated_at,
+		};
+	}
+
+	/**
+	 * Mapper para converter condição do banco para formato de resposta
+	 * @param condicao - Condição do banco de dados
+	 * @returns Transação formatada para resposta
+	 */
+	private mapperCondicaoToResponse(condicao: any) {
+		return {
+			...condicao,
+			regras: condicao.regras
+				? condicao.regras.map(regra => this.mapperRegraToResponse(regra))
+				: [],
+		};
+	}
+}

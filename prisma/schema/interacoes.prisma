@@ -12,21 +12,20 @@ enum InteracaoTipo {
 }
 
 model Interacoes {
-  id              String        @id @default(uuid()) @db.Uuid
-  nome            String        @db.VarChar(50)
-  tenant_id       String        @db.Uuid
-  tipo            InteracaoTipo
-  conteudo        String        @db.Text // texto da mensagem
-  url_midia       String?       @db.VarChar(500) // link de imagem, audio, video, etc
-  metadados       Json?         @db.JsonB // botao, schema api, etc
-  is_deleted      Boolean       @default(false)
-  created_at      DateTime      @default(now()) @db.Timestamp(6)
-  updated_at      DateTime      @updatedAt @db.Timestamp(6)
+  id         String        @id @default(uuid()) @db.Uuid
+  nome       String        @db.VarChar(50)
+  tenant_id  String        @db.Uuid
+  tipo       InteracaoTipo
+  conteudo   String        @db.Text // texto da mensagem
+  url_midia  String?       @db.VarChar(500) // link de imagem, audio, video, etc
+  metadados  Json?         @db.JsonB // botao, schema api, etc
+  is_deleted Boolean       @default(false)
+  created_at DateTime      @default(now()) @db.Timestamp(6)
+  updated_at DateTime      @updatedAt @db.Timestamp(6)
 
   // Relações
-  etapas  Etapas[]
+  etapas Etapas[]
 
   @@index([tenant_id, tipo])
-
   @@map("interacoes")
 }

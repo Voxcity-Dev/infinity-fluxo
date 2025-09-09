@@ -9,3 +9,6 @@ export * from './interacao.schema';
 
 // Exportações dos schemas de Transação
 export * from './condicao.schema';
+
+// Exportações dos schemas de Log
+export * from './log.schema';

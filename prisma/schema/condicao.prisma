@@ -1,62 +1,63 @@
 enum TipoAcao {
   // Navegação
-  ETAPA           // vai para outra etapa
-  FLUXO           // vai para outro fluxo
-  FIM             // encerra o fluxo
+  ETAPA // vai para outra etapa
+  FLUXO // vai para outro fluxo
+  FIM // encerra o fluxo
 
   // Encaminhamentos
-  FILA        // envia para fila de atendimento humano
-  USUARIO         // envia para atendente específico
+  FILA // envia para fila de atendimento humano
+  USUARIO // envia para atendente específico
 
   // Variáveis / armazenamento
-  SETAR_VARIAVEL         // atribui valor a variável do fluxo
-  OBTER_VARIAVEL         // recupera valor de variável (ex: para lógica condicional)
+  SETAR_VARIAVEL // atribui valor a variável do fluxo
+  OBTER_VARIAVEL // recupera valor de variável (ex: para lógica condicional)
 
   // Integrações / automações
-  API             // chama uma API externa
-  DB             // consulta ou grava no banco de dados
+  API // chama uma API externa
+  DB // consulta ou grava no banco de dados
 }
 
 model Condicao {
-  id              String            @id @default(uuid()) @db.Uuid
-  tenant_id       String            @db.Uuid
-  etapa_id        String            @db.Uuid // pertence a qual etapa
-  is_deleted      Boolean           @default(false)
-  created_at      DateTime          @default(now()) @db.Timestamp(6)
-  updated_at      DateTime          @updatedAt @db.Timestamp(6)
+  id         String   @id @default(uuid()) @db.Uuid
+  tenant_id  String   @db.Uuid
+  etapa_id   String   @db.Uuid // pertence a qual etapa
+  is_deleted Boolean  @default(false)
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @updatedAt @db.Timestamp(6)
 
   // Relação com Etapa
-  etapa           Etapas            @relation(fields: [etapa_id], references: [id])
+  etapa Etapas @relation(fields: [etapa_id], references: [id])
 
   // Relação com regras estruturadas
-  regras          CondicaoRegra[]
+  regras CondicaoRegra[]
 
   @@index([tenant_id, etapa_id])
   @@map("condicao")
 }
 
 model CondicaoRegra {
-  id              String      @id @default(uuid()) @db.Uuid
-  condicao_id    String      @db.Uuid
-  tenant_id       String      @db.Uuid
-  input           String      @db.VarChar(255) // valor ou regex da condição
-  msg_exata       Boolean     @default(true) // se true, input deve ser exato
-  action          TipoAcao
-  next_etapa_id   String?     @db.Uuid // se action = ETAPA
-  next_fluxo_id   String?     @db.Uuid // se action = FLUXO
-  queue_id        String?     @db.Uuid // se action = FILA
-  user_id         String?     @db.Uuid // se action = USUARIO
-  variable_name   String?     @db.VarChar(50) // se action = SETAR_VARIAVEL ou OBTER_VARIAVEL
-  variable_value  String?     @db.VarChar(50) // valor para SET_VARIABLE
-  api_endpoint    String?     @db.VarChar(50) // se action = API
-  db_query        String?     @db.VarChar(50) // se action = DB
-  priority        Int         @default(0) // ordem de execução
-  is_deleted      Boolean     @default(false)
-  created_at      DateTime    @default(now()) @db.Timestamp(6)
-  updated_at      DateTime    @updatedAt @db.Timestamp(6)
+  id             String   @id @default(uuid()) @db.Uuid
+  condicao_id    String   @db.Uuid
+  tenant_id      String   @db.Uuid
+  input          String   @db.VarChar(255) // valor ou regex da condição
+  msg_exata      Boolean  @default(true) // se true, input deve ser exato
+  action         TipoAcao
+  next_etapa_id  String?  @db.Uuid // se action = ETAPA
+  next_fluxo_id  String?  @db.Uuid // se action = FLUXO
+  queue_id       String?  @db.Uuid // se action = FILA
+  user_id        String?  @db.Uuid // se action = USUARIO
+  variable_name  String?  @db.VarChar(50) // se action = SETAR_VARIAVEL ou OBTER_VARIAVEL
+  variable_value String?  @db.VarChar(50) // valor para SET_VARIABLE
+  api_endpoint   String?  @db.VarChar(50) // se action = API
+  db_query       String?  @db.VarChar(50) // se action = DB
+  priority       Int      @default(0) // ordem de execução
+  is_deleted     Boolean  @default(false)
+  created_at     DateTime @default(now()) @db.Timestamp(6)
+  updated_at     DateTime @updatedAt @db.Timestamp(6)
 
-  // Relação com Condicao
-  condicao       Condicao   @relation(fields: [condicao_id], references: [id])
+  // Relação com Logs
+  condicao Condicao @relation(fields: [condicao_id], references: [id])
+  logs     Logs[]
 
   @@index([tenant_id, condicao_id])
   @@map("condicao_regras")

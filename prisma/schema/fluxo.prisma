@@ -18,37 +18,37 @@ enum FluxoConfiguracaoChave {
   MAXIMO_TENTATIVAS
 
   // Política de distribuição automática de atendimento
-  DISTRIBUICAO_AUTOMATICA   // valores possíveis: NONE, RANDOM, BALANCED
+  DISTRIBUICAO_AUTOMATICA // valores possíveis: NONE, RANDOM, BALANCED
 
   // Encerrar atendimento quando alguma condição for satisfeita
   ENCERRAR_FLUXO_CONDIÇÃO
 }
 
 model FluxoConfiguracao {
-  id         String                @id @default(uuid()) @db.Uuid
-  tenant_id  String                @db.Uuid
-  fluxo_id   String                @db.Uuid
+  id         String                 @id @default(uuid()) @db.Uuid
+  tenant_id  String                 @db.Uuid
+  fluxo_id   String                 @db.Uuid
   chave      FluxoConfiguracaoChave
-  valor      String                @db.Text
-  created_at DateTime              @default(now()) @db.Timestamp(6)
-  updated_at DateTime              @updatedAt @db.Timestamp(6)
+  valor      String                 @db.Text
+  created_at DateTime               @default(now()) @db.Timestamp(6)
+  updated_at DateTime               @updatedAt @db.Timestamp(6)
 
   // Relação
-  fluxo      Fluxo                 @relation(fields: [fluxo_id], references: [id])
+  fluxo Fluxo @relation(fields: [fluxo_id], references: [id])
 
   @@index([tenant_id, fluxo_id, chave])
   @@map("fluxo_configuracoes")
 }
 
 model Fluxo {
-  id             String                @id @default(uuid()) @db.Uuid
-  tenant_id      String                @db.Uuid
-  nome           String                @db.VarChar(50)
-  etapas         Etapas[]
-  configuracoes  FluxoConfiguracao[]
-  is_deleted     Boolean               @default(false)
-  created_at     DateTime              @default(now()) @db.Timestamp(6)
-  updated_at     DateTime              @updatedAt @db.Timestamp(6)
+  id            String              @id @default(uuid()) @db.Uuid
+  tenant_id     String              @db.Uuid
+  nome          String              @db.VarChar(50)
+  etapas        Etapas[]
+  configuracoes FluxoConfiguracao[]
+  is_deleted    Boolean             @default(false)
+  created_at    DateTime            @default(now()) @db.Timestamp(6)
+  updated_at    DateTime            @updatedAt @db.Timestamp(6)
 
   @@index([tenant_id, nome])
   @@map("fluxos")

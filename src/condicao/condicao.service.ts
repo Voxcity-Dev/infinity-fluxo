@@ -6,6 +6,8 @@ import { CondicaoRegra } from 'src/schemas/condicao.schema';
 import { UpdateCondicaoRegraInput } from './dto/update-condicao-regra.dto';
 import { ConfigService } from 'src/common/services/config.service';
 import { EtapaService } from 'src/etapa/etapa.service';
+import { LogService } from 'src/common/services/log.service';
+import { CreateLog } from 'src/schemas';
 
 @Injectable()
 export class CondicaoService {
@@ -13,6 +15,7 @@ export class CondicaoService {
 		private readonly prisma: PrismaService,
 		private readonly configService: ConfigService,
 		private readonly etapaService: EtapaService,
+		private readonly logService: LogService,
 	) {}
 
 	async find(params: ListCondicoesInput) {
@@ -230,11 +233,11 @@ export class CondicaoService {
 		}
 	}
 
-	async buscarRegraValida(etapa_id: string, mensagem: string) {
+	async buscarRegraValida(etapa_id: string, mensagem: string, ticket_id?: string, fluxo_id?: string) {
 		try {
 			const condicoes = await this.prisma.condicao.findMany({
 				where: { etapa_id },
-				omit: { is_deleted: true, created_at: true, updated_at: true, tenant_id: true },
+				omit: { is_deleted: true, created_at: true, updated_at: true },
 				include: {
 					regras: {
 						omit: { is_deleted: true, created_at: true, updated_at: true, tenant_id: true },
@@ -244,6 +247,14 @@ export class CondicaoService {
 
 			// procurar a primeira regra válida
 			let regraEncontrada: CondicaoRegra | null = null;
+			
+			let logData = {
+				ticket_id,
+				etapa_id,
+				fluxo_id,
+				tenant_id: condicoes[0].tenant_id
+			} as CreateLog;
+
 
 			for (const condicao of condicoes) {
 				for (const regra of condicao.regras) {
@@ -259,8 +270,17 @@ export class CondicaoService {
 						}
 					}
 				}
-				if (regraEncontrada) break;
+				if (regraEncontrada) {
+					logData.opcao_id = regraEncontrada.id
+					break
+				}
 			}
+
+			if (!regraEncontrada) {
+				logData.opcao_id = null
+			}
+
+			await this.logService.create(logData)
 
 			return regraEncontrada;
 		} catch (error) {

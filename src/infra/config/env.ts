@@ -1,5 +1,6 @@
-import 'dotenv/config';
 import { Logger } from '@nestjs/common';
+
+process.loadEnvFile();
 
 const logger = new Logger('Environment');
 

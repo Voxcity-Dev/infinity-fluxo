@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from '@nestjs/common';
@@ -9,6 +8,7 @@ import helmet from 'helmet';
 import gracefulShutdown from 'http-graceful-shutdown';
 import { z } from 'zod';
 
+process.loadEnvFile();
 z.config(z.locales.pt());
 
 async function bootstrap() {

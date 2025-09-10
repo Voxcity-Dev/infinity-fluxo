@@ -1,5 +1,6 @@
-import 'dotenv/config';
 import type { PrismaConfig } from 'prisma';
+
+process.loadEnvFile();
 
 export default {
 	schema: 'prisma/schema',

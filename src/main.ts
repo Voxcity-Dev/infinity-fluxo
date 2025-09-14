@@ -19,6 +19,8 @@ async function bootstrap() {
 
 	const isDevelopment = process.env.NODE_ENV === 'development';
 
+	app.setGlobalPrefix('fluxo')
+
 	app.use(helmet());
 	app.enableCors({
 		origin: isDevelopment ? true : ['https://www.voxcity.com.br/'],
@@ -31,8 +33,8 @@ async function bootstrap() {
 
 
 	const config = new DocumentBuilder()
-		.setTitle('Infinity Dialog')
-		.setDescription('Documentação da API Dialog do Infinity')
+		.setTitle('Infinity Fluxo')
+		.setDescription('Documentação da API Fluxo do Infinity')
 		.setVersion('1.0')
 		.addApiKey({
 			type: 'apiKey',

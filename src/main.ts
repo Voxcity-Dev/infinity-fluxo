@@ -19,7 +19,7 @@ async function bootstrap() {
 
 	const isDevelopment = process.env.NODE_ENV === 'development';
 
-	app.setGlobalPrefix('fluxo')
+	app.setGlobalPrefix('dialog')
 
 	app.use(helmet());
 	app.enableCors({

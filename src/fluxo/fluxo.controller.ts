@@ -8,8 +8,9 @@ import {
 import { FluxoService } from './fluxo.service';
 import { CreateFluxoInput } from './dto/create-fluxo.dto';
 import { MicroserviceTokenGuard } from 'src/common/middlewares/microservice-token.guard';
-import { FluxoEngineInput, FluxoEngineResponseDto, FluxoResponseDto, ListFluxosInput, ListFluxosResponseDto } from './dto/list-fluxo.dto';
+import { FluxoEngineInput, FluxoEngineResponseDto, FluxoResponseDto, ListFluxosInput, ListFluxosResponseDto, ListFluxosSchema } from './dto/list-fluxo.dto';
 import { UpdateFluxoConfiguracaoInput } from './dto/update-fluxo-configuracao.dto';
+import { ZodPipe } from 'src/common/pipes/zod.pipe';
 
 @ApiTags('Fluxo')
 @Controller('fluxo')
@@ -57,7 +58,7 @@ export class FluxoController {
 	@ApiResponse({ status: 400, description: 'Erro ao listar fluxos' })
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
 	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
-	async listar(@Body() params: ListFluxosInput) {
+	async listar(@Body(new ZodPipe(ListFluxosSchema)) params: ListFluxosInput) {
 		const fluxos = await this.fluxoService.findAll(params);
 		return { message: 'Fluxos listados com sucesso!', data: fluxos };
 	}

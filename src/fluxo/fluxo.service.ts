@@ -117,11 +117,12 @@ export class FluxoService {
 				data: {
 					tenant_id: data.tenant_id,
 					nome: data.nome,
+					descricao: data.descricao,
 				},
 			});
 
 			// Criar configurações padrão após criar o fluxo
-			await this.configuracaoDefault(data.tenant_id, fluxo.id);
+			await this.configuracaoDefault(data.tenant_id, fluxo.id, data.mensagem_finalizacao, data.mensagem_invalida);
 
 			return fluxo;
 		} catch (error) {
@@ -241,7 +242,7 @@ export class FluxoService {
 		}
 	}
 
-	private async configuracaoDefault(tenant_id: string, fluxo_id: string) {
+	private async configuracaoDefault(tenant_id: string, fluxo_id: string, mensagem_finalizacao?: string, mensagem_invalida?: string) {
 		try {
 			// Criar todas as configurações de uma vez
 			const configuracoes = Object.entries(this.configService.configuracaoDefaults).map(([chave, valor]) => ({
@@ -250,6 +251,24 @@ export class FluxoService {
 				chave: chave as FluxoConfiguracaoChave,
 				valor
 			}));
+
+			if (mensagem_finalizacao) {
+				configuracoes.push({
+					tenant_id,
+					fluxo_id,
+					chave: 'MENSAGEM_FINALIZACAO' as FluxoConfiguracaoChave,
+					valor: mensagem_finalizacao,
+				});
+			}
+
+			if (mensagem_invalida) {
+				configuracoes.push({
+					tenant_id,
+					fluxo_id,
+					chave: 'MENSAGEM_INVALIDA' as FluxoConfiguracaoChave,
+					valor: mensagem_invalida,
+				});
+			}
 
 			await this.prisma.fluxoConfiguracao.createMany({
 				data: configuracoes,

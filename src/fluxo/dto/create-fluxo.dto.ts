@@ -6,6 +6,9 @@ export const CreateFluxoResponseSchema = z.object({
 	id: z.uuid(),
 	tenant_id: z.uuid(),
 	nome: z.string(),
+	descricao: z.string().optional(),
+	mensagem_finalizacao: z.string().optional(),
+	mensagem_invalida: z.string().optional(),
 	created_at: z.string(),
 	updated_at: z.string(),
 });

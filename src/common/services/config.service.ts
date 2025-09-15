@@ -15,7 +15,8 @@ export class ConfigService {
         USUARIO_PADRAO: '',
         MAXIMO_TENTATIVAS: '3',
         DISTRIBUICAO_AUTOMATICA: 'NONE',
-        ENCERRAR_FLUXO_CONDIÇÃO: 'encerrar'
+        ENCERRAR_FLUXO_CONDIÇÃO: 'encerrar',
+        MENSAGEM_FINALIZACAO: 'Seu atendimento foi encerrado!',
     } as const;
 
     async getInvalidResponseMessage(etapa_id: string) {

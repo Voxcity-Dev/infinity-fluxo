@@ -4,6 +4,7 @@ import { z } from 'zod';
 export const FlowConfiguracaoChaveSchema = z.enum([
 	'ENVIA_MENSAGEM',
 	'MENSAGEM_INVALIDA',
+	'MENSAGEM_FINALIZACAO',
 	'TEMPO_MAXIMO',
 	'FILA_PADRAO',
 	'USUARIO_PADRAO',
@@ -16,11 +17,17 @@ export const FlowConfiguracaoChaveSchema = z.enum([
 export const CreateFluxoSchema = z.object({
 	tenant_id: z.uuid(),
 	nome: z.string().min(1).max(50),
+	descricao: z.string().optional(),
+	mensagem_finalizacao: z.string().optional(),
+	mensagem_invalida: z.string().optional(),
 });
 
 // Schema para atualização de fluxo
 export const UpdateFluxoSchema = z.object({
 	nome: z.string().min(1).max(50).optional(),
+	descricao: z.string().optional(),
+	mensagem_finalizacao: z.string().optional(),
+	mensagem_invalida: z.string().optional(),
 });
 
 // Schema completo do fluxo
@@ -28,6 +35,9 @@ export const FluxoSchema = z.object({
 	id: z.uuid(),
 	tenant_id: z.uuid(),
 	nome: z.string().max(50),
+	descricao: z.string().optional(),
+	mensagem_finalizacao: z.string().optional(),
+	mensagem_invalida: z.string().optional(),
 	etapas: z.array(z.uuid()),
 	configuracoes: z.array(z.uuid()),
 	is_deleted: z.boolean(),
@@ -44,6 +54,8 @@ export const CreateFlowConfiguracaoSchema = z.object({
 	fluxo_id: z.uuid(),
 	chave: FlowConfiguracaoChaveSchema,
 	valor: z.string(),
+	mensagem_finalizacao: z.string().optional(),
+	mensagem_invalida: z.string().optional(),
 });
 
 // Schema para atualização de configuração de fluxo
@@ -52,6 +64,8 @@ export const UpdateFlowConfiguracaoSchema = z.object({
 	  z.object({
 		id: z.uuid(),
 		valor: z.string(),
+		mensagem_finalizacao: z.string().optional(),
+		mensagem_invalida: z.string().optional(),
 	  })
 	),
   });
@@ -63,6 +77,8 @@ export const FlowConfiguracaoSchema = z.object({
 	fluxo_id: z.uuid(),
 	chave: FlowConfiguracaoChaveSchema,
 	valor: z.string(),
+	mensagem_finalizacao: z.string().optional(),
+	mensagem_invalida: z.string().optional(),
 	is_deleted: z.boolean(),
 	created_at: z.string(),
 	updated_at: z.string(),

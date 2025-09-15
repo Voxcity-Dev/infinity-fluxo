@@ -6,6 +6,8 @@ export class MicroserviceTokenGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const token = request.headers['x-microservice-token'];
 
+    console.log('body', request.body);
+
     // preciso pegar o body da requisição
     const key = request.body.key;
     

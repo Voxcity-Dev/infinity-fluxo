@@ -113,6 +113,9 @@ export class FluxoService {
 
 	async create(data: CreateFluxoInput) {
 		try {
+
+			console.log('data', data);
+
 			const fluxo = await this.prisma.fluxo.create({
 				data: {
 					tenant_id: data.tenant_id,

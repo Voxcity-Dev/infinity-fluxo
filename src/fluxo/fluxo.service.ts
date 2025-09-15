@@ -245,7 +245,12 @@ export class FluxoService {
 	private async configuracaoDefault(tenant_id: string, fluxo_id: string, mensagem_finalizacao?: string, mensagem_invalida?: string) {
 		try {
 			// Criar todas as configurações de uma vez
-			const configuracoes = Object.entries(this.configService.configuracaoDefaults).map(([chave, valor]) => ({
+			const configuracoes: Array<{
+				tenant_id: string;
+				fluxo_id: string;
+				chave: FluxoConfiguracaoChave;
+				valor: string;
+			}> = Object.entries(this.configService.configuracaoDefaults).map(([chave, valor]) => ({
 				tenant_id,
 				fluxo_id,
 				chave: chave as FluxoConfiguracaoChave,

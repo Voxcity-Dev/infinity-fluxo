@@ -139,29 +139,56 @@ export class FluxoService {
 		}
 	}
 
-	async update(data: { id: string; nome?: string }) {
+	async update(data: { id: string; nome?: string; descricao?: string; mensagem_finalizacao?: string; mensagem_invalida?: string }) {
 		try {
-			const { id, nome } = data;
+			const { id, nome, descricao, mensagem_finalizacao, mensagem_invalida } = data;
 
-			// Construir objeto de dados apenas com campos não vazios
+			// Construir objeto de dados apenas com campos não vazios para a tabela fluxo
 			const updateData: any = {};
 			
 			if (nome !== undefined && nome !== null && nome !== '') {
 				updateData.nome = nome;
 			}
 
-			// Verificar se há pelo menos um campo para atualizar
-			if (Object.keys(updateData).length === 0) {
+			if (descricao !== undefined && descricao !== null && descricao !== '') {
+				updateData.descricao = descricao;
+			}
+
+			// Verificar se há pelo menos um campo para atualizar na tabela fluxo
+			if (Object.keys(updateData).length === 0 && !mensagem_finalizacao && !mensagem_invalida) {
 				throw new BadRequestException('Nenhum campo válido fornecido para atualização');
 			}
 
-			const fluxo = await this.prisma.fluxo.update({
-				where: { 
-					id,
-					is_deleted: false // Garantir que não atualize fluxos deletados
-				},
-				data: updateData,
-			});
+			// Atualizar dados básicos do fluxo se houver
+			let fluxo: any = null;
+			if (Object.keys(updateData).length > 0) {
+				fluxo = await this.prisma.fluxo.update({
+					where: { 
+						id,
+						is_deleted: false // Garantir que não atualize fluxos deletados
+					},
+					data: updateData,
+				});
+			}
+
+			// Atualizar mensagens se fornecidas
+			if (mensagem_finalizacao || mensagem_invalida) {
+				await this.updateMensagens({
+					fluxo_id: id,
+					mensagem_finalizacao,
+					mensagem_invalida
+				});
+			}
+
+			// Se não atualizou dados básicos, buscar o fluxo atual
+			if (!fluxo) {
+				fluxo = await this.prisma.fluxo.findFirst({
+					where: { 
+						id,
+						is_deleted: false
+					}
+				});
+			}
 
 			return fluxo;
 		} catch (error) {
@@ -172,6 +199,86 @@ export class FluxoService {
 			}
 			
 			throw new BadRequestException('Erro ao atualizar fluxo');
+		}
+	}
+
+	async updateMensagens(data: { fluxo_id: string; mensagem_finalizacao?: string; mensagem_invalida?: string }) {
+		try {
+			const { fluxo_id, mensagem_finalizacao, mensagem_invalida } = data;
+
+			// Verificar se o fluxo existe
+			const fluxo = await this.prisma.fluxo.findFirst({
+				where: { 
+					id: fluxo_id,
+					is_deleted: false
+				}
+			});
+
+			if (!fluxo) {
+				throw new NotFoundException('Fluxo não encontrado');
+			}
+
+			// Atualizar mensagem de finalização se fornecida
+			if (mensagem_finalizacao !== undefined && mensagem_finalizacao !== null && mensagem_finalizacao !== '') {
+				const configExistente = await this.prisma.fluxoConfiguracao.findFirst({
+					where: {
+						fluxo_id,
+						chave: 'MENSAGEM_FINALIZACAO'
+					}
+				});
+
+				if (configExistente) {
+					await this.prisma.fluxoConfiguracao.update({
+						where: { id: configExistente.id },
+						data: { valor: mensagem_finalizacao }
+					});
+				} else {
+					await this.prisma.fluxoConfiguracao.create({
+						data: {
+							tenant_id: fluxo.tenant_id,
+							fluxo_id,
+							chave: 'MENSAGEM_FINALIZACAO',
+							valor: mensagem_finalizacao
+						}
+					});
+				}
+			}
+
+			// Atualizar mensagem inválida se fornecida
+			if (mensagem_invalida !== undefined && mensagem_invalida !== null && mensagem_invalida !== '') {
+				const configExistente = await this.prisma.fluxoConfiguracao.findFirst({
+					where: {
+						fluxo_id,
+						chave: 'MENSAGEM_INVALIDA'
+					}
+				});
+
+				if (configExistente) {
+					await this.prisma.fluxoConfiguracao.update({
+						where: { id: configExistente.id },
+						data: { valor: mensagem_invalida }
+					});
+				} else {
+					await this.prisma.fluxoConfiguracao.create({
+						data: {
+							tenant_id: fluxo.tenant_id,
+							fluxo_id,
+							chave: 'MENSAGEM_INVALIDA',
+							valor: mensagem_invalida
+						}
+					});
+				}
+			}
+
+			return { message: 'Mensagens atualizadas com sucesso' };
+		} catch (error) {
+			console.error('Erro ao atualizar mensagens:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+			
+			throw new BadRequestException('Erro ao atualizar mensagens');
 		}
 	}
 

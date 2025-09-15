@@ -11,34 +11,13 @@ import { MicroserviceTokenGuard } from 'src/common/middlewares/microservice-toke
 import { FluxoEngineInput, FluxoEngineResponseDto, FluxoResponseDto, ListFluxosInput, ListFluxosResponseDto, ListFluxosSchema } from './dto/list-fluxo.dto';
 import { UpdateFluxoConfiguracaoInput } from './dto/update-fluxo-configuracao.dto';
 import { ZodPipe } from 'src/common/pipes/zod.pipe';
+import { UpdateFluxoInput } from './dto/update-fluxo.dto';
 
 @ApiTags('Fluxo')
 @Controller('fluxo')
 @UseGuards(MicroserviceTokenGuard)
 export class FluxoController {
 	constructor(private readonly fluxoService: FluxoService) {}
-
-	// Exemplo de rota comentada
-	// @Post()
-	// @HttpCode(201)
-	// @ApiOperation({ summary: 'Criar um novo fluxo' })
-	// @ApiOkResponse({
-	// 	description: 'Fluxo criado com sucesso',
-	// 	type: CreateFluxoResponseDto,
-	// })
-	// @ApiResponse({ status: 400, description: 'Erro ao criar fluxo' })
-	// @ApiResponse({ status: 401, description: 'Não autorizado' })
-	// @ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
-	// async create(
-	// 	@Body(new ZodPipe(CreateFluxoSchema)) data: CreateFluxoDto,
-	// ) {
-	// 	const fluxo = await this.fluxoService.create(data);
-
-	// 	return {
-	// 		message: 'Fluxo criado com sucesso!',
-	// 		data: fluxo,
-	// 	};
-	// }
 
 	@Post()
 	@HttpCode(200)
@@ -94,6 +73,17 @@ export class FluxoController {
 	async deletar(@Param('fluxo_id') fluxo_id: string) {
 		const fluxo = await this.fluxoService.delete(fluxo_id);
 		return { message: 'Fluxo deletado com sucesso!', data: fluxo };
+	}
+
+	@Put(':fluxo_id')
+	@HttpCode(200)
+	@ApiOperation({ summary: 'Atualizar um fluxo' })
+	@ApiOkResponse({ description: 'Fluxo atualizado com sucesso', type: FluxoResponseDto })
+	@ApiResponse({ status: 400, description: 'Erro ao atualizar fluxo' })
+	@ApiResponse({ status: 401, description: 'Não autorizado' })
+	async atualizar(@Param('fluxo_id') fluxo_id: string, @Body() data: UpdateFluxoInput) {
+		const fluxo = await this.fluxoService.update({ id: fluxo_id, ...data });
+		return { message: 'Fluxo atualizado com sucesso!', data: fluxo };
 	}
 
 	// @Put(':fluxo_id')

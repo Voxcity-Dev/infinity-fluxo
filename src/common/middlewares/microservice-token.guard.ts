@@ -6,7 +6,7 @@ export class MicroserviceTokenGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const token = request.headers['x-microservice-token'];
 
-    console.log('cookie', request.cookies);
+    console.log('req', request);
 
     if (!token) {
       console.log('Token do microserviço não fornecido');

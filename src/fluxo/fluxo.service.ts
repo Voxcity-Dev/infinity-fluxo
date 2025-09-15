@@ -59,6 +59,8 @@ export class FluxoService {
 		try {
 			const { page, limit, search, tenant_id } = params;
 
+			console.log('params', params);
+
 			const fluxos = await this.prisma.fluxo.findMany({
 				where: {
 					tenant_id,

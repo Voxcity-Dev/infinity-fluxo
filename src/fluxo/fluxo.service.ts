@@ -59,7 +59,8 @@ export class FluxoService {
 		try {
 			const { page, limit, search, tenant_id } = params;
 
-			const fluxos = await this.prisma.fluxo.findMany({
+			// Construir objeto de query base
+			const queryOptions: any = {
 				where: {
 					tenant_id,
 					nome: {
@@ -67,12 +68,18 @@ export class FluxoService {
 					},
 					is_deleted: false,
 				},
-				skip: (page - 1) * limit,
-				take: limit,
 				orderBy: {
 					created_at: 'desc',
 				},
-			});
+			};
+
+			// Adicionar paginação apenas se page e limit estiverem presentes
+			if (page && limit) {
+				queryOptions.skip = (page - 1) * limit;
+				queryOptions.take = limit;
+			}
+
+			const fluxos = await this.prisma.fluxo.findMany(queryOptions);
 
 			return fluxos;
 		} catch (error) {

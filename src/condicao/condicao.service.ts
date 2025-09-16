@@ -22,7 +22,8 @@ export class CondicaoService {
 		try {
 			const { page, limit, tenant_id, etapa_id } = params;
 
-			const condicoes = await this.prisma.condicao.findMany({
+			// Construir objeto de query base
+			const queryOptions: any = {
 				where: {
 					tenant_id,
 					etapa_id,
@@ -31,12 +32,18 @@ export class CondicaoService {
 				include: {
 					regras: true,
 				},
-				skip: (page - 1) * limit,
-				take: limit,
 				orderBy: {
 					created_at: 'desc',
 				},
-			});
+			};
+
+			// Adicionar paginação apenas se page e limit estiverem presentes
+			if (page && limit) {
+				queryOptions.skip = (page - 1) * limit;
+				queryOptions.take = limit;
+			}
+
+			const condicoes = await this.prisma.condicao.findMany(queryOptions);
 
 			const total = await this.prisma.condicao.count({
 				where: {

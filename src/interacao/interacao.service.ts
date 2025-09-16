@@ -34,12 +34,19 @@ export class InteracaoService {
 		try {
 			const { page, limit, search, tenant_id, tipo } = params;
 
-			const interacoes = await this.prisma.interacoes.findMany({
-				where: { tenant_id: params.tenant_id, is_deleted: false },
+			// Construir objeto de query base
+			const queryOptions: any = {
+				where: { tenant_id: tenant_id, is_deleted: false },
 				orderBy: { created_at: 'asc' },
-				skip: (page - 1) * limit,
-				take: limit,
-			});
+			};
+
+			// Adicionar paginação apenas se page e limit estiverem presentes
+			if (page && limit) {
+				queryOptions.skip = (page - 1) * limit;
+				queryOptions.take = limit;
+			}
+
+			const interacoes = await this.prisma.interacoes.findMany(queryOptions);
 
 			return interacoes;
 		} catch (error) {

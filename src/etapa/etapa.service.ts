@@ -31,27 +31,44 @@ export class EtapaService {
 				};
 			}
 
-			const etapas = await this.prisma.etapas.findMany({
+			// Construir objeto de query base
+			const queryOptions: any = {
 				where,
-				skip: (page - 1) * limit,
-				take: limit,
 				orderBy: {
 					created_at: 'desc',
 				},
-			});
+			};
+
+			// Adicionar paginação apenas se page e limit estiverem presentes
+			if (page && limit) {
+				queryOptions.skip = (page - 1) * limit;
+				queryOptions.take = limit;
+			}
+
+			const etapas = await this.prisma.etapas.findMany(queryOptions);
 
 			// Contar total de registros para paginação
 			const total = await this.prisma.etapas.count({ where });
 
-			return {
-				data: etapas,
-				meta: {
-					page,
-					limit,
-					total,
-					totalPages: Math.ceil(total / limit),
-				},
-			};
+			// Retornar resposta com ou sem paginação baseado na presença dos parâmetros
+			if (page && limit) {
+				return {
+					data: etapas,
+					meta: {
+						page,
+						limit,
+						total,
+						totalPages: Math.ceil(total / limit),
+					},
+				};
+			} else {
+				return {
+					data: etapas,
+					meta: {
+						total,
+					},
+				};
+			}
 		} catch (error) {
 			console.error('Erro ao listar etapas:', error);
 

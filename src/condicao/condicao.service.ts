@@ -221,42 +221,32 @@ export class CondicaoService {
 		}
 	}
 
-	async deletar(condicao_id: string) {
+	async deletar(regra_id: string) {
 		try {
-			const resultado = await this.prisma.$transaction(async prisma => {
-				// 1. Deletar todas as regras da condição
-				await prisma.condicaoRegra.updateMany({
+			const regra = await this.prisma.$transaction(async prisma => {
+				// 1. Deletar a regra
+				await prisma.condicaoRegra.update({
 					where: { 
-						condicao_id: condicao_id,
+						id: regra_id,
 						is_deleted: false 
 					},
 					data: { is_deleted: true }
 				});
 
-				// 2. Deletar a condição
-				const condicao = await prisma.condicao.update({
-					where: { id: condicao_id },
-					data: { is_deleted: true },
-					include: {
-						regras: {
-							where: { is_deleted: false },
-							orderBy: { priority: 'asc' },
-						},
-					},
+				return await prisma.condicaoRegra.findUnique({
+					where: { id: regra_id },
 				});
-
-				return condicao;
 			});
 
-			return resultado;
+			return regra;
 		} catch (error) {
-			console.error('Erro ao deletar condição:', error);
+			console.error('Erro ao deletar regra:', error);
 
 			if (error instanceof HttpException) {
 				throw error;
 			}
 
-			throw new BadRequestException('Erro ao deletar condição');
+			throw new BadRequestException('Erro ao deletar regra');
 		}
 	}
 

@@ -55,14 +55,14 @@ export class CondicaoController {
 		return { message: 'Regras atualizadas com sucesso!', data: condicao };
 	}
 
-	@Delete(':condicao_id')
+	@Delete(':regra_id')
 	@HttpCode(200)
 	@ApiOperation({ summary: 'Deletar uma condição' })
 	@ApiOkResponse({ description: 'Condição deletada com sucesso', type: CreateCondicaoResponseDto })
 	@ApiResponse({ status: 400, description: 'Erro ao deletar condição' })
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
-	async deletar(@Param('condicao_id') condicao_id: string) {
-		const condicao = await this.condicaoService.deletar(condicao_id);
+	async deletar(@Param('regra_id') regra_id: string) {
+		const condicao = await this.condicaoService.deletar(regra_id);
 		return { message: 'Condição deletada com sucesso!', data: condicao };
 	}
 

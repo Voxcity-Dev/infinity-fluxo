@@ -173,7 +173,7 @@ export class CondicaoService {
 							data: {
 								input: regra.input,
 								action: regra.action,
-								// Limpar todos os campos opcionais
+								msg_exata: regra.msg_exata || false,
 								next_etapa_id: regra.next_etapa_id || null,
 								next_fluxo_id: regra.next_fluxo_id || null,
 								queue_id: regra.queue_id || null,

@@ -55,7 +55,7 @@ export class CondicaoController {
 		return { message: 'Regras atualizadas com sucesso!', data: condicao };
 	}
 
-	@Delete(':regra_id')
+	@Delete('regra/:regra_id')
 	@HttpCode(200)
 	@ApiOperation({ summary: 'Deletar uma condição' })
 	@ApiOkResponse({ description: 'Condição deletada com sucesso', type: CreateCondicaoResponseDto })

@@ -30,7 +30,10 @@ export class CondicaoService {
 					is_deleted: false,
 				},
 				include: {
-					regras: true,
+					regras: {
+						where: { is_deleted: false },
+						orderBy: { priority: 'asc' },
+					},
 				},
 				orderBy: {
 					created_at: 'desc',

@@ -19,8 +19,6 @@ async function bootstrap() {
 
 	const isDevelopment = process.env.NODE_ENV === 'development';
 
-	app.setGlobalPrefix('dialog')
-
 	app.use(helmet());
 	app.enableCors({
 		origin: isDevelopment ? true : ['https://www.voxcity.com.br/'],

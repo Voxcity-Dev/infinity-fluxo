@@ -28,12 +28,18 @@ export class FluxoService {
 			}
 
 			const mensagem = this.extrairMensagem(conteudo);
+
+			console.log('mensagem', mensagem);
 			
 			// Buscar regra válida
 			const regraEncontrada = await this.condicaoService.buscarRegraValida(etapa_id, mensagem, ticket_id, fluxo_id);
 			
+			console.log('regraEncontrada', regraEncontrada);
+
 			// Executar ação da regra
 			const resultado = await this.executarAcaoRegra(regraEncontrada, fluxo_id, etapa_id);
+
+			console.log('resultado da regra', resultado);
 
 			return {
 				etapa_id: resultado.etapa_id,

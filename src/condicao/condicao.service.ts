@@ -265,6 +265,10 @@ export class CondicaoService {
 				},
 			});
 
+			if (condicoes.length === 0) {
+				return null;
+			}
+
 			// procurar a primeira regra válida
 			let regraEncontrada: CondicaoRegra | null = null;
 			

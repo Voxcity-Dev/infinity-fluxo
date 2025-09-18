@@ -223,12 +223,32 @@ export class CondicaoService {
 
 	async deletar(condicao_id: string) {
 		try {
-			const condicao = await this.prisma.condicao.update({
-				where: { id: condicao_id },
-				data: { is_deleted: true },
+			const resultado = await this.prisma.$transaction(async prisma => {
+				// 1. Deletar todas as regras da condição
+				await prisma.condicaoRegra.updateMany({
+					where: { 
+						condicao_id: condicao_id,
+						is_deleted: false 
+					},
+					data: { is_deleted: true }
+				});
+
+				// 2. Deletar a condição
+				const condicao = await prisma.condicao.update({
+					where: { id: condicao_id },
+					data: { is_deleted: true },
+					include: {
+						regras: {
+							where: { is_deleted: false },
+							orderBy: { priority: 'asc' },
+						},
+					},
+				});
+
+				return condicao;
 			});
 
-			return condicao;
+			return resultado;
 		} catch (error) {
 			console.error('Erro ao deletar condição:', error);
 

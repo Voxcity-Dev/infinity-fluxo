@@ -481,14 +481,13 @@ export class FluxoService {
 			queue_id: '',
 			user_id: '',
 			conteudo: {
-				mensagem: '',
+				mensagem: [],
 			},
 		};
 
 		// se nenhuma regra válida encontrada, retorna resposta inválida
 		if (!regraEncontrada) {
-			console.log('Nenhuma regra válida encontrada');
-			data.conteudo.mensagem = await this.configService.getInvalidResponseMessage(etapa_id);
+			data.conteudo.mensagem = [await this.configService.getInvalidResponseMessage(etapa_id), await this.etapaService.getInteracoesByEtapaId(etapa_id)[0]?.conteudo || ''] as never[];
 			data.etapa_id = etapa_id;
 			return data;
 		}
@@ -500,7 +499,7 @@ export class FluxoService {
 		if (acao.next_etapa_id) {
 			data.etapa_id = acao.next_etapa_id;
 			const interacoes = await this.etapaService.getInteracoesByEtapaId(acao.next_etapa_id);
-			data.conteudo = { mensagem: interacoes[0]?.conteudo || '' };
+			data.conteudo = { mensagem: [interacoes[0]?.conteudo || ''] as never[] };
 		}
 
 		// Processar mudança de fluxo
@@ -510,16 +509,16 @@ export class FluxoService {
 			const etapaInicio = await this.etapaService.getEtapaInicio(acao.next_fluxo_id);
 			const interacoes = await this.etapaService.getInteracoesByEtapaId(etapaInicio.id);
 			
-			data.conteudo = { mensagem: interacoes[0]?.conteudo || '' };
+			data.conteudo = { mensagem: [interacoes[0]?.conteudo || ''] as never[] };
 			data.etapa_id = etapaInicio.id;
-			data.conteudo = { mensagem: interacoes[0]?.conteudo || '' };
+			data.conteudo = { mensagem: [interacoes[0]?.conteudo || ''] as never[] };
 		}
 
 		// Processar atribuição de fila ou usuário
 		if (acao.queue_id || acao.user_id) {
 			if (acao.queue_id) data.queue_id = acao.queue_id;
 			else if (acao.user_id) data.user_id = acao.user_id;
-			data.conteudo = { mensagem: await this.configService.getSendMessage(fluxo_id) };
+			data.conteudo = { mensagem: [await this.configService.getSendMessage(fluxo_id)] as never[] };
 		}
 
 		return data;

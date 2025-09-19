@@ -10,6 +10,7 @@ export const CreateEtapaSchema = z.object({
 	nome: z.string().min(1).max(50),
 	tipo: NodeTypeSchema,
 	interacoes_id: z.uuid().optional(),
+	metadados: z.object().optional(),
 });
 
 // Schema para atualização de etapa
@@ -18,6 +19,7 @@ export const UpdateEtapaSchema = z.object({
 	nome: z.string().min(1).max(50).optional(),
 	tipo: NodeTypeSchema.optional(),
 	interacoes_id: z.uuid().optional(),
+	metadados: z.object().optional(),
 });
 
 // Schema completo da etapa
@@ -31,6 +33,7 @@ export const EtapaSchema = z.object({
 	is_deleted: z.boolean(),
 	created_at: z.string(),
 	updated_at: z.string(),
+	metadados: z.object(),
 });
 
 // Schema para resposta da API (sem campos sensíveis)

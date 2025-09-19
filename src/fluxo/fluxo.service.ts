@@ -487,8 +487,12 @@ export class FluxoService {
 
 		// se nenhuma regra válida encontrada, retorna resposta inválida
 		if (!regraEncontrada) {
+			const interacoes = await this.etapaService.getInteracoesByEtapaId(etapa_id);
+			
+			console.log('interacoes', interacoes);
+
 			data.conteudo.mensagem.push(await this.configService.getInvalidResponseMessage(etapa_id) as never)
-			data.conteudo.mensagem.push(await this.etapaService.getInteracoesByEtapaId(etapa_id)[0]?.conteudo as never)
+			data.conteudo.mensagem.push(interacoes[0]?.conteudo as never)
 			data.etapa_id = etapa_id;
 			return data;
 		}

@@ -1,3 +1,5 @@
+// CONDIÇÃO
+
 enum TipoAcao {
   // Navegação
   ETAPA // vai para outra etapa

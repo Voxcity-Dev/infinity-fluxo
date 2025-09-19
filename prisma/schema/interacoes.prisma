@@ -1,3 +1,5 @@
+// INTERAÇÕES
+
 enum InteracaoTipo {
   MENSAGEM
   IMAGEM

@@ -1,3 +1,5 @@
+// FLUXO
+
 enum FluxoConfiguracaoChave {
   // Mensagem enviada quando o bot direciona o atendimento para fila ou usuário
   ENVIA_MENSAGEM

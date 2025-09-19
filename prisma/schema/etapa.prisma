@@ -1,3 +1,5 @@
+// ETAPA
+
 enum NodeType {
   INICIO
   DIALOGO

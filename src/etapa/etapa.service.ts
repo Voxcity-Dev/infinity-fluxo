@@ -173,7 +173,7 @@ export class EtapaService {
 
 	async create(data: CreateEtapaInput) {
 		try {
-			const { tenant_id, fluxo_id, nome, tipo, interacoes_id } = data;
+			const { tenant_id, fluxo_id, nome, tipo, interacoes_id, metadados } = data;
 
 			const etapa = await this.prisma.etapas.create({
 				data: {
@@ -182,6 +182,7 @@ export class EtapaService {
 					nome,
 					tipo,
 					interacoes_id: interacoes_id || null,
+					metadados: metadados,
 				},
 			});
 
@@ -199,7 +200,7 @@ export class EtapaService {
 
 	async update(data: UpdateEtapaInput) {
 		try {
-			const { id, nome, tipo, interacoes_id } = data;
+			const { id, nome, tipo, interacoes_id, metadados } = data;
 
 			// Construir objeto de dados apenas com campos não vazios
 			const updateData: any = {};
@@ -214,6 +215,10 @@ export class EtapaService {
 
 			if (interacoes_id !== undefined) {
 				updateData.interacoes_id = interacoes_id || null;
+			}
+
+			if (metadados !== undefined) {
+				updateData.metadados = metadados;
 			}
 
 			// Verificar se há pelo menos um campo para atualizar

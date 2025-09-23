@@ -61,6 +61,7 @@ export class ListFluxosDto extends createZodDto(ListFluxosSchema) {}
 export class ListFluxosResponseDto extends createZodDto(ListFluxosResponseSchema) {}
 export class FluxoResponseDto extends createZodDto(FluxoResponseSchema) {}
 export class FluxoEngineResponseDto extends createZodDto(FluxoEngineResponseSchema) {}
+export class FluxoEngineInputDto extends createZodDto(FluxoEngineInputSchema) {}
 
 export type ListFluxosInput = z.infer<typeof ListFluxosSchema>;
 export type ListFluxosResponse = z.infer<typeof ListFluxosResponseSchema>;

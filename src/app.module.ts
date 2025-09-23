@@ -19,10 +19,10 @@ import { InteracaoModule } from './interacao/interacao.module';
 	imports: [
 		PrismaModule,
 		RedisModule.forRoot(RedisModuleConfig),
-		// JwtModule.register({
-		// 	secret: process.env.SECRET_TOKEN_CORE || 'dev-secret-key',
-		// 	signOptions: { expiresIn: '1h' },
-		// }),
+		JwtModule.register({
+			secret: process.env.SECRET_TOKEN_CORE || 'dev-secret-key',
+			signOptions: { expiresIn: '1h' },
+		}),
 		FluxoModule,
 		EtapaModule,
 		CondicaoModule,

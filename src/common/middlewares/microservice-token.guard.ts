@@ -1,12 +1,25 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class MicroserviceTokenGuard implements CanActivate {
+  constructor(private jwtService: JwtService) {}
+
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
     const token = request.headers['x-microservice-token'];
 
-    console.log('body', request.body);
+    console.log('request', request);
+
+    const token_valid = this.jwtService.verify(token);
+
+    if (!token_valid) {
+      throw new UnauthorizedException('Token do microserviço inválido');
+    }
+
+    const decodedToken = this.jwtService.decode(token);
+
+    console.log('decodedToken', decodedToken);
 
     // preciso pegar o body da requisição
     const key = request.body.key;

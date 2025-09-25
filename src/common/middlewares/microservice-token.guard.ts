@@ -8,11 +8,23 @@ export class MicroserviceTokenGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
-    let token = request.headers['x-microservice-token'];
+    const token = request.headers['x-microservice-token'];
 
     const cookie = request.headers['cookie']?.split('access_token=')[1]?.split(';')[0];
 
-    if (cookie) token = cookie;
+    if (cookie) {
+      const payload = this.jwtService.verify(cookie as string, {secret: process.env.JWT_ACCESS_SECRET});
+
+      if (payload.key !== process.env.KEY ) {
+        console.log('key not found');
+        throw new UnauthorizedException('Key do microserviço inválida');
+      }
+      
+      request['micro'] = payload;
+
+      return true;
+
+    }
 
     if (!token) {
       console.log('token not found');

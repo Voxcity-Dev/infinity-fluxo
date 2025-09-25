@@ -6,7 +6,7 @@ export const UpdateCondicaoRegraResponseSchema = z.object({
 	id: z.uuid(),
 	condicao_id: z.uuid(),
 	tenant_id: z.uuid(),
-	input: z.string(),
+	input: z.string().nullable(),
 	action: z.string(),
 	msg_exata: z.boolean(),
 	next_etapa_id: z.string().nullable(),

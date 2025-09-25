@@ -38,7 +38,7 @@ export const FluxoEngineResponseSchema = z.object({
 	etapa_id: z.uuid(),
 	fluxo_id: z.uuid(),
 	conteudo: z.object({
-		mensagem: z.string().optional(),
+		mensagem: z.string().optional().array(),
 		file: z.object({
 			nome: z.string(),
 			url: z.string(),

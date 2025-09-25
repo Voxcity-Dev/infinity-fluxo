@@ -34,7 +34,7 @@ export const CondicaoResponseSchema = CondicaoSchema;
 export const CreateCondicaoRegraSchema = z.object({
 	condicao_id: z.uuid(),
 	tenant_id: z.uuid(),
-	input: z.string().max(50),
+	input: z.string().max(50).optional(),
 	action: TipoAcaoSchema,
 	msg_exata: z.boolean(),
 	next_etapa_id: z.uuid().optional(),
@@ -46,6 +46,16 @@ export const CreateCondicaoRegraSchema = z.object({
 	api_endpoint: z.string().max(50).optional(),
 	db_query: z.string().max(50).optional(),
 	priority: z.number().int().default(0),
+}).refine((data) => {
+	// Se msg_exata for true, input é obrigatório
+	if (data.msg_exata && !data.input) {
+		return false;
+	}
+	// Se msg_exata for false, input não é necessário
+	return true;
+}, {
+	message: "Quando msg_exata for true, o campo input é obrigatório",
+	path: ["input"]
 });
 
 // Schema para criação de condição
@@ -61,7 +71,7 @@ export const CondicaoRegraSchema = z.object({
 	id: z.uuid(),
 	condicao_id: z.uuid(),
 	tenant_id: z.uuid(),
-	input: z.string().max(50),
+	input: z.string().max(50).nullable(),
 	action: TipoAcaoSchema,
 	msg_exata: z.boolean(),
 	next_etapa_id: z.uuid().nullable(),
@@ -76,6 +86,16 @@ export const CondicaoRegraSchema = z.object({
 	is_deleted: z.boolean(),
 	created_at: z.string().optional(),
 	updated_at: z.string().optional(),
+}).refine((data) => {
+	// Se msg_exata for true, input é obrigatório (não pode ser null)
+	if (data.msg_exata && !data.input) {
+		return false;
+	}
+	// Se msg_exata for false, input pode ser null
+	return true;
+}, {
+	message: "Quando msg_exata for true, o campo input é obrigatório",
+	path: ["input"]
 });
 
 // Schema para atualização de regra de transação

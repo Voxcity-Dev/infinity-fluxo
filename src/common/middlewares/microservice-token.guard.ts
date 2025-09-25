@@ -1,47 +1,43 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Request } from 'express';
 
 @Injectable()
 export class MicroserviceTokenGuard implements CanActivate {
   constructor(private jwtService: JwtService) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<Request>();
     const token = request.headers['x-microservice-token'];
 
-    console.log('request', request);
-
-    const token_valid = this.jwtService.verify(token);
-
-    if (!token_valid) {
-      throw new UnauthorizedException('Token do microserviço inválido');
-    }
-
-    const decodedToken = this.jwtService.decode(token);
-
-    console.log('decodedToken', decodedToken);
-
-    // preciso pegar o body da requisição
-    const key = request.body.key;
-    
-    if (key) return true;
+    // console.log('headers');
+    // console.log(request.headers);
+    // 
+    // console.log('token');
+    // console.log(token);
 
     if (!token) {
-      console.log('Token do microserviço não fornecido');
+      console.log('token not found');
       throw new UnauthorizedException('Token do microserviço não fornecido');
     }
 
-    // Verifica se o token é válido comparando com a variável de ambiente
-    const expectedToken = process.env.MICROSERVICE_TOKEN;
-    
-    if (!expectedToken) {
-      throw new UnauthorizedException('Token do microserviço não configurado');
-    }
+    try {
+      const payload = this.jwtService.verify(token as string);
 
-    if (token !== expectedToken) {
+      if (payload.key !== process.env.KEY ) {
+        console.log('key not found');
+        throw new UnauthorizedException('Key do microserviço inválida');
+      }
+      
+      request['micro'] = payload;
+
+      return true;
+
+    } catch (error) {
+      console.log('error');
+      console.log(error);
       throw new UnauthorizedException('Token do microserviço inválido');
     }
 
-    return true;
   }
 }

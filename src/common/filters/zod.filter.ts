@@ -10,6 +10,8 @@ export class ZodFilter<T extends ZodError> implements ExceptionFilter {
 
 		const errors = z.flattenError(exception);
 
+		console.log('erros de validacao zod', JSON.stringify(errors, null, 2));
+
 		response.status(status).json({
 			success: false,
 			errors,

@@ -30,7 +30,7 @@ export class EnvironmentValidator {
 
 	private static logConfig(): void {
 		logger.log('🔧 Configuração:');
-		logger.log(`  🚀 Porta: ${process.env.PORT}`);
+		logger.log(`  🚀 Porta: ${process.env.PORT ?? 3000}`);
 		logger.log(`  🌍 Ambiente: ${process.env.NODE_ENV}`);
 	}
 }

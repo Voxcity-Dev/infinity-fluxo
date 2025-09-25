@@ -1,9 +1,8 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { PrismaModule } from './infra/database/prisma/prisma.module';
-import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
-import { AuthGuard } from './common/guards/auth.guard';
 
 import { ZodFilter } from './common/filters/zod.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
@@ -20,7 +19,7 @@ import { InteracaoModule } from './interacao/interacao.module';
 		PrismaModule,
 		RedisModule.forRoot(RedisModuleConfig),
 		JwtModule.register({
-			secret: process.env.SECRET_TOKEN_CORE || 'dev-secret-key',
+			secret: process.env.MICROSERVICE_TOKEN || 'dev-secret-key',
 			signOptions: { expiresIn: '1h' },
 		}),
 		FluxoModule,

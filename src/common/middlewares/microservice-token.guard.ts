@@ -10,11 +10,7 @@ export class MicroserviceTokenGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request>();
     let token = request.headers['x-microservice-token'];
 
-    const cookie = request.headers['cookie']?.split('acess_token=')[1];
-
-    console.log('cookie', cookie);
-
-    console.log('cookie header', request.headers['cookie']);
+    const cookie = request.headers['cookie']?.split('access_token=')[1]?.split(';')[0];
 
     if (cookie) token = cookie;
 

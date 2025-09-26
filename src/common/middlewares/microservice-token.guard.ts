@@ -12,6 +12,7 @@ export class MicroserviceTokenGuard implements CanActivate {
 
     const cookie = request.headers['cookie']?.split('access_token=')[1]?.split(';')[0];
 
+    // CASO SEJA O FRONTEND ACESSANDO O MICROSERVICO
     if (cookie) {
       const payload = this.jwtService.verify(cookie as string, {secret: process.env.JWT_ACCESS_SECRET});
 
@@ -26,6 +27,7 @@ export class MicroserviceTokenGuard implements CanActivate {
 
     }
 
+    // CASO SEJA O MICROSERVICO ACESSANDO O MICROSERVICO
     if (!token) {
       console.log('token not found');
       throw new UnauthorizedException('Token do microserviço não fornecido');

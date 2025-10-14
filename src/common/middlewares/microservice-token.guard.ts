@@ -9,12 +9,9 @@ export class MicroserviceTokenGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
     const token = request.headers['x-microservice-token'];
+    
+    const cookie = this.extractTokenFromHeader(request);
 
-    const cookie = request.headers['cookie']?.split('access_token=')[1]?.split(';')[0];
-
-    console.log('cookie', cookie);
-    console.log('token', token);
-    console.log('request', request);
 
     // CASO SEJA O FRONTEND ACESSANDO O MICROSERVICO
     if (cookie) {
@@ -55,5 +52,10 @@ export class MicroserviceTokenGuard implements CanActivate {
       throw new UnauthorizedException('Token do microserviço inválido');
     }
 
+  }
+
+  private extractTokenFromHeader(request: Request): string | undefined {
+    const [type, token] = request.headers.authorization?.split(' ') ?? [];
+    return type === 'Bearer' ? token : undefined;
   }
 }

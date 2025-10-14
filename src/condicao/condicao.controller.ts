@@ -9,8 +9,10 @@ import {
 import { CondicaoService } from './condicao.service';
 import { CreateCondicaoDto, CreateCondicaoResponseDto } from './dto/create-condicao.dto';
 import { MicroserviceTokenGuard } from 'src/common/middlewares/microservice-token.guard';
-import { ListCondicoesInput, ListCondicoesResponseDto } from './dto/list-condicao.dto';
+import { ListCondicoesInput, ListCondicoesResponseDto, ListCondicoesSchema } from './dto/list-condicao.dto';
 import { UpdateCondicaoRegraDto } from './dto/update-condicao-regra.dto';
+import { CreateCondicaoSchema, UpdateCondicaoRegraSchema } from 'src/schemas/condicao.schema';
+import { ZodPipe } from 'src/common/pipes/zod.pipe';
 
 @ApiTags('Condição')
 @ApiHeader({
@@ -28,7 +30,8 @@ export class CondicaoController {
 	@ApiOkResponse({ description: 'Condições listadas com sucesso', type: ListCondicoesResponseDto })
 	@ApiResponse({ status: 400, description: 'Erro ao listar condições' })
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
-	async listar(@Body() params: ListCondicoesInput) {
+	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
+	async listar(@Body(new ZodPipe(ListCondicoesSchema)) params: ListCondicoesInput) {
 		const condicoes = await this.condicaoService.find(params);
 		return { message: 'Condições listadas com sucesso!', data: condicoes };
 	}
@@ -39,7 +42,8 @@ export class CondicaoController {
 	@ApiOkResponse({ description: 'Condição criada com sucesso', type: CreateCondicaoResponseDto })
 	@ApiResponse({ status: 400, description: 'Erro ao criar condição' })
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
-	async criar(@Body() data: CreateCondicaoDto) {
+	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
+	async criar(@Body(new ZodPipe(CreateCondicaoSchema)) data: CreateCondicaoDto) {
 		const condicao = await this.condicaoService.create(data);
 		return { message: 'Condição criada com sucesso!', data: condicao };
 	}
@@ -50,7 +54,8 @@ export class CondicaoController {
 	@ApiOkResponse({ description: 'Regras atualizadas com sucesso', type: CreateCondicaoResponseDto })
 	@ApiResponse({ status: 400, description: 'Erro ao atualizar regras' })
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
-	async atualizar(@Body() data: UpdateCondicaoRegraDto) {
+	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
+	async atualizar(@Body(new ZodPipe(UpdateCondicaoRegraSchema)) data: UpdateCondicaoRegraDto) {
 		const condicao = await this.condicaoService.updateRegras(data);
 		return { message: 'Regras atualizadas com sucesso!', data: condicao };
 	}

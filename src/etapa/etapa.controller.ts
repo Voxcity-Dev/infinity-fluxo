@@ -10,8 +10,9 @@ import { EtapaService } from './etapa.service';
 import { CreateEtapaDto, CreateEtapaInput, CreateEtapaResponseDto } from './dto/create-etapa.dto';
 import { CreateEtapaSchema, EtapaSchema } from 'src/schemas/etapa.schema';
 import { MicroserviceTokenGuard } from 'src/common/middlewares/microservice-token.guard';
-import { EtapaResponseDto, ListEtapasInput, ListEtapasResponseDto } from './dto/list-etapa.dto';
+import { EtapaResponseDto, ListEtapasInput, ListEtapasResponseDto, ListEtapasSchema } from './dto/list-etapa.dto';
 import { UpdateEtapaInput } from './dto/update-etapa.dto';
+import { UpdateEtapaSchema } from 'src/schemas/etapa.schema';
 
 @ApiTags('Etapa')
 @Controller('etapa')
@@ -49,7 +50,8 @@ export class EtapaController {
 	@ApiOkResponse({ description: 'Etapas listadas com sucesso', type: ListEtapasResponseDto })
 	@ApiResponse({ status: 400, description: 'Erro ao listar etapas' })
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
-	async listar(@Body() params: ListEtapasInput) {
+	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
+	async listar(@Body(new ZodPipe(ListEtapasSchema)) params: ListEtapasInput) {
 		const etapas = await this.etapaService.findAll(params);
 		return { message: 'Etapas listadas com sucesso!', data: etapas };
 	}
@@ -72,7 +74,8 @@ export class EtapaController {
 	@ApiOkResponse({ description: 'Etapa criada com sucesso', type: EtapaResponseDto })
 	@ApiResponse({ status: 400, description: 'Erro ao criar etapa' })
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
-	async criar(@Body() data: CreateEtapaInput) {
+	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
+	async criar(@Body(new ZodPipe(CreateEtapaSchema)) data: CreateEtapaInput) {
 		const etapa = await this.etapaService.create(data);
 		return { message: 'Etapa criada com sucesso!', data: etapa };
 	}
@@ -83,7 +86,8 @@ export class EtapaController {
 	@ApiOkResponse({ description: 'Etapa atualizada com sucesso', type: EtapaResponseDto })
 	@ApiResponse({ status: 400, description: 'Erro ao atualizar etapa' })
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
-	async atualizar(@Body() data: UpdateEtapaInput) {
+	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
+	async atualizar(@Body(new ZodPipe(UpdateEtapaSchema)) data: UpdateEtapaInput) {
 		const etapa = await this.etapaService.update(data);
 		return { message: 'Etapa atualizada com sucesso!', data: etapa };
 	}

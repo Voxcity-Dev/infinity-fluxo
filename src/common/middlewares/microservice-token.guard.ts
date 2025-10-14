@@ -12,6 +12,9 @@ export class MicroserviceTokenGuard implements CanActivate {
     
     const cookie = this.extractTokenFromHeader(request);
 
+    console.log('cookie', cookie);
+    console.log('token', token);
+
 
     // CASO SEJA O FRONTEND ACESSANDO O MICROSERVICO
     if (cookie) {

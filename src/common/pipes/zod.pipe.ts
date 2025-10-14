@@ -8,7 +8,7 @@ export class ZodPipe implements PipeTransform {
 	transform(value: any) {
 		const result = this.schema.safeParse(value);
 		if (!result.success) {
-			const errors = result.error.errors.map((err) => ({
+			const errors = result.error.issues.map((err) => ({
 				path: err.path.join('.'),
 				message: err.message,
 			}));

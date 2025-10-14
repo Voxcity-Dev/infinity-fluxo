@@ -12,6 +12,10 @@ export class MicroserviceTokenGuard implements CanActivate {
 
     const cookie = request.headers['cookie']?.split('access_token=')[1]?.split(';')[0];
 
+    console.log('cookie', cookie);
+    console.log('token', token);
+    console.log('request', request);
+
     // CASO SEJA O FRONTEND ACESSANDO O MICROSERVICO
     if (cookie) {
       const payload = this.jwtService.verify(cookie as string, {secret: process.env.JWT_ACCESS_SECRET});

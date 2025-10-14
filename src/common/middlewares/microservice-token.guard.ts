@@ -24,6 +24,8 @@ export class MicroserviceTokenGuard implements CanActivate {
         console.log('key not found');
         throw new UnauthorizedException('Key do microserviço inválida');
       }
+
+      console.log('payload', payload);
       
       request['micro'] = payload;
 

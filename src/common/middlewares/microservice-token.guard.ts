@@ -12,9 +12,6 @@ export class MicroserviceTokenGuard implements CanActivate {
     
     const cookie = this.extractTokenFromHeader(request);
 
-    console.log('cookie', cookie);
-    console.log('token', token);
-
 
     // CASO SEJA O FRONTEND ACESSANDO O MICROSERVICO
     if (cookie) {
@@ -25,9 +22,12 @@ export class MicroserviceTokenGuard implements CanActivate {
         throw new UnauthorizedException('Key do microserviço inválida');
       }
 
-      console.log('payload', payload);
-      
       request['micro'] = payload;
+
+      // Injetar tenant_id no body se não existir
+      if (payload.tenant_id && !request.body.tenant_id) {
+        request.body.tenant_id = payload.tenant_id;
+      }
 
       return true;
 
@@ -48,6 +48,11 @@ export class MicroserviceTokenGuard implements CanActivate {
       }
       
       request['micro'] = payload;
+
+      // Injetar tenant_id no body se não existir
+      if (payload.tenant_id && !request.body.tenant_id) {
+        request.body.tenant_id = payload.tenant_id;
+      }
 
       return true;
 

@@ -101,7 +101,22 @@ export const CondicaoRegraSchema = z.object({
 // Schema para atualização de regra de transação
 export const UpdateCondicaoRegraSchema = z.object({
 	condicao_id: z.uuid(),
-	regras: z.array(CondicaoRegraSchema),
+	regras: z.array(z.object({
+		id: z.uuid().optional(),
+		input: z.string().nullable().optional(),
+		action: TipoAcaoSchema,
+		msg_exata: z.boolean(),
+		next_etapa_id: z.string().nullable().optional(),
+		next_fluxo_id: z.string().nullable().optional(),
+		queue_id: z.string().nullable().optional(),
+		user_id: z.string().nullable().optional(),
+		variable_name: z.string().nullable().optional(),
+		variable_value: z.string().nullable().optional(),
+		api_endpoint: z.string().nullable().optional(),
+		db_query: z.string().nullable().optional(),
+		priority: z.number().int(),
+		is_deleted: z.boolean().optional(),
+	}).passthrough()), // Permite campos adicionais
 });
 // Schema para resposta da API
 export const CondicaoRegraResponseSchema = CondicaoRegraSchema;

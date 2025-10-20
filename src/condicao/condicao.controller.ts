@@ -56,9 +56,7 @@ export class CondicaoController {
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
 	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
 	async atualizar(@Body(new ZodPipe(UpdateCondicaoRegraSchema)) data: UpdateCondicaoRegraDto) {
-		console.log('data', JSON.stringify(data, null, 2));
 		const condicao = await this.condicaoService.updateRegras(data);
-		console.log('condicao', JSON.stringify(condicao, null, 2));
 		return { message: 'Regras atualizadas com sucesso!', data: condicao };
 	}
 

@@ -44,7 +44,7 @@ export class ConfigService {
     }
 
     async getSendMessageQueue(queue_id: string) {
-        const configuracao = await api_core.get(`/configuracao/get-send-message-queue/${queue_id}`);
+        const configuracao = await api_core.get(`/api/setor/${queue_id}/mensagem-encaminhar`);
         return configuracao.data;
     }
 

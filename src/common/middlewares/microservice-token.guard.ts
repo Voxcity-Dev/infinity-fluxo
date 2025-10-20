@@ -8,6 +8,10 @@ export class MicroserviceTokenGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
+    // Garantir que request.body exista para evitar erros em rotas sem corpo (GET/DELETE)
+    if (!request.body || typeof request.body !== 'object') {
+      (request as any).body = {};
+    }
     const token = request.headers['x-microservice-token'];
     
     const cookie = this.extractTokenFromHeader(request);

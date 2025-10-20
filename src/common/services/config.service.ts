@@ -9,7 +9,7 @@ export class ConfigService {
     constructor(private readonly prisma: PrismaService) {}
 
     readonly configuracaoDefaults = {
-        ENVIA_MENSAGEM: 'Seu atendimento foi encaminhado para a fila! Mensagem padrão.',
+        ENVIA_MENSAGEM: 'Seu atendimento foi encaminhado para a fila!',
         MENSAGEM_INVALIDA: 'Desculpe, não entendi sua resposta. Poderia repetir?',
         TEMPO_MAXIMO: 'NONE',
         FILA_PADRAO: '',
@@ -45,6 +45,11 @@ export class ConfigService {
 
     async getSendMessageQueue(queue_id: string) {
         const configuracao = await api_core.get(`/api/setor/${queue_id}/mensagem-encaminhar`);
+
+        if (configuracao.status === 404) {
+            return this.configuracaoDefaults.ENVIA_MENSAGEM;
+        }
+
         return configuracao.data;
     }
 

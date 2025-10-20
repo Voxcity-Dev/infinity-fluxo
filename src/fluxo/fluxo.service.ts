@@ -520,17 +520,27 @@ export class FluxoService {
 		// Processar atribuição de fila ou usuário
 		if (acao.queue_id || acao.user_id) {
 			let mensagem_encaminhamento = '';
-			
+			let mensagem_fora_horario = '';
+			let mensagem: string[] = [];
+
 			if (acao.queue_id) {
 				data.queue_id = acao.queue_id
 				mensagem_encaminhamento = await this.configService.getSendMessageQueue(acao.queue_id);
+				mensagem_fora_horario = await this.configService.getSendMessageOutOfHour(acao.queue_id);
 			}
 			else if (acao.user_id) {
 				data.user_id = acao.user_id
 				mensagem_encaminhamento = await this.configService.getSendMessageDefault(fluxo_id);
 			}
+
+			if (mensagem_fora_horario) {
+				mensagem = [mensagem_encaminhamento, mensagem_fora_horario];
+			} 
+			else {
+				mensagem = [mensagem_encaminhamento];
+			}
 			
-			data.conteudo = { mensagem: [mensagem_encaminhamento] as never[] };
+			data.conteudo = { mensagem: mensagem as never[] };
 		}
 
 		return data;

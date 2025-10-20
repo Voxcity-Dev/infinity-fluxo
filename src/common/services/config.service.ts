@@ -18,6 +18,7 @@ export class ConfigService {
         DISTRIBUICAO_AUTOMATICA: 'NONE',
         ENCERRAR_FLUXO_CONDIÇÃO: 'encerrar',
         MENSAGEM_FINALIZACAO: 'Seu atendimento foi encerrado!',
+        MENSAGEM_FORA_HORARIO: 'No momento estamos fora do horário de atendimento. Por favor, tente novamente mais tarde.',
     } as const;
 
     async getInvalidResponseMessage(etapa_id: string) {
@@ -52,6 +53,15 @@ export class ConfigService {
             return this.configuracaoDefaults.ENVIA_MENSAGEM;
         }
 
+    }
+
+    async getSendMessageOutOfHour(queue_id: string) {
+        try {
+            const configuracao = await api_core.get(`/api/setor/${queue_id}/mensagem-fora-horario`);
+            return configuracao.data;
+        } catch (error) {
+            return this.configuracaoDefaults.MENSAGEM_FORA_HORARIO;
+        }
     }
 
     async verificarRegra(regra: CondicaoRegra) {

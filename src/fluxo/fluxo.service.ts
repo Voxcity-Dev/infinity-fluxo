@@ -534,7 +534,7 @@ export class FluxoService {
 			}
 
 			if (mensagem_fora_horario) {
-				mensagem = [mensagem_encaminhamento, mensagem_fora_horario];
+				mensagem = [ mensagem_fora_horario, mensagem_encaminhamento];
 			} 
 			else {
 				mensagem = [mensagem_encaminhamento];

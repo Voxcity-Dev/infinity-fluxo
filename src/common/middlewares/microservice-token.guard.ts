@@ -9,9 +9,9 @@ export class MicroserviceTokenGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
     // Garante que body exista em requisições sem corpo (ex.: GET/DELETE)
-    // if (!request.body || typeof request.body !== 'object') {
-    //   (request as any).body = {};
-    // }
+    if (!request.body || typeof request.body !== 'object') {
+      (request as any).body = {};
+    }
     const token = request.headers['x-microservice-token'];
     const cookie = this.extractTokenFromHeader(request);
 
@@ -35,8 +35,9 @@ export class MicroserviceTokenGuard implements CanActivate {
         request['tenant_id'] = payload.tenant_id;
       }
 
-      // Injetar tenant_id no body se não existir
+      // Injetar tenant_id no body e request para fácil acesso
       if (payload.tenant_id) {
+        (request as any).body = (request as any).body || {};
         request.body.tenant_id = payload.tenant_id;
       }
 
@@ -65,6 +66,7 @@ export class MicroserviceTokenGuard implements CanActivate {
 
       // Injetar tenant_id no body se não existir
       if (payload.tenant_id && !request.body.tenant_id) {
+        (request as any).body = (request as any).body || {};
         request.body.tenant_id = payload.tenant_id;
       }
 

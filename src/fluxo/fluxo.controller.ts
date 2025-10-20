@@ -30,7 +30,6 @@ export class FluxoController {
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
 	async executar(@Body() data: FluxoEngineInput) {
 		const fluxo = await this.fluxoService.engine(data);
-		console.log('fluxo', JSON.stringify(fluxo, null, 2));
 		return { message: 'Fluxo executado com sucesso!', data: fluxo };
 	}
 

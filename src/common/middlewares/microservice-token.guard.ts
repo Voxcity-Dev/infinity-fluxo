@@ -15,17 +15,11 @@ export class MicroserviceTokenGuard implements CanActivate {
     const token = request.headers['x-microservice-token'];
     const cookie = this.extractTokenFromHeader(request);
 
-    console.log('cookie', cookie);
-    console.log('token', token);
-
     // CASO SEJA O FRONTEND ACESSANDO O MICROSERVICO
     if (cookie) {
       const payload = this.jwtService.verify(cookie as string, {secret: process.env.JWT_ACCESS_SECRET});
 
-      console.log('payload', payload);
-
       if (payload.key !== process.env.KEY ) {
-        console.log('key not found');
         throw new UnauthorizedException('Key do microserviço inválida');
       }
 
@@ -47,7 +41,6 @@ export class MicroserviceTokenGuard implements CanActivate {
 
     // CASO SEJA O MICROSERVICO ACESSANDO O MICROSERVICO
     if (!token) {
-      console.log('token not found');
       throw new UnauthorizedException('Token do microserviço não fornecido');
     }
 
@@ -55,7 +48,6 @@ export class MicroserviceTokenGuard implements CanActivate {
       const payload = this.jwtService.verify(token as string);
 
       if (payload.key !== process.env.KEY ) {
-        console.log('key not found');
         throw new UnauthorizedException('Key do microserviço inválida');
       }
       
@@ -73,8 +65,6 @@ export class MicroserviceTokenGuard implements CanActivate {
       return true;
 
     } catch (error) {
-      console.log('error');
-      console.log(error);
       throw new UnauthorizedException('Token do microserviço inválido');
     }
 

@@ -20,6 +20,8 @@ export class MicroserviceTokenGuard implements CanActivate {
     if (cookie) {
       const payload = this.jwtService.verify(cookie as string, {secret: process.env.JWT_ACCESS_SECRET});
 
+      console.log('payload', payload);
+
       if (payload.key !== process.env.KEY ) {
         console.log('key not found');
         throw new UnauthorizedException('Key do microserviço inválida');

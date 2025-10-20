@@ -44,13 +44,14 @@ export class ConfigService {
     }
 
     async getSendMessageQueue(queue_id: string) {
-        const configuracao = await api_core.get(`/api/setor/${queue_id}/mensagem-encaminhar`);
-
-        if (configuracao.status === 404) {
+        try {
+            const configuracao = await api_core.get(`/api/setor/${queue_id}/mensagem-encaminhar`);
+            return configuracao.data;
+            
+        } catch (error) {
             return this.configuracaoDefaults.ENVIA_MENSAGEM;
         }
 
-        return configuracao.data;
     }
 
     async verificarRegra(regra: CondicaoRegra) {

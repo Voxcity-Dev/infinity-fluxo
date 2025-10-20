@@ -2,12 +2,12 @@ import { BadRequestException, HttpException, Injectable, NotFoundException } fro
 import { PrismaService } from 'src/infra/database/prisma/prisma.service';
 import type { CreateFluxoInput } from './dto/create-fluxo.dto';
 import { FluxoEngineInput, ListFluxosInput } from './dto/list-fluxo.dto';
-import { Etapas, FluxoConfiguracaoChave } from '@prisma/client';
 import { UpdateFluxoConfiguracaoInput } from './dto/update-fluxo-configuracao.dto';
 import { EtapaService } from 'src/etapa/etapa.service';
 import { CondicaoRegra, InteracaoTipo } from 'src/schemas';
 import { CondicaoService } from 'src/condicao/condicao.service';
 import { ConfigService } from 'src/common/services/config.service';
+import { FlowConfiguracaoChave } from 'src/schemas/fluxo.schema';
 
 @Injectable()
 export class FluxoService {
@@ -365,12 +365,12 @@ export class FluxoService {
 			const configuracoes: Array<{
 				tenant_id: string;
 				fluxo_id: string;
-				chave: FluxoConfiguracaoChave;
+				chave: FlowConfiguracaoChave;
 				valor: string;
 			}> = Object.entries(this.configService.configuracaoDefaults).map(([chave, valor]) => ({
 				tenant_id,
 				fluxo_id,
-				chave: chave as FluxoConfiguracaoChave,
+				chave: chave as FlowConfiguracaoChave,
 				valor
 			}));
 
@@ -378,7 +378,7 @@ export class FluxoService {
 				configuracoes.push({
 					tenant_id,
 					fluxo_id,
-					chave: 'MENSAGEM_FINALIZACAO' as FluxoConfiguracaoChave,
+					chave: 'MENSAGEM_FINALIZACAO' as FlowConfiguracaoChave,
 					valor: mensagem_finalizacao,
 				});
 			}
@@ -387,7 +387,7 @@ export class FluxoService {
 				configuracoes.push({
 					tenant_id,
 					fluxo_id,
-					chave: 'MENSAGEM_INVALIDA' as FluxoConfiguracaoChave,
+					chave: 'MENSAGEM_INVALIDA' as FlowConfiguracaoChave,
 					valor: mensagem_invalida,
 				});
 			}
@@ -519,9 +519,18 @@ export class FluxoService {
 
 		// Processar atribuição de fila ou usuário
 		if (acao.queue_id || acao.user_id) {
-			if (acao.queue_id) data.queue_id = acao.queue_id;
-			else if (acao.user_id) data.user_id = acao.user_id;
-			data.conteudo = { mensagem: [await this.configService.getSendMessage(fluxo_id)] as never[] };
+			let mensagem_encaminhamento = '';
+			
+			if (acao.queue_id) {
+				data.queue_id = acao.queue_id
+				mensagem_encaminhamento = await this.configService.getSendMessageQueue(acao.queue_id);
+			}
+			else if (acao.user_id) {
+				data.user_id = acao.user_id
+				mensagem_encaminhamento = await this.configService.getSendMessageDefault(fluxo_id);
+			}
+			
+			data.conteudo = { mensagem: [mensagem_encaminhamento] as never[] };
 		}
 
 		return data;

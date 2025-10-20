@@ -2,6 +2,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/infra/database/prisma/prisma.service';
 import { CondicaoRegra } from 'src/schemas/condicao.schema';
+import { api_core } from 'src/infra/config/axios/core';
 
 @Injectable()
 export class ConfigService {
@@ -35,11 +36,16 @@ export class ConfigService {
         }
     }
 
-    async getSendMessage(fluxo_id: string) {
+    async getSendMessageDefault(fluxo_id: string) {
         const configuracao = await this.prisma.fluxoConfiguracao.findFirst({
             where: { fluxo_id, chave: 'ENVIA_MENSAGEM' },
         });
         return configuracao?.valor || this.configuracaoDefaults.ENVIA_MENSAGEM;
+    }
+
+    async getSendMessageQueue(queue_id: string) {
+        const configuracao = await api_core.get(`/configuracao/get-send-message-queue/${queue_id}`);
+        return configuracao.data;
     }
 
     async verificarRegra(regra: CondicaoRegra) {

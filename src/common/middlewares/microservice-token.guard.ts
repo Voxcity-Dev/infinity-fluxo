@@ -8,17 +8,11 @@ export class MicroserviceTokenGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
-    // Garantir que request.body exista para evitar erros em rotas sem corpo (GET/DELETE)
-    if (!request.body || typeof request.body !== 'object') {
-      (request as any).body = {};
-    }
     const token = request.headers['x-microservice-token'];
-    
     const cookie = this.extractTokenFromHeader(request);
 
     console.log('cookie', cookie);
     console.log('token', token);
-
 
     // CASO SEJA O FRONTEND ACESSANDO O MICROSERVICO
     if (cookie) {
@@ -33,8 +27,10 @@ export class MicroserviceTokenGuard implements CanActivate {
 
       request['micro'] = payload;
 
+      console.log('body', JSON.stringify(request.body, null, 2));
+
       // Injetar tenant_id no body se não existir
-      if (payload.tenant_id && !request.body.tenant_id) {
+      if (payload.tenant_id ) {
         request.body.tenant_id = payload.tenant_id;
       }
 

@@ -60,6 +60,7 @@ export class ConfigService {
             const configuracao = await api_core.get(`/api/setor/${queue_id}/mensagem-fora-horario`);
             return configuracao.data;
         } catch (error) {
+            console.error('Erro ao obter mensagem de resposta fora do horário:', error);
             return this.configuracaoDefaults.MENSAGEM_FORA_HORARIO;
         }
     }

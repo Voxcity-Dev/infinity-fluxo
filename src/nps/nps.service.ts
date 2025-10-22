@@ -6,10 +6,21 @@ import { UpdateNpsInput } from './dto/update-nps.dto';
 import { CreateNpsSetorInput } from './dto/create-nps-setor.dto';
 import { ListNpsSetorInput } from './dto/list-nps-setor.dto';
 import { DeleteNpsSetorInput } from './dto/delete-nps-setor.dto';
+import { RespostaNpsInput } from './dto/resposta-nps.dto';
 
 @Injectable()
 export class NpsService {
 	constructor(private readonly prisma: PrismaService) {}
+
+	async execute(data: any) {
+		try {
+			const nps = await this.create(data);
+			return nps;
+		} catch (error) {
+			console.error('Erro ao executar NPS:', error);
+			throw new BadRequestException('Erro ao executar NPS');
+		}
+	}
 
 	async create(data: CreateNpsInput) {
 		try {
@@ -305,6 +316,84 @@ export class NpsService {
 			}
 			
 			throw new BadRequestException('Erro ao remover vínculo de setor');
+		}
+	}
+
+	async findBySetorId(setor_id: string) {
+		try {
+			// Buscar o NPS vinculado ao setor
+			const npsSetor = await this.prisma.npsSetor.findFirst({
+				where: {
+					setor_id: setor_id,
+					is_deleted: false,
+				},
+			});
+
+			if (!npsSetor) {
+				throw new NotFoundException('NPS não encontrado para este setor');
+			}
+
+			// Buscar o NPS
+			const nps = await this.prisma.nps.findUnique({
+				where: {
+					id: npsSetor.nps_id,
+					is_deleted: false,
+				},
+				select: {
+					id: true,
+					nome: true,
+					pesquisa: true,
+				},
+			});
+
+			if (!nps) {
+				throw new NotFoundException('NPS não encontrado para este setor');
+			}
+
+			return nps;
+		} catch (error) {
+			console.error('Erro ao buscar NPS por setor:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+			
+			throw new BadRequestException('Erro ao buscar NPS por setor');
+		}
+	}
+
+	async responder(data: RespostaNpsInput) {
+		try {
+			// Verificar se o NPS existe
+			const nps = await this.prisma.nps.findUnique({
+				where: {
+					id: data.nps_id,
+					is_deleted: false,
+				},
+			});
+
+			if (!nps) {
+				throw new NotFoundException('NPS não encontrado');
+			}
+
+			// Criar a resposta do NPS
+			const npsResposta = await this.prisma.npsResposta.create({
+				data: {
+					nps_id: data.nps_id,
+					resposta: data.nota,
+					...(data.ticket_id && { ticket_id: data.ticket_id }),
+				},
+			});
+
+			return npsResposta;
+		} catch (error) {
+			console.error('Erro ao responder NPS:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+			
+			throw new BadRequestException('Erro ao responder NPS');
 		}
 	}
 }

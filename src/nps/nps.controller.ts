@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, UseGuards, Post, Put, Delete, Param } from '@nestjs/common';
+import { Body, Controller, HttpCode, UseGuards, Post, Put, Delete, Param, Get, BadRequestException } from '@nestjs/common';
 import { ApiBody, ApiOkResponse, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { NpsService } from './nps.service';
 import { MicroserviceTokenGuard } from 'src/common/middlewares/microservice-token.guard';
@@ -9,13 +9,45 @@ import { ListNpsDto, ListNpsResponseDto } from './dto/list-nps.dto';
 import { CreateNpsSetorDto, CreateNpsSetorResponseDto } from './dto/create-nps-setor.dto';
 import { ListNpsSetorDto, ListNpsSetorResponseDto } from './dto/list-nps-setor.dto';
 import { DeleteNpsSetorDto } from './dto/delete-nps-setor.dto';
-import { CreateNpsSchema, UpdateNpsSchema, ListNpsSchema, CreateNpsSetorSchema, ListNpsSetorSchema, DeleteNpsSetorSchema } from 'src/schemas/nps.schema';
+import { NpsBySetorDto } from './dto/nps-by-setor.dto';
+import { RespostaNpsDto, ResponderNpsResponseDto } from './dto/resposta-nps.dto';
+import { CreateNpsSchema, UpdateNpsSchema, ListNpsSchema, CreateNpsSetorSchema, ListNpsSetorSchema, DeleteNpsSetorSchema, ExecuteNpsSchema, RespostaNpsSchema } from 'src/schemas/nps.schema';
 
 @ApiTags('NPS')
 @Controller('nps')
 @UseGuards(MicroserviceTokenGuard)
 export class NpsController {
 	constructor(private readonly npsService: NpsService) {}
+
+    @Get(':setor_id')
+    @HttpCode(200)
+    @ApiOperation({ summary: 'Buscar um NPS por setor' })
+    @ApiOkResponse({ description: 'NPS encontrado com sucesso', type: NpsBySetorDto })
+    @ApiResponse({ status: 400, description: 'Erro ao buscar NPS' })
+    @ApiResponse({ status: 401, description: 'Não autorizado' })
+    @ApiResponse({ status: 404, description: 'NPS não encontrado para este setor' })
+    async buscar(@Param('setor_id') setor_id: string) {
+        
+        if (!setor_id) {
+            throw new BadRequestException('Setor ID é obrigatório');
+        }
+
+        const nps = await this.npsService.findBySetorId(setor_id);
+        return { message: 'NPS encontrado com sucesso!', data: nps };
+    }
+
+    @Post()
+    @HttpCode(200)
+    @ApiOperation({ summary: 'Responder um NPS' })
+    @ApiOkResponse({ description: 'NPS respondido com sucesso', type: ResponderNpsResponseDto })
+    @ApiResponse({ status: 400, description: 'Erro ao responder NPS' })
+    @ApiResponse({ status: 401, description: 'Não autorizado' })
+    @ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
+    async responder(@Body(new ZodPipe(RespostaNpsSchema)) data: RespostaNpsDto) {
+        const nps = await this.npsService.responder(data);
+        return { message: 'NPS respondido com sucesso!', data: nps };
+    }
+
 
 	@Post('create')
 	@HttpCode(200)

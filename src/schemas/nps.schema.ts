@@ -1,5 +1,19 @@
 import { z } from 'zod';
 
+// Schema para execução de NPS
+export const ExecuteNpsSchema = z.object({
+	setor_id: z.uuid(),
+	ticket_id: z.string().optional(),
+	resposta: z.number().int().min(1).max(10),
+});
+
+// Schema para responder NPS
+export const RespostaNpsSchema = z.object({
+	nps_id: z.uuid(),
+	ticket_id: z.string().optional(),
+	nota: z.number().int().min(1).max(10),
+});
+
 // Schema para criação de NPS
 export const CreateNpsSchema = z.object({
 	tenant_id: z.uuid(),
@@ -69,6 +83,18 @@ export const NpsResponseSchema = NpsSchema.extend({
 });
 export const NpsSetorResponseSchema = NpsSetorSchema;
 
+// Schema para resposta do NPSResposta
+export const NpsRespostaSchema = z.object({
+	id: z.uuid(),
+	nps_id: z.uuid(),
+	resposta: z.number(),
+	ticket_id: z.string().optional(),
+	created_at: z.string(),
+	updated_at: z.string(),
+});
+
+export const ResponderNpsResponseSchema = NpsRespostaSchema;
+
 // Tipos TypeScript
 export type CreateNps = z.infer<typeof CreateNpsSchema>;
 export type UpdateNps = z.infer<typeof UpdateNpsSchema>;
@@ -80,3 +106,6 @@ export type Nps = z.infer<typeof NpsSchema>;
 export type NpsSetor = z.infer<typeof NpsSetorSchema>;
 export type NpsResponse = z.infer<typeof NpsResponseSchema>;
 export type NpsSetorResponse = z.infer<typeof NpsSetorResponseSchema>;
+export type RespostaNps = z.infer<typeof RespostaNpsSchema>;
+export type NpsResposta = z.infer<typeof NpsRespostaSchema>;
+export type ResponderNpsResponse = z.infer<typeof ResponderNpsResponseSchema>;

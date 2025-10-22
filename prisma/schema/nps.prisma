@@ -19,6 +19,7 @@ model NpsResposta {
     id         String   @id @default(uuid()) @db.Uuid
     nps_id     String   @db.Uuid
     resposta   Int
+    ticket_id String? @db.Text
     created_at DateTime @default(now()) @db.Timestamp(6)
     updated_at DateTime @updatedAt @db.Timestamp(6)
 
@@ -27,6 +28,7 @@ model NpsResposta {
 
     @@index([nps_id])
     @@index([resposta])
+    @@index([ticket_id])
     @@map("nps_respostas")
 }
 

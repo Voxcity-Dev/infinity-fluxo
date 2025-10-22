@@ -85,7 +85,7 @@ export const NpsSetorResponseSchema = NpsSetorSchema;
 
 // Schema para resposta do NPSResposta
 export const NpsRespostaSchema = z.object({
-	resposta: z.string(),
+	resposta: z.string('Obrigado por responder a pesquisa!'),
 });
 
 export const ResponderNpsResponseSchema = NpsRespostaSchema;

@@ -1,0 +1,50 @@
+model Nps {
+    id         String   @id @default(uuid()) @db.Uuid
+    tenant_id  String   @db.Uuid
+    nome       String   @db.VarChar(50)
+    pesquisa   String   @db.Text
+    is_deleted Boolean  @default(false)
+    created_at DateTime @default(now()) @db.Timestamp(6)
+    updated_at DateTime @updatedAt @db.Timestamp(6)
+
+    // Relação
+    respostas NpsResposta[]
+    setores NpsSetor[]
+
+    @@index([tenant_id])
+    @@map("nps")
+}
+
+model NpsResposta {
+    id         String   @id @default(uuid()) @db.Uuid
+    nps_id     String   @db.Uuid
+    resposta   Int
+    created_at DateTime @default(now()) @db.Timestamp(6)
+    updated_at DateTime @updatedAt @db.Timestamp(6)
+
+    // Relação
+    nps Nps @relation(fields: [nps_id], references: [id])
+
+    @@index([nps_id])
+    @@index([resposta])
+    @@map("nps_respostas")
+}
+
+model NpsSetor {
+    id         String   @id @default(uuid()) @db.Uuid
+    tenant_id  String   @db.Uuid
+    nps_id     String   @db.Uuid
+    setor_id   String   @db.Uuid
+    is_deleted Boolean  @default(false)
+    created_at DateTime @default(now()) @db.Timestamp(6)
+    updated_at DateTime @updatedAt @db.Timestamp(6)
+
+    // Relação
+    nps Nps @relation(fields: [nps_id], references: [id])
+
+    @@index([tenant_id])
+    @@index([nps_id])
+    @@index([setor_id])
+    @@index([is_deleted])
+    @@map("nps_setores")
+}

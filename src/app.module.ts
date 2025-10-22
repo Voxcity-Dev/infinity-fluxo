@@ -13,6 +13,7 @@ import { FluxoModule } from './fluxo/fluxo.module';
 import { EtapaModule } from './etapa/etapa.module';
 import { CondicaoModule } from './condicao/condicao.module';
 import { InteracaoModule } from './interacao/interacao.module';
+import { NpsModule } from './nps/nps.module';
 
 @Module({
 	imports: [
@@ -26,6 +27,7 @@ import { InteracaoModule } from './interacao/interacao.module';
 		EtapaModule,
 		CondicaoModule,
 		InteracaoModule,
+		NpsModule,
 	],
 	controllers: [AppController],
 	providers: [

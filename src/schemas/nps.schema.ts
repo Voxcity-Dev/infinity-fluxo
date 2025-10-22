@@ -10,7 +10,7 @@ export const ExecuteNpsSchema = z.object({
 // Schema para responder NPS
 export const RespostaNpsSchema = z.object({
 	nps_id: z.uuid(),
-	ticket_id: z.string().optional(),
+	ticket_id: z.string(),
 	nota: z.number().int().min(1).max(10),
 });
 

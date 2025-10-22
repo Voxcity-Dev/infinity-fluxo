@@ -39,7 +39,7 @@ export class NpsController {
     @Post()
     @HttpCode(200)
     @ApiOperation({ summary: 'Responder um NPS' })
-    @ApiOkResponse({ description: 'NPS respondido com sucesso', type: ResponderNpsResponseDto })
+    @ApiOkResponse({ description: 'NPS respondido com sucesso', type: ResponderNpsResponseDto, example: 'Obrigado por responder a pesquisa!' })
     @ApiResponse({ status: 400, description: 'Erro ao responder NPS' })
     @ApiResponse({ status: 401, description: 'Não autorizado' })
     @ApiResponse({ status: 422, description: 'Dados de validação inválidos' })

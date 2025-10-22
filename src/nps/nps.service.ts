@@ -385,7 +385,14 @@ export class NpsService {
 				},
 			});
 
-			return npsResposta;
+			if (npsResposta) {
+				return {
+					data: {resposta: 'Obrigado por responder a pesquisa!'},
+				};
+			} else {
+				throw new BadRequestException('Erro ao responder NPS');
+			}
+
 		} catch (error) {
 			console.error('Erro ao responder NPS:', error);
 

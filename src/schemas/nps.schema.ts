@@ -85,12 +85,7 @@ export const NpsSetorResponseSchema = NpsSetorSchema;
 
 // Schema para resposta do NPSResposta
 export const NpsRespostaSchema = z.object({
-	id: z.uuid(),
-	nps_id: z.uuid(),
-	resposta: z.number(),
-	ticket_id: z.string().optional(),
-	created_at: z.string(),
-	updated_at: z.string(),
+	resposta: z.string(),
 });
 
 export const ResponderNpsResponseSchema = NpsRespostaSchema;

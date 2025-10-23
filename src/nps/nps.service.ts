@@ -307,6 +307,7 @@ export class NpsService {
 
 	async deleteSetor(data: DeleteNpsSetorInput) {
 		try {
+			console.log(data);
 			// Verificar se o registro existe e não está deletado
 			const existingSetor = await this.prisma.npsSetor.findFirst({
 				where: { 

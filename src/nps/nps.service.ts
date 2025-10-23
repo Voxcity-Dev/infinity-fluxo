@@ -307,11 +307,10 @@ export class NpsService {
 
 	async deleteSetor(data: DeleteNpsSetorInput) {
 		try {
-			console.log(data);
 			// Verificar se o registro existe e não está deletado
 			const existingSetor = await this.prisma.npsSetor.findFirst({
 				where: { 
-					nps_id: data.id,
+					setor_id: data.id,
 					is_deleted: false
 				},
 			});
@@ -321,7 +320,7 @@ export class NpsService {
 			}
 
 			await this.prisma.npsSetor.updateMany({
-				where: { nps_id: data.id },
+				where: { setor_id: data.id },
 				data: { is_deleted: true },
 			});
 			return data.id;

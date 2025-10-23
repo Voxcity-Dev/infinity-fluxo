@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, UseGuards, Post, Put, Delete, Param, Get, BadRequestException } from '@nestjs/common';
+import { Body, Controller, HttpCode, UseGuards, Post, Put, Delete, Param, Get, BadRequestException, Logger } from '@nestjs/common';
 import { ApiBody, ApiOkResponse, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { NpsService } from './nps.service';
 import { MicroserviceTokenGuard } from 'src/common/middlewares/microservice-token.guard';
@@ -12,12 +12,14 @@ import { DeleteNpsSetorDto } from './dto/delete-nps-setor.dto';
 import { NpsBySetorDto } from './dto/nps-by-setor.dto';
 import { RespostaNpsDto, ResponderNpsResponseDto } from './dto/resposta-nps.dto';
 import { CreateNpsSchema, UpdateNpsSchema, ListNpsSchema, CreateNpsSetorSchema, ListNpsSetorSchema, DeleteNpsSetorSchema, ExecuteNpsSchema, RespostaNpsSchema } from 'src/schemas/nps.schema';
-
 @ApiTags('NPS')
 @Controller('nps')
 @UseGuards(MicroserviceTokenGuard)
 export class NpsController {
-	constructor(private readonly npsService: NpsService) {}
+	constructor(
+		private readonly npsService: NpsService,
+		private readonly logger: Logger
+	) {}
 
     @Get(':setor_id')
     @HttpCode(200)
@@ -33,6 +35,9 @@ export class NpsController {
         }
 
         const nps = await this.npsService.findBySetorId(setor_id);
+        
+		this.logger.log(`NPS encontrado com sucesso!`);
+
         return { message: 'NPS encontrado com sucesso!', data: nps };
     }
 
@@ -45,6 +50,7 @@ export class NpsController {
     @ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
     async responder(@Body(new ZodPipe(RespostaNpsSchema)) data: RespostaNpsDto) {
         const nps = await this.npsService.responder(data);
+		this.logger.log(`NPS respondido com sucesso!`);
         return { message: 'NPS respondido com sucesso!', data: nps };
     }
 
@@ -58,6 +64,7 @@ export class NpsController {
 	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
 	async criar(@Body(new ZodPipe(CreateNpsSchema)) data: CreateNpsDto) {
 		const nps = await this.npsService.create(data);
+		this.logger.log(`NPS criado com sucesso!`);
 		return { message: 'NPS criado com sucesso!', data: nps };
 	}
 
@@ -70,6 +77,7 @@ export class NpsController {
 	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
 	async atualizar(@Body(new ZodPipe(UpdateNpsSchema)) data: UpdateNpsDto) {
 		const nps = await this.npsService.update(data);
+		this.logger.log(`NPS atualizado com sucesso!`);
 		return { message: 'NPS atualizado com sucesso!', data: nps };
 	}
 
@@ -82,6 +90,7 @@ export class NpsController {
 	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
 	async listar(@Body(new ZodPipe(ListNpsSchema)) params: ListNpsDto) {
 		const nps = await this.npsService.findAll(params);
+		this.logger.log(`NPS listados com sucesso!`);
 		return { message: 'NPS listados com sucesso!', data: nps };
 	}
 
@@ -93,6 +102,7 @@ export class NpsController {
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
 	async deletar(@Param('id') id: string) {
 		const npsId = await this.npsService.delete(id);
+		this.logger.log(`NPS deletado com sucesso!`);
 		return { message: 'NPS deletado com sucesso!', data: { id: npsId } };
 	}
 
@@ -106,6 +116,7 @@ export class NpsController {
 	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
 	async vincularSetor(@Body(new ZodPipe(CreateNpsSetorSchema)) data: CreateNpsSetorDto) {
 		const npsSetor = await this.npsService.createSetor(data);
+		this.logger.log(`Setor vinculado com sucesso!`);
 		return { message: 'Setor vinculado com sucesso!', data: npsSetor };
 	}
 
@@ -118,6 +129,7 @@ export class NpsController {
 	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
 	async listarSetores(@Body(new ZodPipe(ListNpsSetorSchema)) params: ListNpsSetorDto) {
 		const setores = await this.npsService.findSetoresByNpsId(params);
+		this.logger.log(`Setores listados com sucesso!`);
 		return { message: 'Setores listados com sucesso!', data: setores };
 	}
 
@@ -129,6 +141,7 @@ export class NpsController {
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
 	async removerSetor(@Param('id') id: string) {
 		const setId = await this.npsService.deleteSetor({ id });
+		this.logger.log(`Vínculo removido com sucesso!`);
 		return { message: 'Vínculo removido com sucesso!', data: { id: setId } };
 	}
 }

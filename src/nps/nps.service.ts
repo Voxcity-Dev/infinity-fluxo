@@ -368,7 +368,6 @@ export class NpsService {
 
 			return nps;
 		} catch (error) {
-			console.error('Erro ao buscar NPS por setor:', error);
 
 			if (error instanceof HttpException) {
 				throw error;

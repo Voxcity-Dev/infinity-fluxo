@@ -210,19 +210,23 @@ export class NpsService {
 				throw new NotFoundException('NPS não encontrado');
 			}
 
-			// Verificar se já existe vínculo ativo
+			// Verificar se já existe vínculo ativo para este setor
 			const existingSetor = await this.prisma.npsSetor.findFirst({
 				where: {
-					nps_id: data.nps_id,
 					setor_id: data.setor_id,
 					is_deleted: false,
 				},
 			});
 
+			// Se existe vínculo ativo, desvincular primeiro
 			if (existingSetor) {
-				throw new BadRequestException('Setor já está vinculado a este NPS');
+				await this.prisma.npsSetor.update({
+					where: { id: existingSetor.id },
+					data: { is_deleted: true },
+				});
 			}
 
+			// Criar novo vínculo
 			const npsSetor = await this.prisma.npsSetor.create({
 				data: {
 					tenant_id: data.tenant_id,

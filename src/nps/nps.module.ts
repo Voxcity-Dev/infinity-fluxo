@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { NpsController } from './nps.controller';
 import { NpsService } from './nps.service';
 import { PrismaModule } from 'src/infra/database/prisma/prisma.module';
@@ -6,7 +6,7 @@ import { MicroserviceTokenModule } from 'src/common/guards/microservice-token.mo
 @Module({
 	imports: [PrismaModule, MicroserviceTokenModule],
 	controllers: [NpsController],
-	providers: [NpsService],
+	providers: [NpsService, Logger],
 	exports: [NpsService],
 })
 export class NpsModule {}

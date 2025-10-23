@@ -307,6 +307,18 @@ export class NpsService {
 
 	async deleteSetor(data: DeleteNpsSetorInput) {
 		try {
+			// Verificar se o registro existe e não está deletado
+			const existingSetor = await this.prisma.npsSetor.findUnique({
+				where: { 
+					id: data.id,
+					is_deleted: false
+				},
+			});
+
+			if (!existingSetor) {
+				throw new NotFoundException('Vínculo de setor não encontrado ou já removido');
+			}
+
 			await this.prisma.npsSetor.update({
 				where: { id: data.id },
 				data: { is_deleted: true },

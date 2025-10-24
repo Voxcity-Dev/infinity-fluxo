@@ -402,7 +402,7 @@ export class NpsService {
 
 			if (npsResposta) {
 				return {
-					data: {resposta: 'Obrigado por responder a pesquisa!'},
+					data: {resposta: 'Obrigado por responder a pesquisa!', nps_id: npsResposta.id},
 				};
 			} else {
 				throw new BadRequestException('Erro ao responder NPS');

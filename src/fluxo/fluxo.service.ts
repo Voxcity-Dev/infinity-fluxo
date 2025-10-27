@@ -489,13 +489,14 @@ export class FluxoService {
 		if (!regraEncontrada) {
 			const interacoes = await this.etapaService.getInteracoesByEtapaId(etapa_id);
 			
-			const mensagemInvalida = await this.configService.getInvalidResponseMessage(etapa_id);
-			if (mensagemInvalida && mensagemInvalida.trim() !== '') {
+			const mensagemInvalida = this.normalizarParaString(await this.configService.getInvalidResponseMessage(etapa_id));
+			if (mensagemInvalida.trim() !== '') {
 				data.conteudo.mensagem.push(mensagemInvalida as never);
 			}
 			
-			if (interacoes[0]?.conteudo && interacoes[0].conteudo.trim() !== '') {
-				data.conteudo.mensagem.push(interacoes[0].conteudo as never);
+			const conteudoInteracao = this.normalizarParaString(interacoes[0]?.conteudo);
+			if (conteudoInteracao.trim() !== '') {
+				data.conteudo.mensagem.push(conteudoInteracao as never);
 			}
 			
 			data.etapa_id = etapa_id;
@@ -509,7 +510,7 @@ export class FluxoService {
 		if (acao.next_etapa_id) {
 			data.etapa_id = acao.next_etapa_id;
 			const interacoes = await this.etapaService.getInteracoesByEtapaId(acao.next_etapa_id);
-			const conteudo = interacoes[0]?.conteudo || '';
+			const conteudo = this.normalizarParaString(interacoes[0]?.conteudo);
 			data.conteudo = { mensagem: conteudo.trim() !== '' ? [conteudo] as never[] : [] };
 		}
 
@@ -520,7 +521,7 @@ export class FluxoService {
 			const etapaInicio = await this.etapaService.getEtapaInicio(acao.next_fluxo_id);
 			const interacoes = await this.etapaService.getInteracoesByEtapaId(etapaInicio.id);
 			
-			const conteudo = interacoes[0]?.conteudo || '';
+			const conteudo = this.normalizarParaString(interacoes[0]?.conteudo);
 			data.conteudo = { mensagem: conteudo.trim() !== '' ? [conteudo] as never[] : [] };
 			data.etapa_id = etapaInicio.id;
 		}
@@ -542,13 +543,15 @@ export class FluxoService {
 				mensagem_encaminhamento = await this.configService.getSendMessageDefault(fluxo_id);
 			}
 
-			// Adiciona apenas mensagens não vazias ao array
-			if (mensagem_fora_horario && mensagem_fora_horario.trim() !== '') {
-				mensagem.push(mensagem_fora_horario);
+			// Normalizar e adiciona apenas mensagens não vazias ao array
+			const msgForaHorarioNormalizada = this.normalizarParaString(mensagem_fora_horario);
+			if (msgForaHorarioNormalizada.trim() !== '') {
+				mensagem.push(msgForaHorarioNormalizada);
 			}
 			
-			if (mensagem_encaminhamento && mensagem_encaminhamento.trim() !== '') {
-				mensagem.push(mensagem_encaminhamento);
+			const msgEncaminhamentoNormalizada = this.normalizarParaString(mensagem_encaminhamento);
+			if (msgEncaminhamentoNormalizada.trim() !== '') {
+				mensagem.push(msgEncaminhamentoNormalizada);
 			}
 			
 			data.conteudo = { mensagem: mensagem as never[] };
@@ -567,5 +570,16 @@ export class FluxoService {
 		if (conteudo.mensagem) return conteudo.mensagem;
 		if (conteudo.file) return conteudo.file.nome;
 		return '';
+	}
+
+	// Método auxiliar para converter valor para string de forma segura
+	private normalizarParaString(valor: any): string {
+		if (valor === null || valor === undefined) return '';
+		if (typeof valor === 'string') return valor;
+		if (typeof valor === 'object') {
+			// Se for um objeto, tenta pegar uma propriedade comum como 'mensagem', 'texto', ou 'valor'
+			return valor.mensagem || valor.texto || valor.valor || JSON.stringify(valor);
+		}
+		return String(valor);
 	}
 }

@@ -489,8 +489,15 @@ export class FluxoService {
 		if (!regraEncontrada) {
 			const interacoes = await this.etapaService.getInteracoesByEtapaId(etapa_id);
 			
-			data.conteudo.mensagem.push(await this.configService.getInvalidResponseMessage(etapa_id) as never)
-			data.conteudo.mensagem.push(interacoes[0]?.conteudo as never)
+			const mensagemInvalida = await this.configService.getInvalidResponseMessage(etapa_id);
+			if (mensagemInvalida && mensagemInvalida.trim() !== '') {
+				data.conteudo.mensagem.push(mensagemInvalida as never);
+			}
+			
+			if (interacoes[0]?.conteudo && interacoes[0].conteudo.trim() !== '') {
+				data.conteudo.mensagem.push(interacoes[0].conteudo as never);
+			}
+			
 			data.etapa_id = etapa_id;
 			return data;
 		}
@@ -502,7 +509,8 @@ export class FluxoService {
 		if (acao.next_etapa_id) {
 			data.etapa_id = acao.next_etapa_id;
 			const interacoes = await this.etapaService.getInteracoesByEtapaId(acao.next_etapa_id);
-			data.conteudo = { mensagem: [interacoes[0]?.conteudo || ''] as never[] };
+			const conteudo = interacoes[0]?.conteudo || '';
+			data.conteudo = { mensagem: conteudo.trim() !== '' ? [conteudo] as never[] : [] };
 		}
 
 		// Processar mudança de fluxo
@@ -512,9 +520,9 @@ export class FluxoService {
 			const etapaInicio = await this.etapaService.getEtapaInicio(acao.next_fluxo_id);
 			const interacoes = await this.etapaService.getInteracoesByEtapaId(etapaInicio.id);
 			
-			data.conteudo = { mensagem: [interacoes[0]?.conteudo || ''] as never[] };
+			const conteudo = interacoes[0]?.conteudo || '';
+			data.conteudo = { mensagem: conteudo.trim() !== '' ? [conteudo] as never[] : [] };
 			data.etapa_id = etapaInicio.id;
-			data.conteudo = { mensagem: [interacoes[0]?.conteudo || ''] as never[] };
 		}
 
 		// Processar atribuição de fila ou usuário
@@ -534,11 +542,13 @@ export class FluxoService {
 				mensagem_encaminhamento = await this.configService.getSendMessageDefault(fluxo_id);
 			}
 
-			if (mensagem_fora_horario) {
-				mensagem = [ mensagem_fora_horario, mensagem_encaminhamento];
-			} 
-			else {
-				mensagem = [mensagem_encaminhamento];
+			// Adiciona apenas mensagens não vazias ao array
+			if (mensagem_fora_horario && mensagem_fora_horario.trim() !== '') {
+				mensagem.push(mensagem_fora_horario);
+			}
+			
+			if (mensagem_encaminhamento && mensagem_encaminhamento.trim() !== '') {
+				mensagem.push(mensagem_encaminhamento);
 			}
 			
 			data.conteudo = { mensagem: mensagem as never[] };

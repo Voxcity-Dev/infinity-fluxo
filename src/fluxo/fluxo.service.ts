@@ -575,10 +575,18 @@ export class FluxoService {
 	// Método auxiliar para converter valor para string de forma segura
 	private normalizarParaString(valor: any): string {
 		if (valor === null || valor === undefined) return '';
-		if (typeof valor === 'string') return valor;
+		if (typeof valor === 'string') {
+			// Se já for uma string, retorna direto
+			return valor;
+		}
 		if (typeof valor === 'object') {
-			// Se for um objeto, tenta pegar uma propriedade comum como 'mensagem', 'texto', ou 'valor'
-			return valor.mensagem || valor.texto || valor.valor || JSON.stringify(valor);
+			// Se for um objeto, tenta pegar uma propriedade comum como 'resposta', 'mensagem', 'texto', ou 'valor'
+			const textoExtraido = valor.resposta || valor.mensagem || valor.texto || valor.valor;
+			if (textoExtraido && typeof textoExtraido === 'string') {
+				return textoExtraido;
+			}
+			// Se não encontrou propriedade com string, retorna vazio ao invés de stringify
+			return '';
 		}
 		return String(valor);
 	}

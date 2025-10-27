@@ -523,13 +523,14 @@ export class FluxoService {
 			let mensagem_fora_horario = '';
 			let mensagem: string[] = [];
 
-			if (acao.queue_id) {
+			if (acao.queue_id && !acao.user_id) {
 				data.queue_id = acao.queue_id
 				mensagem_encaminhamento = await this.configService.getSendMessageQueue(acao.queue_id);
 				mensagem_fora_horario = await this.configService.getSendMessageOutOfHour(acao.queue_id);
 			}
 			else if (acao.user_id) {
 				data.user_id = acao.user_id
+				data.queue_id = acao.queue_id;
 				mensagem_encaminhamento = await this.configService.getSendMessageDefault(fluxo_id);
 			}
 

@@ -78,6 +78,7 @@ export class ConfigService {
             },
             USUARIO: {
                 user_id: regra.user_id,
+                queue_id: regra.queue_id,
             },
             // SETAR_VARIAVEL: 'SETAR_VARIAVEL',
             // OBTER_VARIAVEL: 'OBTER_VARIAVEL',

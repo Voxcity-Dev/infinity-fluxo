@@ -531,6 +531,8 @@ export class FluxoService {
 			else if (acao.user_id) {
 				data.user_id = acao.user_id
 				data.queue_id = acao.queue_id;
+				console.log('acao.queue_id', acao.queue_id);
+				console.log('acao.user_id', acao.user_id);
 				mensagem_encaminhamento = await this.configService.getSendMessageDefault(fluxo_id);
 			}
 

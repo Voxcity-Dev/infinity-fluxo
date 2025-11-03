@@ -30,10 +30,8 @@ export const CondicaoSchema = z.object({
 // Schema para resposta da API
 export const CondicaoResponseSchema = CondicaoSchema;
 
-// Schema para criação de regra de transação
-export const CreateCondicaoRegraSchema = z.object({
-	condicao_id: z.uuid(),
-	tenant_id: z.uuid(),
+// Schema para criação de regra de transação (input do usuário - sem condicao_id e tenant_id)
+export const CreateCondicaoRegraInputSchema = z.object({
 	input: z.string().max(50).optional(),
 	action: TipoAcaoSchema,
 	msg_exata: z.boolean(),
@@ -58,11 +56,17 @@ export const CreateCondicaoRegraSchema = z.object({
 	path: ["input"]
 });
 
+// Schema para criação de regra de transação (completo - para uso interno)
+export const CreateCondicaoRegraSchema = CreateCondicaoRegraInputSchema.extend({
+	condicao_id: z.uuid(),
+	tenant_id: z.uuid(),
+});
+
 // Schema para criação de condição
 export const CreateCondicaoSchema = z.object({
 	tenant_id: z.uuid(),
 	etapa_id: z.uuid(),
-	regras: z.array(CreateCondicaoRegraSchema),
+	regras: z.array(CreateCondicaoRegraInputSchema),
 });
 
 
@@ -127,6 +131,7 @@ export type CreateCondicao = z.infer<typeof CreateCondicaoSchema>;
 export type UpdateCondicao = z.infer<typeof UpdateCondicaoSchema>;
 export type Condicao = z.infer<typeof CondicaoSchema>;
 export type CondicaoResponse = z.infer<typeof CondicaoResponseSchema>;
+export type CreateCondicaoRegraInput = z.infer<typeof CreateCondicaoRegraInputSchema>;
 export type CreateCondicaoRegra = z.infer<typeof CreateCondicaoRegraSchema>;
 export type UpdateCondicaoRegra = z.infer<typeof UpdateCondicaoRegraSchema>;
 export type CondicaoRegra = z.infer<typeof CondicaoRegraSchema>;

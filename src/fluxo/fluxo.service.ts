@@ -7,7 +7,7 @@ import { EtapaService } from 'src/etapa/etapa.service';
 import { CondicaoRegra, InteracaoTipo } from 'src/schemas';
 import { CondicaoService } from 'src/condicao/condicao.service';
 import { ConfigService } from 'src/common/services/config.service';
-import { FlowConfiguracaoChave } from 'src/schemas/fluxo.schema';
+import { FlowConfiguracaoChave, FLUXO_CONFIGURACAO_CHAVES } from 'src/schemas/fluxo.schema';
 
 @Injectable()
 export class FluxoService {
@@ -361,35 +361,49 @@ export class FluxoService {
 
 	private async configuracaoDefault(tenant_id: string, fluxo_id: string, mensagem_finalizacao?: string, mensagem_invalida?: string) {
 		try {
-			// Criar todas as configurações de uma vez
+			// Criar todas as configurações de uma vez, filtrando apenas chaves válidas do enum
 			const configuracoes: Array<{
 				tenant_id: string;
 				fluxo_id: string;
 				chave: FlowConfiguracaoChave;
 				valor: string;
-			}> = Object.entries(this.configService.configuracaoDefaults).map(([chave, valor]) => ({
-				tenant_id,
-				fluxo_id,
-				chave: chave as FlowConfiguracaoChave,
-				valor
-			}));
-
-			if (mensagem_finalizacao) {
-				configuracoes.push({
+			}> = Object.entries(this.configService.configuracaoDefaults)
+				.filter(([chave]) => FLUXO_CONFIGURACAO_CHAVES.includes(chave as FlowConfiguracaoChave))
+				.map(([chave, valor]) => ({
 					tenant_id,
 					fluxo_id,
-					chave: 'MENSAGEM_FINALIZACAO' as FlowConfiguracaoChave,
-					valor: mensagem_finalizacao,
-				});
+					chave: chave as FlowConfiguracaoChave,
+					valor: valor as string,
+				}));
+
+			// Atualizar ou adicionar mensagem_finalizacao se fornecida
+			if (mensagem_finalizacao) {
+				const index = configuracoes.findIndex(c => c.chave === 'MENSAGEM_FINALIZACAO');
+				if (index >= 0) {
+					configuracoes[index].valor = mensagem_finalizacao;
+				} else {
+					configuracoes.push({
+						tenant_id,
+						fluxo_id,
+						chave: 'MENSAGEM_FINALIZACAO',
+						valor: mensagem_finalizacao,
+					});
+				}
 			}
 
+			// Atualizar ou adicionar mensagem_invalida se fornecida
 			if (mensagem_invalida) {
-				configuracoes.push({
-					tenant_id,
-					fluxo_id,
-					chave: 'MENSAGEM_INVALIDA' as FlowConfiguracaoChave,
-					valor: mensagem_invalida,
-				});
+				const index = configuracoes.findIndex(c => c.chave === 'MENSAGEM_INVALIDA');
+				if (index >= 0) {
+					configuracoes[index].valor = mensagem_invalida;
+				} else {
+					configuracoes.push({
+						tenant_id,
+						fluxo_id,
+						chave: 'MENSAGEM_INVALIDA',
+						valor: mensagem_invalida,
+					});
+				}
 			}
 
 			await this.prisma.fluxoConfiguracao.createMany({

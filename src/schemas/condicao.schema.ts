@@ -30,8 +30,8 @@ export const CondicaoSchema = z.object({
 // Schema para resposta da API
 export const CondicaoResponseSchema = CondicaoSchema;
 
-// Schema para criação de regra de transação (input do usuário - sem condicao_id e tenant_id)
-export const CreateCondicaoRegraInputSchema = z.object({
+// Schema base para criação de regra de transação (sem refinement)
+const CreateCondicaoRegraBaseSchema = z.object({
 	input: z.string().max(50).optional(),
 	action: TipoAcaoSchema,
 	msg_exata: z.boolean(),
@@ -44,7 +44,10 @@ export const CreateCondicaoRegraInputSchema = z.object({
 	api_endpoint: z.string().max(50).optional(),
 	db_query: z.string().max(50).optional(),
 	priority: z.number().int().default(0),
-}).refine((data) => {
+});
+
+// Schema para criação de regra de transação (input do usuário - sem condicao_id e tenant_id)
+export const CreateCondicaoRegraInputSchema = CreateCondicaoRegraBaseSchema.refine((data) => {
 	// Se msg_exata for true, input é obrigatório
 	if (data.msg_exata && !data.input) {
 		return false;
@@ -57,9 +60,19 @@ export const CreateCondicaoRegraInputSchema = z.object({
 });
 
 // Schema para criação de regra de transação (completo - para uso interno)
-export const CreateCondicaoRegraSchema = CreateCondicaoRegraInputSchema.extend({
+export const CreateCondicaoRegraSchema = CreateCondicaoRegraBaseSchema.extend({
 	condicao_id: z.uuid(),
 	tenant_id: z.uuid(),
+}).refine((data) => {
+	// Se msg_exata for true, input é obrigatório
+	if (data.msg_exata && !data.input) {
+		return false;
+	}
+	// Se msg_exata for false, input não é necessário
+	return true;
+}, {
+	message: "Quando msg_exata for true, o campo input é obrigatório",
+	path: ["input"]
 });
 
 // Schema para criação de condição

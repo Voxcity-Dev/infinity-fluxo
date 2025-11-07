@@ -1,5 +1,5 @@
 import { createZodDto } from 'nestjs-zod';
-import { UpdateEtapaSchema } from 'src/schemas/etapa.schema';
+import { UpdateEtapaSchema, UpdateEtapaPositionSchema } from 'src/schemas/etapa.schema';
 import { z } from 'zod';
 
 export const UpdateEtapaResponseSchema = z.object({
@@ -21,6 +21,9 @@ export class UpdateEtapaDto extends createZodDto(UpdateEtapaSchema) {}
 export class UpdateEtapaResponseDto extends createZodDto(UpdateEtapaResponseSchema) {}
 export class EtapaParamsDto extends createZodDto(EtapaParamsSchema) {}
 
+export class UpdateEtapaPositionDto extends createZodDto(UpdateEtapaPositionSchema) {}
+
 export type UpdateEtapaInput = z.infer<typeof UpdateEtapaSchema>;
 export type UpdateEtapaResponse = z.infer<typeof UpdateEtapaResponseSchema>;
 export type EtapaParams = z.infer<typeof EtapaParamsSchema>;
+export type UpdateEtapaPositionInput = z.infer<typeof UpdateEtapaPositionSchema>;

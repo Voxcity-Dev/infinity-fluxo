@@ -2,7 +2,7 @@ import { BadRequestException, HttpException, Injectable, NotFoundException } fro
 import { PrismaService } from 'src/infra/database/prisma/prisma.service';
 import type { CreateEtapaInput } from './dto/create-etapa.dto';
 import { ListEtapasInput } from './dto/list-etapa.dto';
-import { UpdateEtapaInput } from './dto/update-etapa.dto';
+import { UpdateEtapaInput, UpdateEtapaPositionInput } from './dto/update-etapa.dto';
 
 @Injectable()
 export class EtapaService {
@@ -175,6 +175,18 @@ export class EtapaService {
 		try {
 			const { tenant_id, fluxo_id, nome, tipo, interacoes_id, metadados } = data;
 
+			// Garantir que metadados tenham pelo menos a estrutura de position padrão
+			const metadadosComPadrao = metadados 
+				? {
+					...metadados,
+					position: {
+						x: (metadados as any)?.position?.x ?? 100,
+						y: (metadados as any)?.position?.y ?? 100,
+						...(metadados as any)?.position || {},
+					},
+				}
+				: undefined; // Se não enviado, o Prisma usará o default do schema
+
 			const etapa = await this.prisma.etapas.create({
 				data: {
 					tenant_id,
@@ -182,7 +194,7 @@ export class EtapaService {
 					nome,
 					tipo,
 					interacoes_id: interacoes_id || null,
-					metadados: metadados,
+					metadados: metadadosComPadrao,
 				},
 			});
 
@@ -217,8 +229,26 @@ export class EtapaService {
 				updateData.interacoes_id = interacoes_id || null;
 			}
 
-			if (metadados !== undefined) {
-				updateData.metadados = metadados;
+			if (metadados !== undefined && metadados !== null) {
+				// Se metadados foram enviados, buscar a etapa atual para fazer merge
+				const etapaAtual = await this.prisma.etapas.findUnique({
+					where: { id },
+					select: { metadados: true },
+				});
+
+				// Fazer merge dos metadados existentes com os novos
+				const metadadosExistentes = (etapaAtual?.metadados as Record<string, any>) || {};
+				const metadadosNovos = metadados as Record<string, any>;
+				
+				// Fazer merge profundo para preservar position.x e position.y
+				updateData.metadados = {
+					...metadadosExistentes,
+					...metadadosNovos,
+					position: {
+						...(metadadosExistentes.position || {}),
+						...(metadadosNovos.position || {}),
+					},
+				};
 			}
 
 			// Verificar se há pelo menos um campo para atualizar
@@ -243,6 +273,46 @@ export class EtapaService {
 			}
 
 			throw new BadRequestException('Erro ao atualizar etapa');
+		}
+	}
+
+	async updatePosition(id: string, position: UpdateEtapaPositionInput['position']) {
+		try {
+			const etapaAtual = await this.prisma.etapas.findUnique({
+				where: { id },
+				select: { metadados: true, is_deleted: true },
+			});
+
+			if (!etapaAtual || etapaAtual.is_deleted) {
+				throw new NotFoundException('Etapa não encontrada');
+			}
+
+			const metadadosExistentes = (etapaAtual.metadados as Record<string, any>) || {};
+			const metadadosAtualizados = {
+				...metadadosExistentes,
+				position: {
+					...(metadadosExistentes.position || {}),
+					x: position.x,
+					y: position.y,
+				},
+			};
+
+			const etapa = await this.prisma.etapas.update({
+				where: { id },
+				data: {
+					metadados: metadadosAtualizados,
+				},
+			});
+
+			return etapa;
+		} catch (error) {
+			console.error('Erro ao atualizar posição da etapa:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+
+			throw new BadRequestException('Erro ao atualizar posição da etapa');
 		}
 	}
 

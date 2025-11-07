@@ -11,8 +11,8 @@ import { CreateEtapaDto, CreateEtapaInput, CreateEtapaResponseDto } from './dto/
 import { CreateEtapaSchema, EtapaSchema } from 'src/schemas/etapa.schema';
 import { MicroserviceTokenGuard } from 'src/common/middlewares/microservice-token.guard';
 import { EtapaResponseDto, ListEtapasInput, ListEtapasResponseDto, ListEtapasSchema } from './dto/list-etapa.dto';
-import { UpdateEtapaInput } from './dto/update-etapa.dto';
-import { UpdateEtapaSchema } from 'src/schemas/etapa.schema';
+import { UpdateEtapaInput, UpdateEtapaPositionDto } from './dto/update-etapa.dto';
+import { UpdateEtapaSchema, UpdateEtapaPositionSchema } from 'src/schemas/etapa.schema';
 
 @ApiTags('Etapa')
 @Controller('etapa')
@@ -90,6 +90,21 @@ export class EtapaController {
 	async atualizar(@Body(new ZodPipe(UpdateEtapaSchema)) data: UpdateEtapaInput) {
 		const etapa = await this.etapaService.update(data);
 		return { message: 'Etapa atualizada com sucesso!', data: etapa };
+	}
+
+	@Put(':etapa_id/position')
+	@HttpCode(200)
+	@ApiOperation({ summary: 'Atualizar a posição de uma etapa' })
+	@ApiOkResponse({ description: 'Posição da etapa atualizada com sucesso', type: EtapaResponseDto })
+	@ApiResponse({ status: 400, description: 'Erro ao atualizar posição da etapa' })
+	@ApiResponse({ status: 401, description: 'Não autorizado' })
+	@ApiResponse({ status: 404, description: 'Etapa não encontrada' })
+	async atualizarPosicao(
+		@Param('etapa_id') etapa_id: string,
+		@Body(new ZodPipe(UpdateEtapaPositionSchema)) data: UpdateEtapaPositionDto,
+	) {
+		const etapa = await this.etapaService.updatePosition(etapa_id, data.position);
+		return { message: 'Posição da etapa atualizada com sucesso!', data: etapa };
 	}
 
 	@Delete(':etapa_id')

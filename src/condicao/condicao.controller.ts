@@ -1,4 +1,5 @@
-import { Body, Controller, Post, HttpCode, UseGuards, Put, Delete, Param } from '@nestjs/common';
+import { Body, Controller, Post, HttpCode, Put, Delete, Param, Req, BadRequestException } from '@nestjs/common';
+import { Request } from 'express';
 import {
 	ApiHeader,
 	ApiOkResponse,
@@ -8,7 +9,6 @@ import {
 } from '@nestjs/swagger';
 import { CondicaoService } from './condicao.service';
 import { CreateCondicaoDto, CreateCondicaoResponseDto } from './dto/create-condicao.dto';
-import { MicroserviceTokenGuard } from 'src/common/middlewares/microservice-token.guard';
 import { ListCondicoesInput, ListCondicoesResponseDto, ListCondicoesSchema } from './dto/list-condicao.dto';
 import { UpdateCondicaoRegraDto } from './dto/update-condicao-regra.dto';
 import { CreateCondicaoSchema, UpdateCondicaoRegraSchema } from 'src/schemas/condicao.schema';
@@ -21,7 +21,6 @@ import { ZodPipe } from 'src/common/pipes/zod.pipe';
 	required: true,
 })
 @Controller('condicao')
-@UseGuards(MicroserviceTokenGuard)
 export class CondicaoController {
 	constructor(private readonly condicaoService: CondicaoService) {}
 	@Post('find')
@@ -31,8 +30,19 @@ export class CondicaoController {
 	@ApiResponse({ status: 400, description: 'Erro ao listar condições' })
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
 	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
-	async listar(@Body(new ZodPipe(ListCondicoesSchema)) params: ListCondicoesInput) {
-		const condicoes = await this.condicaoService.find(params);
+	async listar(
+		@Body(new ZodPipe(ListCondicoesSchema)) params: ListCondicoesInput,
+		@Req() request: Request,
+	) {
+		const tenant_id = (request['user']?.tenant_id ||
+			request['tenant_id'] ||
+			request['micro']?.tenant_id) as string;
+
+		if (!tenant_id) {
+			throw new BadRequestException('tenant_id não encontrado no token');
+		}
+
+		const condicoes = await this.condicaoService.find({ ...params, tenant_id } as ListCondicoesInput);
 		return { message: 'Condições listadas com sucesso!', data: condicoes };
 	}
 
@@ -43,8 +53,19 @@ export class CondicaoController {
 	@ApiResponse({ status: 400, description: 'Erro ao criar condição' })
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
 	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
-	async criar(@Body(new ZodPipe(CreateCondicaoSchema)) data: CreateCondicaoDto) {
-		const condicao = await this.condicaoService.create(data);
+	async criar(
+		@Body(new ZodPipe(CreateCondicaoSchema)) data: CreateCondicaoDto,
+		@Req() request: Request,
+	) {
+		const tenant_id = (request['user']?.tenant_id ||
+			request['tenant_id'] ||
+			request['micro']?.tenant_id) as string;
+
+		if (!tenant_id) {
+			throw new BadRequestException('tenant_id não encontrado no token');
+		}
+
+		const condicao = await this.condicaoService.create({ ...data, tenant_id } as any);
 		return { message: 'Condição criada com sucesso!', data: condicao };
 	}
 

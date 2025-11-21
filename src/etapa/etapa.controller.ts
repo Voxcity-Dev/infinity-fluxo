@@ -1,4 +1,5 @@
-import { Body, Controller, Post, HttpCode, UseGuards, Param, Get, Delete, Put } from '@nestjs/common';
+import { Body, Controller, Post, HttpCode, Param, Get, Delete, Put, Req, BadRequestException } from '@nestjs/common';
+import { Request } from 'express';
 import {
 	ApiOkResponse,
 	ApiOperation,
@@ -9,14 +10,12 @@ import { ZodPipe } from 'src/common/pipes/zod.pipe';
 import { EtapaService } from './etapa.service';
 import { CreateEtapaDto, CreateEtapaInput, CreateEtapaResponseDto } from './dto/create-etapa.dto';
 import { CreateEtapaSchema, EtapaSchema } from 'src/schemas/etapa.schema';
-import { MicroserviceTokenGuard } from 'src/common/middlewares/microservice-token.guard';
 import { EtapaResponseDto, ListEtapasInput, ListEtapasResponseDto, ListEtapasSchema } from './dto/list-etapa.dto';
 import { UpdateEtapaInput, UpdateEtapaPositionDto } from './dto/update-etapa.dto';
 import { UpdateEtapaSchema, UpdateEtapaPositionSchema } from 'src/schemas/etapa.schema';
 
 @ApiTags('Etapa')
 @Controller('etapa')
-@UseGuards(MicroserviceTokenGuard)
 export class EtapaController {
 	constructor(private readonly etapaService: EtapaService) {}
 
@@ -51,8 +50,19 @@ export class EtapaController {
 	@ApiResponse({ status: 400, description: 'Erro ao listar etapas' })
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
 	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
-	async listar(@Body(new ZodPipe(ListEtapasSchema)) params: ListEtapasInput) {
-		const etapas = await this.etapaService.findAll(params);
+	async listar(
+		@Body(new ZodPipe(ListEtapasSchema)) params: ListEtapasInput,
+		@Req() request: Request,
+	) {
+		const tenant_id = (request['user']?.tenant_id ||
+			request['tenant_id'] ||
+			request['micro']?.tenant_id) as string;
+
+		if (!tenant_id) {
+			throw new BadRequestException('tenant_id não encontrado no token');
+		}
+
+		const etapas = await this.etapaService.findAll({ ...params, tenant_id } as ListEtapasInput);
 		return { message: 'Etapas listadas com sucesso!', data: etapas };
 	}
 
@@ -75,8 +85,19 @@ export class EtapaController {
 	@ApiResponse({ status: 400, description: 'Erro ao criar etapa' })
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
 	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
-	async criar(@Body(new ZodPipe(CreateEtapaSchema)) data: CreateEtapaInput) {
-		const etapa = await this.etapaService.create(data);
+	async criar(
+		@Body(new ZodPipe(CreateEtapaSchema)) data: CreateEtapaInput,
+		@Req() request: Request,
+	) {
+		const tenant_id = (request['user']?.tenant_id ||
+			request['tenant_id'] ||
+			request['micro']?.tenant_id) as string;
+
+		if (!tenant_id) {
+			throw new BadRequestException('tenant_id não encontrado no token');
+		}
+
+		const etapa = await this.etapaService.create({ ...data, tenant_id } as CreateEtapaInput);
 		return { message: 'Etapa criada com sucesso!', data: etapa };
 	}
 

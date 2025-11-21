@@ -13,5 +13,5 @@ export const CreateCondicaoResponseSchema = z.object({
 export class CreateCondicaoDto extends createZodDto(CreateCondicaoSchema) {}
 export class CreateCondicaoResponseDto extends createZodDto(CreateCondicaoResponseSchema) {}
 
-export type CreateCondicaoInput = z.infer<typeof CreateCondicaoSchema>;
+export type CreateCondicaoInput = z.infer<typeof CreateCondicaoSchema> & { tenant_id: string };
 export type CreateCondicaoResponse = z.infer<typeof CreateCondicaoResponseSchema>;

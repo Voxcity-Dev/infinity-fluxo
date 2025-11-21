@@ -12,14 +12,15 @@ export const MetadadosEtapaSchema = z.object({
 }).passthrough(); // permite campos adicionais
 
 // Schema para criação de etapa
-export const CreateEtapaSchema = z.object({
-	tenant_id: z.uuid(),
-	fluxo_id: z.uuid(),
-	nome: z.string().min(1).max(50),
-	tipo: NodeTypeSchema,
-	interacoes_id: z.uuid().optional(),
-	metadados: MetadadosEtapaSchema.optional(),
-});
+export const CreateEtapaSchema = z
+	.object({
+		fluxo_id: z.uuid(),
+		nome: z.string().min(1).max(50),
+		tipo: NodeTypeSchema,
+		interacoes_id: z.uuid().optional(),
+		metadados: MetadadosEtapaSchema.optional(),
+	})
+	.strip();
 
 // Schema para atualização de etapa
 export const UpdateEtapaSchema = z.object({

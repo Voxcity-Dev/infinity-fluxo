@@ -1,7 +1,6 @@
-import { Body, Controller, HttpCode, UseGuards, Post, Put, Delete, Param, Get, BadRequestException, Logger } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post, Put, Delete, Param, Get, BadRequestException, Logger } from '@nestjs/common';
 import { ApiBody, ApiOkResponse, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { NpsService } from './nps.service';
-import { MicroserviceTokenGuard } from 'src/common/middlewares/microservice-token.guard';
 import { ZodPipe } from 'src/common/pipes/zod.pipe';
 import { CreateNpsDto, CreateNpsResponseDto } from './dto/create-nps.dto';
 import { UpdateNpsDto, UpdateNpsResponseDto } from './dto/update-nps.dto';
@@ -14,7 +13,6 @@ import { RespostaNpsDto, ResponderNpsResponseDto } from './dto/resposta-nps.dto'
 import { CreateNpsSchema, UpdateNpsSchema, ListNpsSchema, CreateNpsSetorSchema, ListNpsSetorSchema, DeleteNpsSetorSchema, ExecuteNpsSchema, RespostaNpsSchema } from 'src/schemas/nps.schema';
 @ApiTags('NPS')
 @Controller('nps')
-@UseGuards(MicroserviceTokenGuard)
 export class NpsController {
 	constructor(
 		private readonly npsService: NpsService,

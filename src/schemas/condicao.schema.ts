@@ -76,11 +76,12 @@ export const CreateCondicaoRegraSchema = CreateCondicaoRegraBaseSchema.extend({
 });
 
 // Schema para criação de condição
-export const CreateCondicaoSchema = z.object({
-	tenant_id: z.uuid(),
-	etapa_id: z.uuid(),
-	regras: z.array(CreateCondicaoRegraInputSchema),
-});
+export const CreateCondicaoSchema = z
+	.object({
+		etapa_id: z.uuid(),
+		regras: z.array(CreateCondicaoRegraInputSchema),
+	})
+	.strip();
 
 
 // Schema completo da regra de transação

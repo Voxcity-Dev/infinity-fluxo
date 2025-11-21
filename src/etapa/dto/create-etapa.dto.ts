@@ -16,5 +16,5 @@ export const CreateEtapaResponseSchema = z.object({
 export class CreateEtapaDto extends createZodDto(CreateEtapaSchema) {}
 export class CreateEtapaResponseDto extends createZodDto(CreateEtapaResponseSchema) {}
 
-export type CreateEtapaInput = z.infer<typeof CreateEtapaSchema>;
+export type CreateEtapaInput = z.infer<typeof CreateEtapaSchema> & { tenant_id: string };
 export type CreateEtapaResponse = z.infer<typeof CreateEtapaResponseSchema>;

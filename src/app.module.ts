@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { PrismaModule } from './infra/database/prisma/prisma.module';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 
 import { ZodFilter } from './common/filters/zod.filter';
@@ -14,6 +14,7 @@ import { EtapaModule } from './etapa/etapa.module';
 import { CondicaoModule } from './condicao/condicao.module';
 import { InteracaoModule } from './interacao/interacao.module';
 import { NpsModule } from './nps/nps.module';
+import { UnifiedAuthGuard } from './common/guards/unified-auth.guard';
 
 @Module({
 	imports: [
@@ -32,10 +33,10 @@ import { NpsModule } from './nps/nps.module';
 	controllers: [AppController],
 	providers: [
 		// Temporariamente desabilitado para testes
-		// {
-		// 	provide: APP_GUARD,
-		// 	useClass: AuthGuard,
-		// },
+		{
+			provide: APP_GUARD,
+			useClass: UnifiedAuthGuard,
+		},
 		{
 			provide: APP_FILTER,
 			useClass: ZodFilter,

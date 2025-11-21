@@ -2,7 +2,6 @@ import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
 export const ListFluxosSchema = z.object({
-	tenant_id: z.uuid(),
 	page: z.number().int().min(1).default(1),
 	limit: z.number().int().min(1).max(100).default(10),
 	search: z.string().optional(),
@@ -37,19 +36,26 @@ export const FluxoResponseSchema = z.object({
 export const FluxoEngineResponseSchema = z.object({
 	etapa_id: z.uuid(),
 	fluxo_id: z.uuid(),
-	conteudo: z.object({
-		mensagem: z.string().optional().array(),
-		file: z.object({
-			nome: z.string(),
-			url: z.string(),
-			tipo: z.enum(['imagem', 'audio', 'video', 'arquivo']),
-		}).optional(),
-	}).refine(({ file, mensagem}) => {
-		return file || mensagem;
-	}, {
-		message: 'Deve ter mensagem ou arquivo',
-		path: ['conteudo'],
-	}),
+	conteudo: z
+		.object({
+			mensagem: z.string().optional().array(),
+			file: z
+				.object({
+					nome: z.string(),
+					url: z.string(),
+					tipo: z.enum(['imagem', 'audio', 'video', 'arquivo']),
+				})
+				.optional(),
+		})
+		.refine(
+			({ file, mensagem }) => {
+				return file || mensagem;
+			},
+			{
+				message: 'Deve ter mensagem ou arquivo',
+				path: ['conteudo'],
+			},
+		),
 });
 
 export const FluxoEngineInputSchema = z.object({
@@ -63,6 +69,6 @@ export class FluxoResponseDto extends createZodDto(FluxoResponseSchema) {}
 export class FluxoEngineResponseDto extends createZodDto(FluxoEngineResponseSchema) {}
 export class FluxoEngineInputDto extends createZodDto(FluxoEngineInputSchema) {}
 
-export type ListFluxosInput = z.infer<typeof ListFluxosSchema>;
+export type ListFluxosInput = z.infer<typeof ListFluxosSchema> & { tenant_id: string };
 export type ListFluxosResponse = z.infer<typeof ListFluxosResponseSchema>;
 export type FluxoEngineInput = z.infer<typeof FluxoEngineInputSchema>;

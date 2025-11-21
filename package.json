@@ -19,7 +19,7 @@
 		"reset:db": "prisma db push --force-reset && prisma db seed",
 		"start": "nest start",
 		"start:dev": "nest start --watch",
-		"start:debug": "nest start --debug --watch",
+		"start:debug": "nest start --debug 9233 --watch",
 		"start:prod": "node dist/main",
 		"test": "jest",
 		"test:watch": "jest --watch",

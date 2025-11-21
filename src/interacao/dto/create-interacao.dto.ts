@@ -16,5 +16,5 @@ export const CreateInteracaoResponseSchema = z.object({
 export class CreateInteracaoDto extends createZodDto(CreateInteracaoSchema) {}
 export class CreateInteracaoResponseDto extends createZodDto(CreateInteracaoResponseSchema) {}
 
-export type CreateInteracaoInput = z.infer<typeof CreateInteracaoSchema>;
+export type CreateInteracaoInput = z.infer<typeof CreateInteracaoSchema> & { tenant_id: string };
 export type CreateInteracaoResponse = z.infer<typeof CreateInteracaoResponseSchema>;

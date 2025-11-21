@@ -16,5 +16,5 @@ export const CreateFluxoResponseSchema = z.object({
 export class CreateFluxoDto extends createZodDto(CreateFluxoSchema) {}
 export class CreateFluxoResponseDto extends createZodDto(CreateFluxoResponseSchema) {}
 
-export type CreateFluxoInput = z.infer<typeof CreateFluxoSchema>;
+export type CreateFluxoInput = z.infer<typeof CreateFluxoSchema> & { tenant_id: string };
 export type CreateFluxoResponse = z.infer<typeof CreateFluxoResponseSchema>;

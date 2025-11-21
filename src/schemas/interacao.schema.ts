@@ -15,14 +15,15 @@ export const InteracaoTipoSchema = z.enum([
 ]);
 
 // Schema para criação de interação
-export const CreateInteracaoSchema = z.object({
-	tenant_id: z.uuid(),
-	nome: z.string().max(50),
-	tipo: InteracaoTipoSchema,
-	conteudo: z.string(),
-	url_midia: z.string().max(500).optional(),
-	metadados: z.record(z.string(), z.any()).optional(), // JsonB
-});
+export const CreateInteracaoSchema = z
+	.object({
+		nome: z.string().max(50),
+		tipo: InteracaoTipoSchema,
+		conteudo: z.string(),
+		url_midia: z.string().max(500).optional(),
+		metadados: z.record(z.string(), z.any()).optional(), // JsonB
+	})
+	.strip();
 
 // Schema para atualização de interação
 export const UpdateInteracaoSchema = z.object({

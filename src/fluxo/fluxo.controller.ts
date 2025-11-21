@@ -1,23 +1,39 @@
-import { Body, Controller, Post, HttpCode, UseGuards, Get, Param, Put, Delete, Logger } from '@nestjs/common';
 import {
-	ApiOkResponse,
-	ApiOperation,
-	ApiResponse,
-	ApiTags,
-	ApiBody,
-} from '@nestjs/swagger';
+	Body,
+	Controller,
+	Post,
+	HttpCode,
+	Get,
+	Param,
+	Put,
+	Delete,
+	Req,
+	BadRequestException,
+} from '@nestjs/common';
+import { Request } from 'express';
+import { ApiOkResponse, ApiOperation, ApiResponse, ApiTags, ApiBody } from '@nestjs/swagger';
 import { FluxoService } from './fluxo.service';
 import { CreateFluxoInput } from './dto/create-fluxo.dto';
-import { MicroserviceTokenGuard } from 'src/common/middlewares/microservice-token.guard';
-import { FluxoEngineInput, FluxoEngineInputDto, FluxoEngineResponseDto, FluxoResponseDto, ListFluxosInput, ListFluxosResponseDto, ListFluxosSchema } from './dto/list-fluxo.dto';
+import {
+	FluxoEngineInput,
+	FluxoEngineInputDto,
+	FluxoEngineResponseDto,
+	FluxoResponseDto,
+	ListFluxosInput,
+	ListFluxosResponseDto,
+	ListFluxosSchema,
+} from './dto/list-fluxo.dto';
 import { UpdateFluxoConfiguracaoInput } from './dto/update-fluxo-configuracao.dto';
 import { ZodPipe } from 'src/common/pipes/zod.pipe';
 import { UpdateFluxoInput } from './dto/update-fluxo.dto';
-import { CreateFluxoSchema, UpdateFluxoSchema, UpdateFlowConfiguracaoSchema } from 'src/schemas/fluxo.schema';
+import {
+	CreateFluxoSchema,
+	UpdateFluxoSchema,
+	UpdateFlowConfiguracaoSchema,
+} from 'src/schemas/fluxo.schema';
 
 @ApiTags('Fluxo')
 @Controller('fluxo')
-@UseGuards(MicroserviceTokenGuard)
 export class FluxoController {
 	constructor(private readonly fluxoService: FluxoService) {}
 
@@ -40,8 +56,19 @@ export class FluxoController {
 	@ApiResponse({ status: 400, description: 'Erro ao listar fluxos' })
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
 	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
-	async listar(@Body(new ZodPipe(ListFluxosSchema)) params: ListFluxosInput) {
-		const fluxos = await this.fluxoService.findAll(params);
+	async listar(
+		@Body(new ZodPipe(ListFluxosSchema)) params: ListFluxosInput,
+		@Req() request: Request,
+	) {
+		const tenant_id = (request['user']?.tenant_id ||
+			request['tenant_id'] ||
+			request['micro']?.tenant_id) as string;
+
+		if (!tenant_id) {
+			throw new BadRequestException('tenant_id não encontrado no token');
+		}
+
+		const fluxos = await this.fluxoService.findAll({ ...params, tenant_id } as ListFluxosInput);
 		return { message: 'Fluxos listados com sucesso!', data: fluxos };
 	}
 
@@ -63,8 +90,19 @@ export class FluxoController {
 	@ApiResponse({ status: 400, description: 'Erro ao criar fluxo' })
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
 	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
-	async criar(@Body(new ZodPipe(CreateFluxoSchema)) data: CreateFluxoInput) {
-		const fluxo = await this.fluxoService.create(data);
+	async criar(
+		@Body(new ZodPipe(CreateFluxoSchema)) data: CreateFluxoInput,
+		@Req() request: Request,
+	) {
+		const tenant_id = (request['user']?.tenant_id ||
+			request['tenant_id'] ||
+			request['micro']?.tenant_id) as string;
+
+		if (!tenant_id) {
+			throw new BadRequestException('tenant_id não encontrado no token');
+		}
+
+		const fluxo = await this.fluxoService.create({ ...data, tenant_id } as CreateFluxoInput);
 		return { message: 'Fluxo criado com sucesso!', data: fluxo };
 	}
 
@@ -86,7 +124,10 @@ export class FluxoController {
 	@ApiResponse({ status: 400, description: 'Erro ao atualizar fluxo' })
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
 	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
-	async atualizar(@Param('fluxo_id') fluxo_id: string, @Body(new ZodPipe(UpdateFluxoSchema)) data: UpdateFluxoInput) {
+	async atualizar(
+		@Param('fluxo_id') fluxo_id: string,
+		@Body(new ZodPipe(UpdateFluxoSchema)) data: UpdateFluxoInput,
+	) {
 		const fluxo = await this.fluxoService.update({ id: fluxo_id, ...data });
 		return { message: 'Fluxo atualizado com sucesso!', data: fluxo };
 	}
@@ -100,7 +141,9 @@ export class FluxoController {
 	@ApiResponse({ status: 400, description: 'Erro ao atualizar configuração do fluxo' })
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
 	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
-	async atualizarConfiguracao(@Body(new ZodPipe(UpdateFlowConfiguracaoSchema)) data: UpdateFluxoConfiguracaoInput) {
+	async atualizarConfiguracao(
+		@Body(new ZodPipe(UpdateFlowConfiguracaoSchema)) data: UpdateFluxoConfiguracaoInput,
+	) {
 		const configuracao = await this.fluxoService.updateConfiguracao(data);
 		return { message: 'Configuração atualizada com sucesso!', data: configuracao };
 	}

@@ -23,12 +23,17 @@ async function bootstrap() {
 	app.enableCors({
 		origin: isDevelopment ? true : ['https://www.voxcity.com.br/'],
 		methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-		allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+		allowedHeaders: [
+			'Content-Type',
+			'Authorization',
+			'Accept',
+			'x-origin-name',
+			'x-microservice-token',
+		],
 		credentials: true,
 	});
 
 	app.useGlobalGuards(new RateLimitGuard());
-
 
 	const config = new DocumentBuilder()
 		.setTitle('Infinity Fluxo')

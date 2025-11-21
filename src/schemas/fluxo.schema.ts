@@ -16,13 +16,14 @@ export const FLUXO_CONFIGURACAO_CHAVES = [
 export const FlowConfiguracaoChaveSchema = z.enum(FLUXO_CONFIGURACAO_CHAVES);
 
 // Schema para criação de fluxo
-export const CreateFluxoSchema = z.object({
-	tenant_id: z.uuid(),
-	nome: z.string().min(1).max(50),
-	descricao: z.string().optional(),
-	mensagem_finalizacao: z.string().optional(),
-	mensagem_invalida: z.string().optional(),
-});
+export const CreateFluxoSchema = z
+	.object({
+		nome: z.string().min(1).max(50),
+		descricao: z.string().optional(),
+		mensagem_finalizacao: z.string().optional(),
+		mensagem_invalida: z.string().optional(),
+	})
+	.strip();
 
 // Schema para atualização de fluxo
 export const UpdateFluxoSchema = z.object({
@@ -63,14 +64,14 @@ export const CreateFlowConfiguracaoSchema = z.object({
 // Schema para atualização de configuração de fluxo
 export const UpdateFlowConfiguracaoSchema = z.object({
 	configuracoes: z.array(
-	  z.object({
-		id: z.uuid(),
-		valor: z.string(),
-		mensagem_finalizacao: z.string().optional(),
-		mensagem_invalida: z.string().optional(),
-	  })
+		z.object({
+			id: z.uuid(),
+			valor: z.string(),
+			mensagem_finalizacao: z.string().optional(),
+			mensagem_invalida: z.string().optional(),
+		}),
 	),
-  });
+});
 
 // Schema completo da configuração de fluxo
 export const FlowConfiguracaoSchema = z.object({

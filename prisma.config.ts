@@ -7,5 +7,6 @@ export default {
 	migrations: {
 		path: 'prisma/migrations',
 		seed: 'ts-node prisma/seed/run.ts',
+		databaseUrl: process.env.DATABASE_URL,
 	},
 } as PrismaConfig;

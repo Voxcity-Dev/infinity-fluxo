@@ -48,8 +48,7 @@ model CondicaoRegra {
   next_fluxo_id  String?  @db.Uuid // se action = FLUXO
   queue_id       String?  @db.Uuid // se action = FILA
   user_id        String?  @db.Uuid // se action = USUARIO
-  variable_name  String?  @db.VarChar(50) // se action = SETAR_VARIAVEL ou OBTER_VARIAVEL
-  variable_value String?  @db.VarChar(50) // valor para SET_VARIABLE
+  variavel_id    String?  @db.Uuid // se action = SETAR_VARIAVEL ou OBTER_VARIAVEL
   api_endpoint   String?  @db.VarChar(50) // se action = API
   db_query       String?  @db.VarChar(50) // se action = DB
   priority       Int      @default(0) // ordem de execução

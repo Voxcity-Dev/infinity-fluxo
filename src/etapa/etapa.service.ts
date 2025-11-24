@@ -137,8 +137,7 @@ export class EtapaService {
 									next_fluxo_id: true,
 									queue_id: true,
 									user_id: true,
-									variable_name: true,
-									variable_value: true,
+									variavel_id: true,
 									api_endpoint: true,
 									db_query: true,
 									priority: true,
@@ -176,15 +175,15 @@ export class EtapaService {
 			const { tenant_id, fluxo_id, nome, tipo, interacoes_id, metadados } = data;
 
 			// Garantir que metadados tenham pelo menos a estrutura de position padrão
-			const metadadosComPadrao = metadados 
+			const metadadosComPadrao = metadados
 				? {
-					...metadados,
-					position: {
-						x: (metadados as any)?.position?.x ?? 100,
-						y: (metadados as any)?.position?.y ?? 100,
-						...(metadados as any)?.position || {},
-					},
-				}
+						...metadados,
+						position: {
+							x: (metadados as any)?.position?.x ?? 100,
+							y: (metadados as any)?.position?.y ?? 100,
+							...((metadados as any)?.position || {}),
+						},
+					}
 				: undefined; // Se não enviado, o Prisma usará o default do schema
 
 			const etapa = await this.prisma.etapas.create({
@@ -239,7 +238,7 @@ export class EtapaService {
 				// Fazer merge dos metadados existentes com os novos
 				const metadadosExistentes = (etapaAtual?.metadados as Record<string, any>) || {};
 				const metadadosNovos = metadados as Record<string, any>;
-				
+
 				// Fazer merge profundo para preservar position.x e position.y
 				updateData.metadados = {
 					...metadadosExistentes,
@@ -358,8 +357,8 @@ export class EtapaService {
 				include: {
 					interacoes: {
 						select: { conteudo: true, tipo: true, url_midia: true, metadados: true },
-					}
-				}
+					},
+				},
 			});
 
 			if (!etapa) {
@@ -399,10 +398,8 @@ export class EtapaService {
 			if (error instanceof HttpException) {
 				throw error;
 			}
-			
+
 			throw new BadRequestException('Erro ao buscar interações');
 		}
 	}
-
-	
 }

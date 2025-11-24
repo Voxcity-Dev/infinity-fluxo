@@ -8,6 +8,7 @@ import { CondicaoRegra, InteracaoTipo } from 'src/schemas';
 import { CondicaoService } from 'src/condicao/condicao.service';
 import { ConfigService } from 'src/common/services/config.service';
 import { FlowConfiguracaoChave, FLUXO_CONFIGURACAO_CHAVES } from 'src/schemas/fluxo.schema';
+import { api_core } from 'src/infra/config/axios/core';
 
 @Injectable()
 export class FluxoService {
@@ -24,33 +25,40 @@ export class FluxoService {
 
 			if (!etapa_id) {
 				const etapa = await this.etapaService.getEtapaInicio(fluxo_id);
-				return this.responseFluxoEnginer(etapa, { etapa_id: etapa.id, fluxo_id, ticket_id });
+				return await this.responseFluxoEnginer(etapa, { etapa_id: etapa.id, fluxo_id, ticket_id });
 			}
 
 			const mensagem = this.extrairMensagem(conteudo);
 
 			// Buscar regra válida
-			const regraEncontrada = await this.condicaoService.buscarRegraValida(etapa_id, mensagem, ticket_id, fluxo_id);
-			
+			const regraEncontrada = await this.condicaoService.buscarRegraValida(
+				etapa_id,
+				mensagem,
+				ticket_id,
+				fluxo_id,
+			);
+
 			// Executar ação da regra
 			const resultado = await this.executarAcaoRegra(regraEncontrada, fluxo_id, etapa_id);
 
-			return {
-				etapa_id: resultado.etapa_id,
-				conteudo: resultado.conteudo,
-				fluxo_id: resultado.fluxo_id || fluxo_id,
-				ticket_id,
-				queue_id: resultado.queue_id,
-				user_id: resultado.user_id,
-			}
-			
+		return {
+			etapa_id: resultado.etapa_id,
+			conteudo: resultado.conteudo,
+			fluxo_id: resultado.fluxo_id || fluxo_id,
+			ticket_id,
+			queue_id: resultado.queue_id,
+			user_id: resultado.user_id,
+			variavel_id: resultado.variavel_id,
+			regex: resultado.regex,
+			mensagem_erro: resultado.mensagem_erro,
+		};
 		} catch (error) {
 			console.error('Erro ao executar fluxo:', error);
 
 			if (error instanceof HttpException) {
 				throw error;
 			}
-			
+
 			throw new BadRequestException('Erro ao executar fluxo');
 		}
 	}
@@ -88,7 +96,7 @@ export class FluxoService {
 			if (error instanceof HttpException) {
 				throw error;
 			}
-			
+
 			throw new BadRequestException('Erro ao listar fluxos');
 		}
 	}
@@ -96,9 +104,9 @@ export class FluxoService {
 	async findById(fluxo_id: string) {
 		try {
 			const fluxo = await this.prisma.fluxo.findUnique({
-				where: { 
+				where: {
 					id: fluxo_id,
-					is_deleted: false // Garantir que não retorne fluxos deletados
+					is_deleted: false, // Garantir que não retorne fluxos deletados
 				},
 			});
 
@@ -113,14 +121,13 @@ export class FluxoService {
 			if (error instanceof HttpException) {
 				throw error;
 			}
-			
+
 			throw new BadRequestException('Erro ao obter fluxo');
 		}
 	}
 
 	async create(data: CreateFluxoInput) {
 		try {
-
 			console.log('data', data);
 
 			const fluxo = await this.prisma.fluxo.create({
@@ -132,7 +139,12 @@ export class FluxoService {
 			});
 
 			// Criar configurações padrão após criar o fluxo
-			await this.configuracaoDefault(data.tenant_id, fluxo.id, data.mensagem_finalizacao, data.mensagem_invalida);
+			await this.configuracaoDefault(
+				data.tenant_id,
+				fluxo.id,
+				data.mensagem_finalizacao,
+				data.mensagem_invalida,
+			);
 
 			return fluxo;
 		} catch (error) {
@@ -141,18 +153,24 @@ export class FluxoService {
 			if (error instanceof HttpException) {
 				throw error;
 			}
-			
+
 			throw new BadRequestException('Erro ao criar fluxo');
 		}
 	}
 
-	async update(data: { id: string; nome?: string; descricao?: string; mensagem_finalizacao?: string; mensagem_invalida?: string }) {
+	async update(data: {
+		id: string;
+		nome?: string;
+		descricao?: string;
+		mensagem_finalizacao?: string;
+		mensagem_invalida?: string;
+	}) {
 		try {
 			const { id, nome, descricao, mensagem_finalizacao, mensagem_invalida } = data;
 
 			// Construir objeto de dados apenas com campos não vazios para a tabela fluxo
 			const updateData: any = {};
-			
+
 			if (nome !== undefined && nome !== null && nome !== '') {
 				updateData.nome = nome;
 			}
@@ -170,9 +188,9 @@ export class FluxoService {
 			let fluxo: any = null;
 			if (Object.keys(updateData).length > 0) {
 				fluxo = await this.prisma.fluxo.update({
-					where: { 
+					where: {
 						id,
-						is_deleted: false // Garantir que não atualize fluxos deletados
+						is_deleted: false, // Garantir que não atualize fluxos deletados
 					},
 					data: updateData,
 				});
@@ -183,17 +201,17 @@ export class FluxoService {
 				await this.updateMensagens({
 					fluxo_id: id,
 					mensagem_finalizacao,
-					mensagem_invalida
+					mensagem_invalida,
 				});
 			}
 
 			// Se não atualizou dados básicos, buscar o fluxo atual
 			if (!fluxo) {
 				fluxo = await this.prisma.fluxo.findFirst({
-					where: { 
+					where: {
 						id,
-						is_deleted: false
-					}
+						is_deleted: false,
+					},
 				});
 			}
 
@@ -204,21 +222,25 @@ export class FluxoService {
 			if (error instanceof HttpException) {
 				throw error;
 			}
-			
+
 			throw new BadRequestException('Erro ao atualizar fluxo');
 		}
 	}
 
-	async updateMensagens(data: { fluxo_id: string; mensagem_finalizacao?: string; mensagem_invalida?: string }) {
+	async updateMensagens(data: {
+		fluxo_id: string;
+		mensagem_finalizacao?: string;
+		mensagem_invalida?: string;
+	}) {
 		try {
 			const { fluxo_id, mensagem_finalizacao, mensagem_invalida } = data;
 
 			// Verificar se o fluxo existe
 			const fluxo = await this.prisma.fluxo.findFirst({
-				where: { 
+				where: {
 					id: fluxo_id,
-					is_deleted: false
-				}
+					is_deleted: false,
+				},
 			});
 
 			if (!fluxo) {
@@ -226,18 +248,22 @@ export class FluxoService {
 			}
 
 			// Atualizar mensagem de finalização se fornecida
-			if (mensagem_finalizacao !== undefined && mensagem_finalizacao !== null && mensagem_finalizacao !== '') {
+			if (
+				mensagem_finalizacao !== undefined &&
+				mensagem_finalizacao !== null &&
+				mensagem_finalizacao !== ''
+			) {
 				const configExistente = await this.prisma.fluxoConfiguracao.findFirst({
 					where: {
 						fluxo_id,
-						chave: 'MENSAGEM_FINALIZACAO'
-					}
+						chave: 'MENSAGEM_FINALIZACAO',
+					},
 				});
 
 				if (configExistente) {
 					await this.prisma.fluxoConfiguracao.update({
 						where: { id: configExistente.id },
-						data: { valor: mensagem_finalizacao }
+						data: { valor: mensagem_finalizacao },
 					});
 				} else {
 					await this.prisma.fluxoConfiguracao.create({
@@ -245,25 +271,29 @@ export class FluxoService {
 							tenant_id: fluxo.tenant_id,
 							fluxo_id,
 							chave: 'MENSAGEM_FINALIZACAO',
-							valor: mensagem_finalizacao
-						}
+							valor: mensagem_finalizacao,
+						},
 					});
 				}
 			}
 
 			// Atualizar mensagem inválida se fornecida
-			if (mensagem_invalida !== undefined && mensagem_invalida !== null && mensagem_invalida !== '') {
+			if (
+				mensagem_invalida !== undefined &&
+				mensagem_invalida !== null &&
+				mensagem_invalida !== ''
+			) {
 				const configExistente = await this.prisma.fluxoConfiguracao.findFirst({
 					where: {
 						fluxo_id,
-						chave: 'MENSAGEM_INVALIDA'
-					}
+						chave: 'MENSAGEM_INVALIDA',
+					},
 				});
 
 				if (configExistente) {
 					await this.prisma.fluxoConfiguracao.update({
 						where: { id: configExistente.id },
-						data: { valor: mensagem_invalida }
+						data: { valor: mensagem_invalida },
 					});
 				} else {
 					await this.prisma.fluxoConfiguracao.create({
@@ -271,8 +301,8 @@ export class FluxoService {
 							tenant_id: fluxo.tenant_id,
 							fluxo_id,
 							chave: 'MENSAGEM_INVALIDA',
-							valor: mensagem_invalida
-						}
+							valor: mensagem_invalida,
+						},
 					});
 				}
 			}
@@ -284,7 +314,7 @@ export class FluxoService {
 			if (error instanceof HttpException) {
 				throw error;
 			}
-			
+
 			throw new BadRequestException('Erro ao atualizar mensagens');
 		}
 	}
@@ -292,8 +322,8 @@ export class FluxoService {
 	async delete(fluxo_id: string) {
 		try {
 			await this.prisma.fluxo.update({
-				where: { id: fluxo_id, },
-				data: { is_deleted: true, },
+				where: { id: fluxo_id },
+				data: { is_deleted: true },
 			});
 		} catch (error) {
 			console.error('Erro ao deletar fluxo:', error);
@@ -301,7 +331,7 @@ export class FluxoService {
 			if (error instanceof HttpException) {
 				throw error;
 			}
-			
+
 			throw new BadRequestException('Erro ao deletar fluxo');
 		}
 	}
@@ -309,28 +339,26 @@ export class FluxoService {
 	async updateConfiguracao(data: UpdateFluxoConfiguracaoInput) {
 		try {
 			const { configuracoes } = data;
-			
+
 			// Filtrar apenas configurações com valores válidos (não vazios)
-			const configuracoesValidas = configuracoes.filter(config => 
-				config.valor !== undefined && 
-				config.valor !== null && 
-				config.valor !== ''
+			const configuracoesValidas = configuracoes.filter(
+				config => config.valor !== undefined && config.valor !== null && config.valor !== '',
 			);
 
 			if (configuracoesValidas.length === 0) {
 				throw new BadRequestException('Nenhuma configuração válida fornecida para atualização');
 			}
-			
+
 			// Usar transação para garantir consistência
 			const resultados = await this.prisma.$transaction(
-				configuracoesValidas.map((config) =>
+				configuracoesValidas.map(config =>
 					this.prisma.fluxoConfiguracao.update({
 						where: { id: config.id },
 						data: { valor: config.valor },
-					})
-				)
+					}),
+				),
 			);
-			
+
 			return resultados;
 		} catch (error) {
 			console.error('Erro ao atualizar configurações:', error);
@@ -338,7 +366,7 @@ export class FluxoService {
 			if (error instanceof HttpException) {
 				throw error;
 			}
-			
+
 			throw new BadRequestException('Erro ao atualizar configurações');
 		}
 	}
@@ -346,12 +374,12 @@ export class FluxoService {
 	async getInvalidResponseMessage(etapa_id: string) {
 		try {
 			const configuracao = await this.prisma.fluxoConfiguracao.findFirst({
-				where: { 
+				where: {
 					fluxo: { etapas: { some: { id: etapa_id } } },
-					chave: 'MENSAGEM_INVALIDA' 
+					chave: 'MENSAGEM_INVALIDA',
 				},
 			});
-			
+
 			return configuracao?.valor || this.configService.configuracaoDefaults.MENSAGEM_INVALIDA;
 		} catch (error) {
 			console.error('Erro ao obter mensagem de resposta inválida:', error);
@@ -359,7 +387,12 @@ export class FluxoService {
 		}
 	}
 
-	private async configuracaoDefault(tenant_id: string, fluxo_id: string, mensagem_finalizacao?: string, mensagem_invalida?: string) {
+	private async configuracaoDefault(
+		tenant_id: string,
+		fluxo_id: string,
+		mensagem_finalizacao?: string,
+		mensagem_invalida?: string,
+	) {
 		try {
 			// Criar todas as configurações de uma vez, filtrando apenas chaves válidas do enum
 			const configuracoes: Array<{
@@ -408,7 +441,7 @@ export class FluxoService {
 
 			await this.prisma.fluxoConfiguracao.createMany({
 				data: configuracoes,
-				skipDuplicates: true // Evita erros se já existir
+				skipDuplicates: true, // Evita erros se já existir
 			});
 
 			console.log(`Configurações padrão criadas para fluxo ${fluxo_id}`);
@@ -418,18 +451,18 @@ export class FluxoService {
 			if (error instanceof HttpException) {
 				throw error;
 			}
-			
+
 			throw new BadRequestException('Erro ao criar configuração default');
 		}
 	}
 
-	private responseFluxoEnginer(
-		{interacoes}: Awaited<ReturnType<typeof this.etapaService.getEtapaInicio>>, 
-		{etapa_id, fluxo_id, ticket_id}: {etapa_id: string, fluxo_id: string, ticket_id: string}
+	private async responseFluxoEnginer(
+		{ interacoes }: Awaited<ReturnType<typeof this.etapaService.getEtapaInicio>>,
+		{ etapa_id, fluxo_id, ticket_id }: { etapa_id: string; fluxo_id: string; ticket_id: string },
 	) {
 		if (!interacoes) return null;
 
-		const processadoresConteudo: Record<InteracaoTipo, () => any> = {
+		const processadoresConteudo: Record<InteracaoTipo, () => Promise<any> | any> = {
 			MENSAGEM: () => ({
 				mensagem: interacoes.conteudo || '',
 			}),
@@ -437,36 +470,61 @@ export class FluxoService {
 				file: {
 					nome: this.extrairNomeArquivo(interacoes.url_midia),
 					url: interacoes.url_midia || '',
-					tipo: 'imagem'
-				}
+					tipo: 'imagem',
+				},
 			}),
 			AUDIO: () => ({
 				file: {
 					nome: this.extrairNomeArquivo(interacoes.url_midia),
 					url: interacoes.url_midia || '',
-					tipo: 'audio'
-				}
+					tipo: 'audio',
+				},
 			}),
 			VIDEO: () => ({
 				file: {
 					nome: this.extrairNomeArquivo(interacoes.url_midia),
 					url: interacoes.url_midia || '',
-					tipo: 'video'
-				}
+					tipo: 'video',
+				},
 			}),
 			ARQUIVO: () => ({
 				file: {
 					nome: this.extrairNomeArquivo(interacoes.url_midia),
 					url: interacoes.url_midia || '',
-					tipo: 'arquivo'
-				}
+					tipo: 'arquivo',
+				},
 			}),
 			BOTAO: () => ({
 				mensagem: JSON.stringify(interacoes.metadados) || '',
 			}),
-			SETAR_VARIAVEL: () => ({
-				mensagem: JSON.stringify(interacoes.metadados) || '',
-			}),
+			SETAR_VARIAVEL: async () => {
+				const metadados = interacoes.metadados as Record<string, any> | null | undefined;
+				const variavelId = metadados?.variavel_id as string | undefined;
+				if (!variavelId) {
+					return {
+						mensagem: interacoes.conteudo || '',
+					};
+				}
+
+				try {
+					// Buscar dados da variável do core
+					const variavelResponse = await api_core.get(`/variaveis/${variavelId}`);
+					const variavel = variavelResponse.data;
+
+					return {
+						mensagem: interacoes.conteudo || '',
+						variavel_id: variavelId,
+						regex: variavel?.mascara_variaveis?.regex || null,
+						mensagem_erro: variavel?.mascara_variaveis?.mensagem_erro || null,
+					};
+				} catch (error) {
+					console.error('Erro ao buscar variável do core:', error);
+					return {
+						mensagem: interacoes.conteudo || '',
+						variavel_id: variavelId,
+					};
+				}
+			},
 			OBTER_VARIAVEL: () => ({
 				mensagem: JSON.stringify(interacoes.metadados) || '',
 			}),
@@ -478,7 +536,8 @@ export class FluxoService {
 			}),
 		};
 
-		const conteudo = processadoresConteudo[interacoes.tipo]?.() || {};
+		const processador = processadoresConteudo[interacoes.tipo];
+		const conteudo = processador ? await (processador() as Promise<any>) : {};
 
 		return {
 			etapa_id,
@@ -488,8 +547,26 @@ export class FluxoService {
 		};
 	}
 
-	private async executarAcaoRegra(regraEncontrada: CondicaoRegra | null, fluxo_id: string, etapa_id: string) {
-		const data = {
+	private async executarAcaoRegra(
+		regraEncontrada: CondicaoRegra | null,
+		fluxo_id: string,
+		etapa_id: string,
+	) {
+		const data: {
+			etapa_id: string;
+			fluxo_id: string;
+			queue_id: string;
+			user_id: string;
+			variavel_id?: string;
+			regex?: string | null;
+			mensagem_erro?: string | null;
+			conteudo: {
+				mensagem: never[];
+				variavel_id?: string;
+				regex?: string | null;
+				mensagem_erro?: string | null;
+			};
+		} = {
 			etapa_id: '',
 			fluxo_id,
 			queue_id: '',
@@ -502,17 +579,19 @@ export class FluxoService {
 		// se nenhuma regra válida encontrada, retorna resposta inválida
 		if (!regraEncontrada) {
 			const interacoes = await this.etapaService.getInteracoesByEtapaId(etapa_id);
-			
-			const mensagemInvalida = this.normalizarParaString(await this.configService.getInvalidResponseMessage(etapa_id));
+
+			const mensagemInvalida = this.normalizarParaString(
+				await this.configService.getInvalidResponseMessage(etapa_id),
+			);
 			if (mensagemInvalida.trim() !== '') {
 				data.conteudo.mensagem.push(mensagemInvalida as never);
 			}
-			
+
 			const conteudoInteracao = this.normalizarParaString(interacoes[0]?.conteudo);
 			if (conteudoInteracao.trim() !== '') {
 				data.conteudo.mensagem.push(conteudoInteracao as never);
 			}
-			
+
 			data.etapa_id = etapa_id;
 			return data;
 		}
@@ -523,20 +602,85 @@ export class FluxoService {
 		// Processar mudança de etapa
 		if (acao.next_etapa_id) {
 			data.etapa_id = acao.next_etapa_id;
-			const interacoes = await this.etapaService.getInteracoesByEtapaId(acao.next_etapa_id);
-			const conteudo = this.normalizarParaString(interacoes[0]?.conteudo);
-			data.conteudo = { mensagem: conteudo.trim() !== '' ? [conteudo] as never[] : [] };
+			const etapa = await this.etapaService.findById(acao.next_etapa_id);
+			const interacao = etapa.interacoes?.[0];
+
+			if (interacao?.tipo === 'SETAR_VARIAVEL') {
+				const metadados = interacao.metadados as Record<string, any> | null | undefined;
+				const variavelId = metadados?.variavel_id as string | undefined;
+				if (variavelId) {
+					try {
+						const variavelResponse = await api_core.get(`/variaveis/${variavelId}`);
+						const variavel = variavelResponse.data;
+
+						const conteudo = this.normalizarParaString(interacao.conteudo);
+						data.conteudo = {
+							mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
+							variavel_id: variavelId,
+							regex: variavel?.mascara_variaveis?.regex || null,
+							mensagem_erro: variavel?.mascara_variaveis?.mensagem_erro || null,
+						};
+					} catch (error) {
+						console.error('Erro ao buscar variável do core:', error);
+						const conteudo = this.normalizarParaString(interacao.conteudo);
+						data.conteudo = {
+							mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
+							variavel_id: variavelId,
+						};
+					}
+				} else {
+					const interacoes = await this.etapaService.getInteracoesByEtapaId(acao.next_etapa_id);
+					const conteudo = this.normalizarParaString(interacoes[0]?.conteudo);
+					data.conteudo = { mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [] };
+				}
+			} else {
+				const interacoes = await this.etapaService.getInteracoesByEtapaId(acao.next_etapa_id);
+				const conteudo = this.normalizarParaString(interacoes[0]?.conteudo);
+				data.conteudo = { mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [] };
+			}
 		}
 
 		// Processar mudança de fluxo
 		if (acao.next_fluxo_id) {
 			data.fluxo_id = acao.next_fluxo_id;
-			
+
 			const etapaInicio = await this.etapaService.getEtapaInicio(acao.next_fluxo_id);
-			const interacoes = await this.etapaService.getInteracoesByEtapaId(etapaInicio.id);
-			
-			const conteudo = this.normalizarParaString(interacoes[0]?.conteudo);
-			data.conteudo = { mensagem: conteudo.trim() !== '' ? [conteudo] as never[] : [] };
+			const etapa = await this.etapaService.findById(etapaInicio.id);
+			const interacao = etapa.interacoes?.[0];
+
+			if (interacao?.tipo === 'SETAR_VARIAVEL') {
+				const metadados = interacao.metadados as Record<string, any> | null | undefined;
+				const variavelId = metadados?.variavel_id as string | undefined;
+				if (variavelId) {
+					try {
+						const variavelResponse = await api_core.get(`/variaveis/${variavelId}`);
+						const variavel = variavelResponse.data;
+
+						const conteudo = this.normalizarParaString(interacao.conteudo);
+						data.conteudo = {
+							mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
+							variavel_id: variavelId,
+							regex: variavel?.mascara_variaveis?.regex || null,
+							mensagem_erro: variavel?.mascara_variaveis?.mensagem_erro || null,
+						};
+					} catch (error) {
+						console.error('Erro ao buscar variável do core:', error);
+						const conteudo = this.normalizarParaString(interacao.conteudo);
+						data.conteudo = {
+							mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
+							variavel_id: variavelId,
+						};
+					}
+				} else {
+					const interacoes = await this.etapaService.getInteracoesByEtapaId(etapaInicio.id);
+					const conteudo = this.normalizarParaString(interacoes[0]?.conteudo);
+					data.conteudo = { mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [] };
+				}
+			} else {
+				const interacoes = await this.etapaService.getInteracoesByEtapaId(etapaInicio.id);
+				const conteudo = this.normalizarParaString(interacoes[0]?.conteudo);
+				data.conteudo = { mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [] };
+			}
 			data.etapa_id = etapaInicio.id;
 		}
 
@@ -547,12 +691,11 @@ export class FluxoService {
 			let mensagem: string[] = [];
 
 			if (acao.queue_id && !acao.user_id) {
-				data.queue_id = acao.queue_id
+				data.queue_id = acao.queue_id;
 				mensagem_encaminhamento = await this.configService.getSendMessageQueue(acao.queue_id);
 				mensagem_fora_horario = await this.configService.getSendMessageOutOfHour(acao.queue_id);
-			}
-			else if (acao.user_id) {
-				data.user_id = acao.user_id
+			} else if (acao.user_id) {
+				data.user_id = acao.user_id;
 				data.queue_id = acao.queue_id;
 				mensagem_encaminhamento = await this.configService.getSendMessageDefault(fluxo_id);
 			}
@@ -562,13 +705,33 @@ export class FluxoService {
 			if (msgForaHorarioNormalizada.trim() !== '') {
 				mensagem.push(msgForaHorarioNormalizada);
 			}
-			
+
 			const msgEncaminhamentoNormalizada = this.normalizarParaString(mensagem_encaminhamento);
 			if (msgEncaminhamentoNormalizada.trim() !== '') {
 				mensagem.push(msgEncaminhamentoNormalizada);
 			}
-			
+
 			data.conteudo = { mensagem: mensagem as never[] };
+		}
+
+		// Processar variavel_id da regra (se existir)
+		if (regraEncontrada?.variavel_id) {
+			try {
+				const variavelResponse = await api_core.get(`/variaveis/${regraEncontrada.variavel_id}`);
+				const variavel = variavelResponse.data;
+
+				data.variavel_id = regraEncontrada.variavel_id;
+				data.regex = variavel?.mascara_variaveis?.regex || null;
+				data.mensagem_erro = variavel?.mascara_variaveis?.mensagem_erro || null;
+
+				data.conteudo.variavel_id = regraEncontrada.variavel_id;
+				data.conteudo.regex = variavel?.mascara_variaveis?.regex || null;
+				data.conteudo.mensagem_erro = variavel?.mascara_variaveis?.mensagem_erro || null;
+			} catch (error) {
+				console.error('Erro ao buscar variável do core:', error);
+				data.variavel_id = regraEncontrada.variavel_id;
+				data.conteudo.variavel_id = regraEncontrada.variavel_id;
+			}
 		}
 
 		return data;

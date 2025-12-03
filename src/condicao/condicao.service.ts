@@ -285,20 +285,18 @@ export class CondicaoService {
 						.filter(r => r.action !== 'SETAR_VARIAVEL')
 						.sort((a, b) => a.priority - b.priority);
 
-					if (regras.length > 0) {
-						const segundaRegra = regras[0]; // Primeira regra que não é SETAR_VARIAVEL (menor prioridade)
-						if (segundaRegra) {
-							const logData = {
-								ticket_id,
-								etapa_id,
-								fluxo_id,
-								tenant_id: condicao.tenant_id,
-								opcao_id: segundaRegra.id,
-							} as CreateLog;
-							await this.logService.create(logData);
-							// Retornar a segunda regra e parar execução - não continuar para o código abaixo
-							return segundaRegra as unknown as CondicaoRegra;
-						}
+					const segundaRegra = regras[0]; // Primeira regra que não é SETAR_VARIAVEL (menor prioridade)
+					if (segundaRegra) {
+						const logData = {
+							ticket_id,
+							etapa_id,
+							fluxo_id,
+							tenant_id: condicao.tenant_id,
+							opcao_id: segundaRegra.id,
+						} as CreateLog;
+						await this.logService.create(logData);
+						// Retornar a segunda regra e parar execução - não continuar para o código abaixo
+						return segundaRegra as unknown as CondicaoRegra;
 					}
 				}
 				// Se não encontrou segunda regra, retornar null e parar execução - não continuar
@@ -319,18 +317,18 @@ export class CondicaoService {
 				for (const regra of condicao.regras) {
 					// Se a regra é SETAR_VARIAVEL, não precisa de input - retorna diretamente
 					if (regra.action === 'SETAR_VARIAVEL') {
-						regraEncontrada = regra as CondicaoRegra;
+						regraEncontrada = regra as unknown as CondicaoRegra;
 						break;
 					}
 
 					if (regra.msg_exata) {
 						if (regra.input === mensagem) {
-							regraEncontrada = regra as CondicaoRegra;
+							regraEncontrada = regra as unknown as CondicaoRegra;
 							break;
 						}
 					} else {
 						if (mensagem.includes(regra.input)) {
-							regraEncontrada = regra as CondicaoRegra;
+							regraEncontrada = regra as unknown as CondicaoRegra;
 							break;
 						}
 					}

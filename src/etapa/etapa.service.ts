@@ -171,7 +171,7 @@ export class EtapaService {
 
 			const etapa: EtapaWithVariavel<typeof etapaBase> = etapaBase;
 
-			const variavelId = etapa.condicao[0].regras[0].variavel_id;
+			const variavelId = etapa.condicao?.[0]?.regras?.[0]?.variavel_id;
 
 			// Buscar informações da variável se a etapa tiver variavel_id
 			if (variavelId) {

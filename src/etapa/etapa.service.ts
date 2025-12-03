@@ -3,6 +3,17 @@ import { PrismaService } from 'src/infra/database/prisma/prisma.service';
 import type { CreateEtapaInput } from './dto/create-etapa.dto';
 import { ListEtapasInput } from './dto/list-etapa.dto';
 import { UpdateEtapaInput, UpdateEtapaPositionInput } from './dto/update-etapa.dto';
+import { api_core } from 'src/infra/config/axios/core';
+
+type EtapaVariavel = {
+	id: string;
+	regex: string | null;
+	mensagem_erro: string | null;
+};
+
+type EtapaWithVariavel<T> = T & {
+	variavel?: EtapaVariavel;
+};
 
 @Injectable()
 export class EtapaService {
@@ -82,7 +93,7 @@ export class EtapaService {
 
 	async findById(id: string) {
 		try {
-			const etapa = await this.prisma.etapas.findUnique({
+			const etapaBase = await this.prisma.etapas.findUnique({
 				where: {
 					id,
 					is_deleted: false, // Garantir que não retorne etapas deletadas
@@ -154,8 +165,30 @@ export class EtapaService {
 				},
 			});
 
-			if (!etapa) {
+			if (!etapaBase) {
 				throw new NotFoundException('Etapa não encontrada');
+			}
+
+			const etapa: EtapaWithVariavel<typeof etapaBase> = etapaBase;
+
+			const variavelId = etapa.condicao[0].regras[0].variavel_id;
+
+			// Buscar informações da variável se a etapa tiver variavel_id
+			if (variavelId) {
+				try {
+					const variavelResponse = await api_core.get(`/variaveis/${variavelId}`);
+					const variavel = variavelResponse.data;
+
+					// Adicionar informações da variável à etapa
+					etapa.variavel = {
+						id: variavelId,
+						regex: variavel?.mascara_variaveis?.regex || null,
+						mensagem_erro: variavel?.mascara_variaveis?.mensagem_erro || null,
+					};
+				} catch (error) {
+					console.error('Erro ao buscar variável do core:', error);
+					// Continuar mesmo se não conseguir buscar a variável
+				}
 			}
 
 			return etapa;
@@ -172,7 +205,7 @@ export class EtapaService {
 
 	async create(data: CreateEtapaInput) {
 		try {
-			const { tenant_id, fluxo_id, nome, tipo, interacoes_id, metadados } = data;
+			const { tenant_id, fluxo_id, nome, tipo, interacoes_id, variavel_id, metadados } = data;
 
 			// Garantir que metadados tenham pelo menos a estrutura de position padrão
 			const metadadosComPadrao = metadados
@@ -193,6 +226,7 @@ export class EtapaService {
 					nome,
 					tipo,
 					interacoes_id: interacoes_id || null,
+					variavel_id: variavel_id || null,
 					metadados: metadadosComPadrao,
 				},
 			});
@@ -211,7 +245,7 @@ export class EtapaService {
 
 	async update(data: UpdateEtapaInput) {
 		try {
-			const { id, nome, tipo, interacoes_id, metadados } = data;
+			const { id, nome, tipo, interacoes_id, variavel_id, metadados } = data;
 
 			// Construir objeto de dados apenas com campos não vazios
 			const updateData: any = {};
@@ -226,6 +260,10 @@ export class EtapaService {
 
 			if (interacoes_id !== undefined) {
 				updateData.interacoes_id = interacoes_id || null;
+			}
+
+			if (variavel_id !== undefined) {
+				updateData.variavel_id = variavel_id || null;
 			}
 
 			if (metadados !== undefined && metadados !== null) {
@@ -342,27 +380,46 @@ export class EtapaService {
 
 	async getEtapaInicio(fluxo_id: string) {
 		try {
-			const etapa = await this.prisma.etapas.findFirst({
+			const etapaBase = await this.prisma.etapas.findFirst({
 				where: {
 					fluxo_id,
 					tipo: 'INICIO',
 				},
-				omit: {
-					tenant_id: true,
-					fluxo_id: true,
-					created_at: true,
-					updated_at: true,
-					is_deleted: true,
-				},
-				include: {
+				select: {
+					id: true,
+					nome: true,
+					tipo: true,
+					interacoes_id: true,
+					variavel_id: true,
+					metadados: true,
 					interacoes: {
 						select: { conteudo: true, tipo: true, url_midia: true, metadados: true },
 					},
 				},
 			});
 
-			if (!etapa) {
+			if (!etapaBase) {
 				throw new NotFoundException('Etapa de início não encontrada');
+			}
+
+			const etapa: EtapaWithVariavel<typeof etapaBase> = etapaBase;
+
+			// Buscar informações da variável se a etapa tiver variavel_id
+			if (etapa.variavel_id) {
+				try {
+					const variavelResponse = await api_core.get(`/variaveis/${etapa.variavel_id}`);
+					const variavel = variavelResponse.data;
+
+					// Adicionar informações da variável à etapa
+					etapa.variavel = {
+						id: etapa.variavel_id,
+						regex: variavel?.mascara_variaveis?.regex || null,
+						mensagem_erro: variavel?.mascara_variaveis?.mensagem_erro || null,
+					};
+				} catch (error) {
+					console.error('Erro ao buscar variável do core:', error);
+					// Continuar mesmo se não conseguir buscar a variável
+				}
 			}
 
 			return etapa;

@@ -1,10 +1,12 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { createFluxo } from './dev/fluxo';
 import { createEtapa } from './dev/etapa';
 import { createCondicao } from './dev/condicao';
 import { createInteracoes } from './dev/interacao';
 
-const prisma = new PrismaClient();
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
 	const nodeEnv = 'development'; // Sempre usar desenvolvimento para seeds

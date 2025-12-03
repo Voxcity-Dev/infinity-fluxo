@@ -46,7 +46,7 @@ export class ConfigService {
 
     async getSendMessageQueue(queue_id: string) {
         try {
-            const configuracao = await api_core.get(`/api/setor/${queue_id}/mensagem-encaminhar`);
+            const configuracao = await api_core.get(`/setor/${queue_id}/mensagem-encaminhar`);
             return configuracao.data;
             
         } catch (error) {
@@ -57,7 +57,7 @@ export class ConfigService {
 
     async getSendMessageOutOfHour(queue_id: string) {
         try {
-            const configuracao = await api_core.get(`/api/setor/${queue_id}/mensagem-fora-horario`);
+            const configuracao = await api_core.get(`/setor/${queue_id}/mensagem-fora-horario`);
             return configuracao.data;
         } catch (error) {
             console.error('Erro ao obter mensagem de resposta fora do horário:', error);

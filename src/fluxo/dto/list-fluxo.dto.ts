@@ -60,6 +60,7 @@ export const FluxoEngineResponseSchema = z.object({
 
 export const FluxoEngineInputSchema = z.object({
 	ticket_id: z.string(),
+	executar_segunda_regra: z.boolean().optional(),
 	...FluxoEngineResponseSchema.shape,
 });
 

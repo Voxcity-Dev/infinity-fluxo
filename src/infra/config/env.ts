@@ -8,12 +8,14 @@ export class EnvironmentValidator {
 	static validate(): void {
 		logger.log('🔍 Validando variáveis de ambiente...');
 
-		const requiredVars = ['NODE_ENV', 'DATABASE_URL', 'MICROSERVICE_TOKEN'];
+		const requiredVars = ['NODE_ENV', 'DATABASE_URL', 'MICROSERVICE_TOKEN', 'API_CORE_URL'];
 
 		const missingVars: string[] = [];
 
 		requiredVars.forEach(envVar => {
-			if (!process.env[envVar]) {
+			if (process.env[envVar]) {
+				logger.log(`✅ Variável ${envVar} carregada com o valor: ${process.env[envVar]}`);
+			} else {
 				missingVars.push(envVar);
 			}
 		});

@@ -9,6 +9,7 @@ import { CondicaoService } from 'src/condicao/condicao.service';
 import { ConfigService } from 'src/common/services/config.service';
 import { FlowConfiguracaoChave, FLUXO_CONFIGURACAO_CHAVES } from 'src/schemas/fluxo.schema';
 import { api_core } from 'src/infra/config/axios/core';
+import { AxiosError } from 'axios';
 
 @Injectable()
 export class FluxoService {
@@ -21,11 +22,16 @@ export class FluxoService {
 
 	async engine(data: FluxoEngineInput) {
 		try {
-			const { etapa_id, fluxo_id, conteudo, ticket_id } = data;
+			const { etapa_id, fluxo_id, conteudo, ticket_id, executar_segunda_regra } = data;
 
 			if (!etapa_id) {
 				const etapa = await this.etapaService.getEtapaInicio(fluxo_id);
-				return await this.responseFluxoEnginer(etapa, { etapa_id: etapa.id, fluxo_id, ticket_id });
+				return await this.responseFluxoEnginer(etapa, {
+					etapa_id: etapa.id,
+					fluxo_id,
+					ticket_id,
+					variavel_id: etapa.variavel_id,
+				});
 			}
 
 			const mensagem = this.extrairMensagem(conteudo);
@@ -36,22 +42,23 @@ export class FluxoService {
 				mensagem,
 				ticket_id,
 				fluxo_id,
+				executar_segunda_regra || false,
 			);
 
 			// Executar ação da regra
 			const resultado = await this.executarAcaoRegra(regraEncontrada, fluxo_id, etapa_id);
 
-		return {
-			etapa_id: resultado.etapa_id,
-			conteudo: resultado.conteudo,
-			fluxo_id: resultado.fluxo_id || fluxo_id,
-			ticket_id,
-			queue_id: resultado.queue_id,
-			user_id: resultado.user_id,
-			variavel_id: resultado.variavel_id,
-			regex: resultado.regex,
-			mensagem_erro: resultado.mensagem_erro,
-		};
+			return {
+				etapa_id: resultado.etapa_id,
+				conteudo: resultado.conteudo,
+				fluxo_id: resultado.fluxo_id || fluxo_id,
+				ticket_id,
+				queue_id: resultado.queue_id,
+				user_id: resultado.user_id,
+				variavel_id: resultado.variavel_id,
+				regex: resultado.regex,
+				mensagem_erro: resultado.mensagem_erro,
+			};
 		} catch (error) {
 			console.error('Erro ao executar fluxo:', error);
 
@@ -457,9 +464,15 @@ export class FluxoService {
 	}
 
 	private async responseFluxoEnginer(
-		{ interacoes }: Awaited<ReturnType<typeof this.etapaService.getEtapaInicio>>,
-		{ etapa_id, fluxo_id, ticket_id }: { etapa_id: string; fluxo_id: string; ticket_id: string },
+		etapa: Awaited<ReturnType<typeof this.etapaService.getEtapaInicio>>,
+		{
+			etapa_id,
+			fluxo_id,
+			ticket_id,
+			variavel_id,
+		}: { etapa_id: string; fluxo_id: string; ticket_id: string; variavel_id?: string | null },
 	) {
+		const interacoes = etapa.interacoes;
 		if (!interacoes) return null;
 
 		const processadoresConteudo: Record<InteracaoTipo, () => Promise<any> | any> = {
@@ -498,16 +511,28 @@ export class FluxoService {
 				mensagem: JSON.stringify(interacoes.metadados) || '',
 			}),
 			SETAR_VARIAVEL: async () => {
+				// Priorizar variavel_id da etapa, depois dos metadados da interação
 				const metadados = interacoes.metadados as Record<string, any> | null | undefined;
-				const variavelId = metadados?.variavel_id as string | undefined;
+				const variavelId = variavel_id || (metadados?.variavel_id as string | undefined);
 				if (!variavelId) {
 					return {
 						mensagem: interacoes.conteudo || '',
 					};
 				}
 
+				// Usar informações da variável que já vêm da etapa (se disponível)
+				const variavelInfo = (etapa as any).variavel;
+				if (variavelInfo) {
+					return {
+						mensagem: interacoes.conteudo || '',
+						variavel_id: variavelId,
+						regex: variavelInfo.regex,
+						mensagem_erro: variavelInfo.mensagem_erro,
+					};
+				}
+
+				// Fallback: buscar do core se não vier da etapa (para compatibilidade)
 				try {
-					// Buscar dados da variável do core
 					const variavelResponse = await api_core.get(`/variaveis/${variavelId}`);
 					const variavel = variavelResponse.data;
 
@@ -579,6 +604,7 @@ export class FluxoService {
 		// se nenhuma regra válida encontrada, retorna resposta inválida
 		if (!regraEncontrada) {
 			const interacoes = await this.etapaService.getInteracoesByEtapaId(etapa_id);
+			const etapa = await this.etapaService.findById(etapa_id);
 
 			const mensagemInvalida = this.normalizarParaString(
 				await this.configService.getInvalidResponseMessage(etapa_id),
@@ -592,6 +618,24 @@ export class FluxoService {
 				data.conteudo.mensagem.push(conteudoInteracao as never);
 			}
 
+			// Verificar se a etapa tem variavel_id configurado
+			const interacao = etapa.interacoes?.[0];
+			const metadados = interacao?.metadados as Record<string, any> | null | undefined;
+			const variavelIdEtapa = etapa.variavel_id;
+			const variavelIdInteracao = metadados?.variavel_id as string | undefined;
+			const variavelId = variavelIdEtapa || variavelIdInteracao;
+
+			if (variavelId) {
+				data.conteudo.variavel_id = variavelId;
+
+				// Usar informações da variável que já vêm da etapa (se disponível)
+				const variavelInfo = (etapa as any).variavel;
+				if (variavelInfo) {
+					data.conteudo.regex = variavelInfo.regex;
+					data.conteudo.mensagem_erro = variavelInfo.mensagem_erro;
+				}
+			}
+
 			data.etapa_id = etapa_id;
 			return data;
 		}
@@ -599,21 +643,103 @@ export class FluxoService {
 		// processa a ação da regra encontrada
 		const acao = await this.configService.verificarRegra(regraEncontrada);
 
+		// Processar variavel_id da regra (se existir) - ANTES de processar outras ações para garantir que seja preservada
+		if (regraEncontrada?.variavel_id) {
+			try {
+				const variavelResponse = await api_core.get(`variaveis/${regraEncontrada.variavel_id}`);
+				const variavel = variavelResponse.data;
+
+				data.variavel_id = regraEncontrada.variavel_id;
+				data.regex = variavel?.mascara_variaveis?.regex || null;
+				data.mensagem_erro = variavel?.mascara_variaveis?.mensagem_erro || null;
+
+				data.conteudo.variavel_id = regraEncontrada.variavel_id;
+				data.conteudo.regex = variavel?.mascara_variaveis?.regex || null;
+				data.conteudo.mensagem_erro = variavel?.mascara_variaveis?.mensagem_erro || null;
+			} catch (error) {
+				console.error(
+					'Erro ao buscar variável do core:',
+					error instanceof AxiosError ? error.response?.data : error,
+				);
+				data.variavel_id = regraEncontrada.variavel_id;
+				data.conteudo.variavel_id = regraEncontrada.variavel_id;
+			}
+		}
+
+		// Se a ação for SETAR_VARIAVEL ou OBTER_VARIAVEL, manter na mesma etapa
+		if (
+			regraEncontrada.action === 'SETAR_VARIAVEL' ||
+			regraEncontrada.action === 'OBTER_VARIAVEL'
+		) {
+			data.etapa_id = etapa_id;
+			const interacoes = await this.etapaService.getInteracoesByEtapaId(etapa_id);
+			const conteudo = this.normalizarParaString(interacoes[0]?.conteudo);
+			// Preservar variavel_id da regra se já foi definida
+			const variavelIdRegra = data.conteudo.variavel_id;
+			const regexRegra = data.conteudo.regex;
+			const mensagemErroRegra = data.conteudo.mensagem_erro;
+			data.conteudo = {
+				mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
+				...(variavelIdRegra && {
+					variavel_id: variavelIdRegra,
+					regex: regexRegra,
+					mensagem_erro: mensagemErroRegra,
+				}),
+			};
+			return data;
+		}
+
+		// Verificar se acao existe antes de acessar suas propriedades
+		if (!acao) {
+			// Se não há ação definida, manter na mesma etapa
+			data.etapa_id = etapa_id;
+			const interacoes = await this.etapaService.getInteracoesByEtapaId(etapa_id);
+			const conteudo = this.normalizarParaString(interacoes[0]?.conteudo);
+			// Preservar variavel_id da regra se já foi definida
+			const variavelIdRegra = data.conteudo.variavel_id;
+			const regexRegra = data.conteudo.regex;
+			const mensagemErroRegra = data.conteudo.mensagem_erro;
+			data.conteudo = {
+				mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
+				...(variavelIdRegra && {
+					variavel_id: variavelIdRegra,
+					regex: regexRegra,
+					mensagem_erro: mensagemErroRegra,
+				}),
+			};
+			return data;
+		}
+
 		// Processar mudança de etapa
 		if (acao.next_etapa_id) {
 			data.etapa_id = acao.next_etapa_id;
 			const etapa = await this.etapaService.findById(acao.next_etapa_id);
-			const interacao = etapa.interacoes?.[0];
+			const regra = etapa.condicao?.[0]?.regras?.[0];
 
-			if (interacao?.tipo === 'SETAR_VARIAVEL') {
-				const metadados = interacao.metadados as Record<string, any> | null | undefined;
-				const variavelId = metadados?.variavel_id as string | undefined;
-				if (variavelId) {
+			// Priorizar variavel_id da regra, depois da etapa
+			const variavelIdRegra = regra?.variavel_id;
+			const variavelIdEtapa = etapa.variavel?.id;
+			const variavelId = variavelIdRegra || variavelIdEtapa;
+
+			if (regra?.action === 'SETAR_VARIAVEL' && variavelId) {
+				const interacao = etapa.interacoes;
+				const conteudo = this.normalizarParaString(interacao?.conteudo);
+
+				// Usar informações da variável que já vêm da etapa (se disponível)
+				const variavelInfo = etapa.variavel;
+				if (variavelInfo) {
+					data.conteudo = {
+						mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
+						variavel_id: variavelId,
+						regex: variavelInfo.regex,
+						mensagem_erro: variavelInfo.mensagem_erro,
+					};
+				} else {
+					// Fallback: buscar do core se não vier da etapa
 					try {
 						const variavelResponse = await api_core.get(`/variaveis/${variavelId}`);
 						const variavel = variavelResponse.data;
 
-						const conteudo = this.normalizarParaString(interacao.conteudo);
 						data.conteudo = {
 							mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
 							variavel_id: variavelId,
@@ -622,41 +748,97 @@ export class FluxoService {
 						};
 					} catch (error) {
 						console.error('Erro ao buscar variável do core:', error);
-						const conteudo = this.normalizarParaString(interacao.conteudo);
 						data.conteudo = {
 							mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
 							variavel_id: variavelId,
 						};
 					}
-				} else {
-					const interacoes = await this.etapaService.getInteracoesByEtapaId(acao.next_etapa_id);
-					const conteudo = this.normalizarParaString(interacoes[0]?.conteudo);
-					data.conteudo = { mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [] };
 				}
 			} else {
 				const interacoes = await this.etapaService.getInteracoesByEtapaId(acao.next_etapa_id);
 				const conteudo = this.normalizarParaString(interacoes[0]?.conteudo);
-				data.conteudo = { mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [] };
+				// Preservar variavel_id da etapa ou da regra se já foi definida
+				const variavelIdFinal = variavelId || data.conteudo.variavel_id;
+				const regexRegra = data.conteudo.regex;
+				const mensagemErroRegra = data.conteudo.mensagem_erro;
+
+				if (variavelIdFinal) {
+					// Usar informações da variável que já vêm da etapa (se disponível)
+					const variavelInfo = (etapa as any).variavel;
+					if (variavelInfo) {
+						data.conteudo = {
+							mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
+							variavel_id: variavelIdFinal,
+							regex: variavelInfo.regex || regexRegra || null,
+							mensagem_erro: variavelInfo.mensagem_erro || mensagemErroRegra || null,
+						};
+					} else {
+						// Fallback: buscar do core se não vier da etapa
+						try {
+							const variavelResponse = await api_core.get(`/variaveis/${variavelIdFinal}`);
+							const variavel = variavelResponse.data;
+							data.conteudo = {
+								mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
+								variavel_id: variavelIdFinal,
+								regex: variavel?.mascara_variaveis?.regex || regexRegra || null,
+								mensagem_erro:
+									variavel?.mascara_variaveis?.mensagem_erro || mensagemErroRegra || null,
+							};
+						} catch (error) {
+							console.error('Erro ao buscar variável do core:', error);
+							data.conteudo = {
+								mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
+								variavel_id: variavelIdFinal,
+								regex: regexRegra,
+								mensagem_erro: mensagemErroRegra,
+							};
+						}
+					}
+				} else {
+					data.conteudo = {
+						mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
+						...(data.conteudo.variavel_id && {
+							variavel_id: data.conteudo.variavel_id,
+							regex: regexRegra,
+							mensagem_erro: mensagemErroRegra,
+						}),
+					};
+				}
 			}
 		}
 
 		// Processar mudança de fluxo
-		if (acao.next_fluxo_id) {
+		if (acao && acao.next_fluxo_id) {
 			data.fluxo_id = acao.next_fluxo_id;
 
 			const etapaInicio = await this.etapaService.getEtapaInicio(acao.next_fluxo_id);
 			const etapa = await this.etapaService.findById(etapaInicio.id);
 			const interacao = etapa.interacoes?.[0];
 
-			if (interacao?.tipo === 'SETAR_VARIAVEL') {
-				const metadados = interacao.metadados as Record<string, any> | null | undefined;
-				const variavelId = metadados?.variavel_id as string | undefined;
-				if (variavelId) {
+			// Priorizar variavel_id da etapa, depois dos metadados da interação
+			const metadados = interacao?.metadados as Record<string, any> | null | undefined;
+			const variavelIdEtapa = etapa.variavel_id;
+			const variavelIdInteracao = metadados?.variavel_id as string | undefined;
+			const variavelId = variavelIdEtapa || variavelIdInteracao;
+
+			if (interacao?.tipo === 'SETAR_VARIAVEL' && variavelId) {
+				const conteudo = this.normalizarParaString(interacao.conteudo);
+
+				// Usar informações da variável que já vêm da etapa (se disponível)
+				const variavelInfo = (etapa as any).variavel;
+				if (variavelInfo) {
+					data.conteudo = {
+						mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
+						variavel_id: variavelId,
+						regex: variavelInfo.regex,
+						mensagem_erro: variavelInfo.mensagem_erro,
+					};
+				} else {
+					// Fallback: buscar do core se não vier da etapa
 					try {
 						const variavelResponse = await api_core.get(`/variaveis/${variavelId}`);
 						const variavel = variavelResponse.data;
 
-						const conteudo = this.normalizarParaString(interacao.conteudo);
 						data.conteudo = {
 							mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
 							variavel_id: variavelId,
@@ -665,30 +847,71 @@ export class FluxoService {
 						};
 					} catch (error) {
 						console.error('Erro ao buscar variável do core:', error);
-						const conteudo = this.normalizarParaString(interacao.conteudo);
 						data.conteudo = {
 							mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
 							variavel_id: variavelId,
 						};
 					}
-				} else {
-					const interacoes = await this.etapaService.getInteracoesByEtapaId(etapaInicio.id);
-					const conteudo = this.normalizarParaString(interacoes[0]?.conteudo);
-					data.conteudo = { mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [] };
 				}
 			} else {
 				const interacoes = await this.etapaService.getInteracoesByEtapaId(etapaInicio.id);
 				const conteudo = this.normalizarParaString(interacoes[0]?.conteudo);
-				data.conteudo = { mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [] };
+				// Preservar variavel_id da etapa ou da regra se já foi definida
+				const variavelIdFinal = variavelId || data.conteudo.variavel_id;
+				const regexRegra = data.conteudo.regex;
+				const mensagemErroRegra = data.conteudo.mensagem_erro;
+
+				if (variavelIdFinal) {
+					// Usar informações da variável que já vêm da etapa (se disponível)
+					const variavelInfo = (etapa as any).variavel;
+					if (variavelInfo) {
+						data.conteudo = {
+							mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
+							variavel_id: variavelIdFinal,
+							regex: variavelInfo.regex || regexRegra || null,
+							mensagem_erro: variavelInfo.mensagem_erro || mensagemErroRegra || null,
+						};
+					} else {
+						// Fallback: buscar do core se não vier da etapa
+						try {
+							const variavelResponse = await api_core.get(`/variaveis/${variavelIdFinal}`);
+							const variavel = variavelResponse.data;
+							data.conteudo = {
+								mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
+								variavel_id: variavelIdFinal,
+								regex: variavel?.mascara_variaveis?.regex || regexRegra || null,
+								mensagem_erro:
+									variavel?.mascara_variaveis?.mensagem_erro || mensagemErroRegra || null,
+							};
+						} catch (error) {
+							console.error('Erro ao buscar variável do core:', error);
+							data.conteudo = {
+								mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
+								variavel_id: variavelIdFinal,
+								regex: regexRegra,
+								mensagem_erro: mensagemErroRegra,
+							};
+						}
+					}
+				} else {
+					data.conteudo = {
+						mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
+						...(data.conteudo.variavel_id && {
+							variavel_id: data.conteudo.variavel_id,
+							regex: regexRegra,
+							mensagem_erro: mensagemErroRegra,
+						}),
+					};
+				}
 			}
 			data.etapa_id = etapaInicio.id;
 		}
 
 		// Processar atribuição de fila ou usuário
-		if (acao.queue_id || acao.user_id) {
+		if (acao && (acao.queue_id || acao.user_id)) {
 			let mensagem_encaminhamento = '';
 			let mensagem_fora_horario = '';
-			let mensagem: string[] = [];
+			const mensagem: string[] = [];
 
 			if (acao.queue_id && !acao.user_id) {
 				data.queue_id = acao.queue_id;
@@ -711,27 +934,18 @@ export class FluxoService {
 				mensagem.push(msgEncaminhamentoNormalizada);
 			}
 
-			data.conteudo = { mensagem: mensagem as never[] };
-		}
-
-		// Processar variavel_id da regra (se existir)
-		if (regraEncontrada?.variavel_id) {
-			try {
-				const variavelResponse = await api_core.get(`/variaveis/${regraEncontrada.variavel_id}`);
-				const variavel = variavelResponse.data;
-
-				data.variavel_id = regraEncontrada.variavel_id;
-				data.regex = variavel?.mascara_variaveis?.regex || null;
-				data.mensagem_erro = variavel?.mascara_variaveis?.mensagem_erro || null;
-
-				data.conteudo.variavel_id = regraEncontrada.variavel_id;
-				data.conteudo.regex = variavel?.mascara_variaveis?.regex || null;
-				data.conteudo.mensagem_erro = variavel?.mascara_variaveis?.mensagem_erro || null;
-			} catch (error) {
-				console.error('Erro ao buscar variável do core:', error);
-				data.variavel_id = regraEncontrada.variavel_id;
-				data.conteudo.variavel_id = regraEncontrada.variavel_id;
-			}
+			// Preservar variavel_id, regex e mensagem_erro se já foram definidos
+			const variavelIdRegra = data.conteudo.variavel_id;
+			const regexRegra = data.conteudo.regex;
+			const mensagemErroRegra = data.conteudo.mensagem_erro;
+			data.conteudo = {
+				mensagem: mensagem as never[],
+				...(variavelIdRegra && { variavel_id: variavelIdRegra }),
+				...(regexRegra !== undefined && { regex: regexRegra }),
+				...(mensagemErroRegra !== undefined && {
+					mensagem_erro: mensagemErroRegra,
+				}),
+			};
 		}
 
 		return data;

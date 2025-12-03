@@ -13,6 +13,7 @@ model Etapas {
   nome          String   @db.VarChar(50)
   tipo          NodeType
   interacoes_id String?  @db.Uuid
+  variavel_id   String?  @db.Uuid
   metadados     Json?    @default("{\"position\": {\"x\": 100, \"y\": 100}}") @db.JsonB
   is_deleted    Boolean  @default(false)
   created_at    DateTime @default(now()) @db.Timestamp(6)

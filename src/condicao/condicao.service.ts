@@ -228,11 +228,11 @@ export class CondicaoService {
 			const regra = await this.prisma.$transaction(async prisma => {
 				// 1. Deletar a regra
 				await prisma.condicaoRegra.update({
-					where: { 
+					where: {
 						id: regra_id,
-						is_deleted: false 
+						is_deleted: false,
 					},
-					data: { is_deleted: true }
+					data: { is_deleted: true },
 				});
 
 				return await prisma.condicaoRegra.findUnique({
@@ -252,7 +252,13 @@ export class CondicaoService {
 		}
 	}
 
-	async buscarRegraValida(etapa_id: string, mensagem: string, ticket_id?: string, fluxo_id?: string) {
+	async buscarRegraValida(
+		etapa_id: string,
+		mensagem: string,
+		ticket_id?: string,
+		fluxo_id?: string,
+		executarSegundaRegra: boolean = false,
+	) {
 		try {
 			const condicoes = await this.prisma.condicao.findMany({
 				where: { etapa_id },
@@ -260,6 +266,9 @@ export class CondicaoService {
 				include: {
 					regras: {
 						omit: { is_deleted: true, created_at: true, updated_at: true, tenant_id: true },
+						orderBy: {
+							priority: 'asc',
+						},
 					},
 				},
 			});
@@ -268,19 +277,52 @@ export class CondicaoService {
 				return null;
 			}
 
+			// Se executarSegundaRegra é true, buscar a segunda regra (prioridade 2)
+			if (executarSegundaRegra) {
+				for (const condicao of condicoes) {
+					// Filtrar regras que não são SETAR_VARIAVEL e ordenar por prioridade
+					const regras = condicao.regras
+						.filter(r => r.action !== 'SETAR_VARIAVEL')
+						.sort((a, b) => a.priority - b.priority);
+
+					if (regras.length > 0) {
+						const segundaRegra = regras[0]; // Primeira regra que não é SETAR_VARIAVEL (menor prioridade)
+						if (segundaRegra) {
+							const logData = {
+								ticket_id,
+								etapa_id,
+								fluxo_id,
+								tenant_id: condicao.tenant_id,
+								opcao_id: segundaRegra.id,
+							} as CreateLog;
+							await this.logService.create(logData);
+							// Retornar a segunda regra e parar execução - não continuar para o código abaixo
+							return segundaRegra as unknown as CondicaoRegra;
+						}
+					}
+				}
+				// Se não encontrou segunda regra, retornar null e parar execução - não continuar
+				return null;
+			}
+
 			// procurar a primeira regra válida
 			let regraEncontrada: CondicaoRegra | null = null;
-			
-			let logData = {
+
+			const logData = {
 				ticket_id,
 				etapa_id,
 				fluxo_id,
-				tenant_id: condicoes[0].tenant_id
+				tenant_id: condicoes[0].tenant_id,
 			} as CreateLog;
-
 
 			for (const condicao of condicoes) {
 				for (const regra of condicao.regras) {
+					// Se a regra é SETAR_VARIAVEL, não precisa de input - retorna diretamente
+					if (regra.action === 'SETAR_VARIAVEL') {
+						regraEncontrada = regra as CondicaoRegra;
+						break;
+					}
+
 					if (regra.msg_exata) {
 						if (regra.input === mensagem) {
 							regraEncontrada = regra as CondicaoRegra;
@@ -294,16 +336,16 @@ export class CondicaoService {
 					}
 				}
 				if (regraEncontrada) {
-					logData.opcao_id = regraEncontrada.id
-					break
+					logData.opcao_id = regraEncontrada.id;
+					break;
 				}
 			}
 
 			if (!regraEncontrada) {
-				logData.opcao_id = null
+				logData.opcao_id = null;
 			}
 
-			await this.logService.create(logData)
+			await this.logService.create(logData);
 
 			return regraEncontrada;
 		} catch (error) {
@@ -316,7 +358,6 @@ export class CondicaoService {
 			throw new BadRequestException('Erro ao buscar regra válida');
 		}
 	}
-
 
 	/**
 	 * Mapper centralizado para converter regras de entrada em formato do banco

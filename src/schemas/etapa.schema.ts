@@ -4,12 +4,16 @@ import { z } from 'zod';
 export const NodeTypeSchema = z.enum(['INICIO', 'DIALOGO', 'FIM']);
 
 // Schema para metadados da etapa
-export const MetadadosEtapaSchema = z.object({
-	position: z.object({
-		x: z.number().optional(),
-		y: z.number().optional(),
-	}).optional(),
-}).passthrough(); // permite campos adicionais
+export const MetadadosEtapaSchema = z
+	.object({
+		position: z
+			.object({
+				x: z.number().optional(),
+				y: z.number().optional(),
+			})
+			.optional(),
+	})
+	.passthrough(); // permite campos adicionais
 
 // Schema para criação de etapa
 export const CreateEtapaSchema = z
@@ -18,6 +22,7 @@ export const CreateEtapaSchema = z
 		nome: z.string().min(1).max(50),
 		tipo: NodeTypeSchema,
 		interacoes_id: z.uuid().optional(),
+		variavel_id: z.uuid().optional(),
 		metadados: MetadadosEtapaSchema.optional(),
 	})
 	.strip();
@@ -28,6 +33,7 @@ export const UpdateEtapaSchema = z.object({
 	nome: z.string().min(1).max(50).optional(),
 	tipo: NodeTypeSchema.optional(),
 	interacoes_id: z.uuid().optional(),
+	variavel_id: z.uuid().optional(),
 	metadados: MetadadosEtapaSchema.optional(),
 });
 
@@ -46,6 +52,7 @@ export const EtapaSchema = z.object({
 	nome: z.string().max(50),
 	tipo: NodeTypeSchema,
 	interacoes_id: z.uuid().optional(),
+	variavel_id: z.uuid().optional(),
 	is_deleted: z.boolean(),
 	created_at: z.string(),
 	updated_at: z.string(),

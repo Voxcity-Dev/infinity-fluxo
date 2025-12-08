@@ -67,7 +67,7 @@ export class UnifiedAuthGuard implements CanActivate {
 	private async validateUserToken(request: Request, token: string): Promise<boolean> {
 		try {
 			const secret =
-				process.env.SECRET_TOKEN_CORE || process.env.MICROSERVICE_TOKEN || 'dev-secret-key';
+				process.env.JWT_ACCESS_SECRET || process.env.MICROSERVICE_TOKEN || 'dev-secret-key';
 
 			const payload = await this.jwtService.verifyAsync(token, {
 				secret,

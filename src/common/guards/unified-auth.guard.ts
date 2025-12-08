@@ -41,11 +41,6 @@ export class UnifiedAuthGuard implements CanActivate {
 				secret: process.env.MICROSERVICE_TOKEN || 'dev-secret-key',
 			});
 
-			// Debug: verificar valores
-			console.log('[AUTH-GUARD] payload.key:', payload.key);
-			console.log('[AUTH-GUARD] process.env.JWT_KEY:', process.env.JWT_KEY);
-			console.log('[AUTH-GUARD] Match:', payload.key === process.env.JWT_KEY);
-
 			if (payload.key !== process.env.JWT_KEY) {
 				throw new UnauthorizedException('Key do microserviço inválida');
 			}

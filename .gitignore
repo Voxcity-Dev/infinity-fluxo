@@ -63,3 +63,4 @@ test/request.http
 .gitignore
 
 prisma/migrations
+ecosystem.config.js

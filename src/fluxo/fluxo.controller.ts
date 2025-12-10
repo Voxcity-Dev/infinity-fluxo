@@ -147,4 +147,15 @@ export class FluxoController {
 		const configuracao = await this.fluxoService.updateConfiguracao(data);
 		return { message: 'Configuração atualizada com sucesso!', data: configuracao };
 	}
+
+	@Get(':fluxo_id/expiracao')
+	@HttpCode(200)
+	@ApiOperation({ summary: 'Obter configurações de expiração do fluxo' })
+	@ApiOkResponse({ description: 'Configurações de expiração obtidas com sucesso' })
+	@ApiResponse({ status: 400, description: 'Erro ao obter configurações de expiração' })
+	@ApiResponse({ status: 401, description: 'Não autorizado' })
+	async obterExpiracao(@Param('fluxo_id') fluxo_id: string) {
+		const config = await this.fluxoService.getExpiracaoConfig(fluxo_id);
+		return { message: 'Configurações obtidas com sucesso!', data: config };
+	}
 }

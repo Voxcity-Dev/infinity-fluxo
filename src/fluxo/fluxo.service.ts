@@ -981,4 +981,52 @@ export class FluxoService {
 		}
 		return String(valor);
 	}
+
+	/**
+	 * Obter configurações de expiração (TTL) do fluxo
+	 * Retorna configurações de expiração para triagem e NPS
+	 */
+	async getExpiracaoConfig(fluxo_id: string) {
+		const configuracoes = await this.prisma.fluxoConfiguracao.findMany({
+			where: {
+				fluxo_id,
+				chave: {
+					in: [
+						'EXPIRACAO_TRIAGEM_HABILITADA',
+						'EXPIRACAO_TRIAGEM_MINUTOS',
+						'EXPIRACAO_TRIAGEM_MENSAGEM',
+						'EXPIRACAO_NPS_HABILITADA',
+						'EXPIRACAO_NPS_HORAS',
+						'EXPIRACAO_NPS_MENSAGEM',
+						'EXPIRACAO_NPS_SILENCIOSO',
+					],
+				},
+			},
+		});
+
+		// Criar um mapa para facilitar o acesso aos valores
+		const configMap = new Map(
+			configuracoes.map((config) => [config.chave, config.valor]),
+		);
+
+		// Helper para pegar valor com fallback
+		const getConfig = (chave: string, defaultValue: string = ''): string => {
+			return configMap.get(chave as any) || defaultValue;
+		};
+
+		// Retornar em formato estruturado
+		return {
+			triagem: {
+				habilitada: getConfig('EXPIRACAO_TRIAGEM_HABILITADA', 'false') === 'true',
+				minutos: parseInt(getConfig('EXPIRACAO_TRIAGEM_MINUTOS', '0')),
+				mensagem: getConfig('EXPIRACAO_TRIAGEM_MENSAGEM', ''),
+			},
+			nps: {
+				habilitada: getConfig('EXPIRACAO_NPS_HABILITADA', 'false') === 'true',
+				horas: parseInt(getConfig('EXPIRACAO_NPS_HORAS', '0')),
+				mensagem: getConfig('EXPIRACAO_NPS_MENSAGEM', ''),
+				silencioso: getConfig('EXPIRACAO_NPS_SILENCIOSO', 'false') === 'true',
+			},
+		};
+	}
 }

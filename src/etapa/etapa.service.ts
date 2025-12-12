@@ -207,6 +207,23 @@ export class EtapaService {
 		try {
 			const { tenant_id, fluxo_id, nome, tipo, interacoes_id, variavel_id, metadados } = data;
 
+			// Validar se tipo for INICIO, verificar se já existe
+			if (tipo === 'INICIO') {
+				const existingInicio = await this.prisma.etapas.findFirst({
+					where: {
+						fluxo_id,
+						tipo: 'INICIO',
+						is_deleted: false,
+					},
+				});
+
+				if (existingInicio) {
+					throw new BadRequestException(
+						'Já existe uma etapa de INÍCIO neste fluxo. Apenas uma etapa de INÍCIO é permitida por fluxo.'
+					);
+				}
+			}
+
 			// Garantir que metadados tenham pelo menos a estrutura de position padrão
 			const metadadosComPadrao = metadados
 				? {
@@ -246,6 +263,34 @@ export class EtapaService {
 	async update(data: UpdateEtapaInput) {
 		try {
 			const { id, nome, tipo, interacoes_id, variavel_id, metadados } = data;
+
+			// Validar se tipo estiver sendo alterado para INICIO
+			if (tipo === 'INICIO') {
+				// Buscar etapa atual para saber o fluxo_id
+				const etapaAtual = await this.prisma.etapas.findUnique({
+					where: { id },
+					select: { fluxo_id: true },
+				});
+
+				if (!etapaAtual) {
+					throw new NotFoundException('Etapa não encontrada');
+				}
+
+				const existingInicio = await this.prisma.etapas.findFirst({
+					where: {
+						fluxo_id: etapaAtual.fluxo_id,
+						tipo: 'INICIO',
+						is_deleted: false,
+						NOT: {
+							id, // Excluir a própria etapa
+						},
+					},
+				});
+
+				if (existingInicio) {
+					throw new BadRequestException('Já existe uma etapa de INÍCIO neste fluxo.');
+				}
+			}
 
 			// Construir objeto de dados apenas com campos não vazios
 			const updateData: any = {};

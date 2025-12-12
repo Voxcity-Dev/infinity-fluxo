@@ -93,7 +93,7 @@ export class EtapaService {
 
 	async findById(id: string) {
 		try {
-			const etapaBase = await this.prisma.etapas.findUnique({
+			const etapaBase = await this.prisma.etapas.findFirst({
 				where: {
 					id,
 					is_deleted: false, // Garantir que não retorne etapas deletadas
@@ -429,6 +429,7 @@ export class EtapaService {
 				where: {
 					fluxo_id,
 					tipo: 'INICIO',
+					is_deleted: false,
 				},
 				select: {
 					id: true,

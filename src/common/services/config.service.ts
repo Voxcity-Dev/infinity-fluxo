@@ -8,6 +8,8 @@ import { api_core } from 'src/infra/config/axios/core';
 export class ConfigService {
     constructor(private readonly prisma: PrismaService) {}
 
+    // TODO: Quando implementar variáveis de ambiente, considerar usar:
+    // MENSAGEM_INVALIDA_DEFAULT, MENSAGEM_FINALIZACAO_DEFAULT, etc.
     readonly configuracaoDefaults = {
         ENVIA_MENSAGEM: 'Seu atendimento foi encaminhado para a fila!',
         MENSAGEM_INVALIDA: 'Desculpe, não entendi sua resposta. Poderia repetir?',
@@ -30,9 +32,13 @@ export class ConfigService {
                 },
             });
 
+            // TODO: Incrementar com variáveis de ambiente:
+            // return configuracao?.valor || process.env.MENSAGEM_INVALIDA_DEFAULT || this.configuracaoDefaults.MENSAGEM_INVALIDA;
             return configuracao?.valor || this.configuracaoDefaults.MENSAGEM_INVALIDA;
         } catch (error) {
             console.error('Erro ao obter mensagem de resposta inválida:', error);
+            // TODO: Incrementar com variáveis de ambiente:
+            // return process.env.MENSAGEM_INVALIDA_DEFAULT || this.configuracaoDefaults.MENSAGEM_INVALIDA;
             return this.configuracaoDefaults.MENSAGEM_INVALIDA;
         }
     }

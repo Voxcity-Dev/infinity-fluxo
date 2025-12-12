@@ -41,7 +41,7 @@ model CondicaoRegra {
   id             String   @id @default(uuid()) @db.Uuid
   condicao_id    String   @db.Uuid
   tenant_id      String   @db.Uuid
-  input          String   @db.VarChar(255) // valor ou regex da condição
+  input          Json     @db.JsonB // array de valores da condição
   msg_exata      Boolean  @default(true) // se true, input deve ser exato
   action         TipoAcao
   next_etapa_id  String?  @db.Uuid // se action = ETAPA

@@ -9,6 +9,7 @@ import {
 	Delete,
 	Req,
 	BadRequestException,
+	Logger,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { ApiOkResponse, ApiOperation, ApiResponse, ApiTags, ApiBody } from '@nestjs/swagger';
@@ -35,6 +36,8 @@ import {
 @ApiTags('Fluxo')
 @Controller('fluxo')
 export class FluxoController {
+	private readonly logger = new Logger(FluxoController.name);
+
 	constructor(private readonly fluxoService: FluxoService) {}
 
 	@Post()
@@ -45,6 +48,7 @@ export class FluxoController {
 	@ApiResponse({ status: 400, description: 'Erro ao executar fluxo' })
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
 	async executar(@Body() data: FluxoEngineInput) {
+		this.logger.log('POST /fluxo - Executar fluxo acessado');
 		const fluxo = await this.fluxoService.engine(data);
 		return { message: 'Fluxo executado com sucesso!', data: fluxo };
 	}
@@ -60,6 +64,7 @@ export class FluxoController {
 		@Body(new ZodPipe(ListFluxosSchema)) params: ListFluxosInput,
 		@Req() request: Request,
 	) {
+		this.logger.log('POST /fluxo/find - Listar fluxos acessado');
 		const tenant_id = (request['user']?.tenant_id ||
 			request['tenant_id'] ||
 			request['micro']?.tenant_id) as string;
@@ -79,6 +84,7 @@ export class FluxoController {
 	@ApiResponse({ status: 400, description: 'Erro ao obter fluxo' })
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
 	async obter(@Param('fluxo_id') fluxo_id: string) {
+		this.logger.log(`GET /fluxo/:fluxo_id - Obter fluxo acessado (ID: ${fluxo_id})`);
 		const fluxo = await this.fluxoService.findById(fluxo_id);
 		return { message: 'Fluxo obtido com sucesso!', data: fluxo };
 	}
@@ -94,6 +100,7 @@ export class FluxoController {
 		@Body(new ZodPipe(CreateFluxoSchema)) data: CreateFluxoInput,
 		@Req() request: Request,
 	) {
+		this.logger.log('POST /fluxo/create - Criar fluxo acessado');
 		const tenant_id = (request['user']?.tenant_id ||
 			request['tenant_id'] ||
 			request['micro']?.tenant_id) as string;
@@ -113,6 +120,7 @@ export class FluxoController {
 	@ApiResponse({ status: 400, description: 'Erro ao deletar fluxo' })
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
 	async deletar(@Param('fluxo_id') fluxo_id: string) {
+		this.logger.log(`DELETE /fluxo/:fluxo_id - Deletar fluxo acessado (ID: ${fluxo_id})`);
 		const fluxo = await this.fluxoService.delete(fluxo_id);
 		return { message: 'Fluxo deletado com sucesso!', data: fluxo };
 	}
@@ -128,6 +136,7 @@ export class FluxoController {
 		@Param('fluxo_id') fluxo_id: string,
 		@Body(new ZodPipe(UpdateFluxoSchema)) data: UpdateFluxoInput,
 	) {
+		this.logger.log(`PUT /fluxo/:fluxo_id - Atualizar fluxo acessado (ID: ${fluxo_id})`);
 		const fluxo = await this.fluxoService.update({ id: fluxo_id, ...data });
 		return { message: 'Fluxo atualizado com sucesso!', data: fluxo };
 	}
@@ -144,6 +153,7 @@ export class FluxoController {
 	async atualizarConfiguracao(
 		@Body(new ZodPipe(UpdateFlowConfiguracaoSchema)) data: UpdateFluxoConfiguracaoInput,
 	) {
+		this.logger.log('PUT /fluxo/configuracao - Atualizar configuração do fluxo acessado');
 		const configuracao = await this.fluxoService.updateConfiguracao(data);
 		return { message: 'Configuração atualizada com sucesso!', data: configuracao };
 	}
@@ -155,6 +165,7 @@ export class FluxoController {
 	@ApiResponse({ status: 400, description: 'Erro ao obter configurações de expiração' })
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
 	async obterExpiracao(@Param('fluxo_id') fluxo_id: string) {
+		this.logger.log(`GET /fluxo/:fluxo_id/expiracao - Obter expiração do fluxo acessado (ID: ${fluxo_id})`);
 		const config = await this.fluxoService.getExpiracaoConfig(fluxo_id);
 		return { message: 'Configurações obtidas com sucesso!', data: config };
 	}

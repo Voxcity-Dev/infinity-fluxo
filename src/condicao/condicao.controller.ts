@@ -11,7 +11,8 @@ import { CondicaoService } from './condicao.service';
 import { CreateCondicaoDto, CreateCondicaoResponseDto } from './dto/create-condicao.dto';
 import { ListCondicoesInput, ListCondicoesResponseDto, ListCondicoesSchema } from './dto/list-condicao.dto';
 import { UpdateCondicaoRegraDto } from './dto/update-condicao-regra.dto';
-import { CreateCondicaoSchema, UpdateCondicaoRegraSchema } from 'src/schemas/condicao.schema';
+import { UpsertCondicaoDto, UpsertCondicaoResponseDto } from './dto/upsert-condicao.dto';
+import { CreateCondicaoSchema, UpdateCondicaoRegraSchema, UpsertCondicaoSchema } from 'src/schemas/condicao.schema';
 import { ZodPipe } from 'src/common/pipes/zod.pipe';
 
 @ApiTags('Condição')
@@ -67,6 +68,29 @@ export class CondicaoController {
 
 		const condicao = await this.condicaoService.create({ ...data, tenant_id } as any);
 		return { message: 'Condição criada com sucesso!', data: condicao };
+	}
+
+	@Post('upsert')
+	@HttpCode(200)
+	@ApiOperation({ summary: 'Criar ou atualizar condição e regras (upsert)' })
+	@ApiOkResponse({ description: 'Condição criada ou atualizada com sucesso', type: UpsertCondicaoResponseDto })
+	@ApiResponse({ status: 400, description: 'Erro ao fazer upsert de condição' })
+	@ApiResponse({ status: 401, description: 'Não autorizado' })
+	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
+	async upsert(
+		@Body(new ZodPipe(UpsertCondicaoSchema)) data: UpsertCondicaoDto,
+		@Req() request: Request,
+	) {
+		const tenant_id = (request['user']?.tenant_id ||
+			request['tenant_id'] ||
+			request['micro']?.tenant_id) as string;
+
+		if (!tenant_id) {
+			throw new BadRequestException('tenant_id não encontrado no token');
+		}
+
+		const condicao = await this.condicaoService.upsertCondicao({ ...data, tenant_id } as any);
+		return { message: 'Condição criada ou atualizada com sucesso!', data: condicao };
 	}
 
 	@Put()

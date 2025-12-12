@@ -4,6 +4,7 @@ import type { CreateCondicaoInput } from './dto/create-condicao.dto';
 import { ListCondicoesInput } from './dto/list-condicao.dto';
 import { CondicaoRegra } from 'src/schemas/condicao.schema';
 import { UpdateCondicaoRegraInput } from './dto/update-condicao-regra.dto';
+import { UpsertCondicaoInput } from './dto/upsert-condicao.dto';
 import { ConfigService } from 'src/common/services/config.service';
 import { EtapaService } from 'src/etapa/etapa.service';
 import { LogService } from 'src/common/services/log.service';
@@ -82,6 +83,21 @@ export class CondicaoService {
 	async create(data: CreateCondicaoInput) {
 		try {
 			const { tenant_id, etapa_id, regras } = data;
+
+			// Validar se a etapa existe antes de criar a condição
+			const etapa = await this.prisma.etapas.findFirst({
+				where: {
+					id: etapa_id,
+					tenant_id,
+					is_deleted: false,
+				},
+			});
+
+			if (!etapa) {
+				throw new NotFoundException(
+					`Etapa com ID ${etapa_id} não encontrada ou não pertence ao tenant. Certifique-se de que a etapa foi salva antes de criar condições.`
+				);
+			}
 
 			// Usar condição para garantir consistência
 			const resultado = await this.prisma.$transaction(async prisma => {
@@ -163,6 +179,19 @@ export class CondicaoService {
 				// Processar cada regra individualmente
 				for (const regra of regras) {
 					if (regra.id) {
+						// Garantir que input seja sempre um array
+						let inputArray: string[] = [];
+						const inputValue: any = regra.input;
+						if (Array.isArray(inputValue)) {
+							// Validar que todos os elementos são strings
+							inputArray = inputValue.filter((item): item is string => typeof item === 'string');
+						} else if (inputValue && typeof inputValue === 'string' && inputValue.trim() !== '') {
+							// Backward compatibility: converter string para array
+							inputArray = [inputValue];
+						} else {
+							inputArray = [];
+						}
+
 						// REGRA EXISTE: Atualizar apenas input, action e limpar outros campos
 						await prisma.condicaoRegra.update({
 							where: {
@@ -171,7 +200,7 @@ export class CondicaoService {
 								is_deleted: false,
 							},
 							data: {
-								input: regra.input || undefined,
+								input: inputArray,
 								action: regra.action,
 								msg_exata: regra.msg_exata || false,
 								next_etapa_id: regra.next_etapa_id || undefined,
@@ -220,6 +249,183 @@ export class CondicaoService {
 			}
 
 			throw new BadRequestException('Erro ao atualizar regras da condição');
+		}
+	}
+
+	async upsertCondicao(data: UpsertCondicaoInput) {
+		try {
+			const { tenant_id, etapa_id, regras } = data;
+
+			// Validar se a etapa existe antes de criar/atualizar a condição
+			const etapa = await this.prisma.etapas.findFirst({
+				where: {
+					id: etapa_id,
+					tenant_id,
+					is_deleted: false,
+				},
+			});
+
+			if (!etapa) {
+				throw new NotFoundException(
+					`Etapa com ID ${etapa_id} não encontrada ou não pertence ao tenant. Certifique-se de que a etapa foi salva antes de criar condições.`
+				);
+			}
+
+			const resultado = await this.prisma.$transaction(async prisma => {
+				// Buscar condição existente para a etapa
+				let condicao = await prisma.condicao.findFirst({
+					where: {
+						etapa_id,
+						tenant_id,
+						is_deleted: false,
+					},
+					include: {
+						regras: {
+							where: { is_deleted: false },
+							orderBy: { priority: 'asc' },
+						},
+					},
+				});
+
+				// Se não existe condição, criar uma nova
+				if (!condicao) {
+					condicao = await prisma.condicao.create({
+						data: {
+							tenant_id,
+							etapa_id,
+						},
+						include: {
+							regras: true,
+						},
+					});
+
+					// Criar todas as regras (modo criação)
+					if (regras && regras.length > 0) {
+						const regrasData = regras
+							.filter(regra => !regra.is_deleted)
+							.map((regra, index) =>
+								this.mapperRegraToDatabase(regra, condicao!.id, tenant_id, regra.priority || index),
+							);
+
+						if (regrasData.length > 0) {
+							await prisma.condicaoRegra.createMany({
+								data: regrasData,
+								skipDuplicates: true,
+							});
+						}
+					}
+				} else {
+					// Condição existe, processar regras (modo atualização)
+					if (regras && regras.length > 0) {
+						for (const regra of regras) {
+							// Se tem is_deleted: true, marcar como deletada
+							if (regra.is_deleted && regra.id) {
+								await prisma.condicaoRegra.update({
+									where: {
+										id: regra.id,
+										condicao_id: condicao.id,
+									},
+									data: { is_deleted: true },
+								});
+								continue;
+							}
+
+							// Se não deve ser deletada, processar normalmente
+							if (!regra.is_deleted) {
+								if (regra.id) {
+									// Verificar se a regra existe no banco
+									const regraExistente = await prisma.condicaoRegra.findFirst({
+										where: {
+											id: regra.id,
+											condicao_id: condicao.id,
+											is_deleted: false,
+										},
+									});
+
+									if (regraExistente) {
+										// Garantir que input seja sempre um array
+										let inputArray: string[] = [];
+										const inputValue: any = regra.input;
+										if (Array.isArray(inputValue)) {
+											// Validar que todos os elementos são strings
+											inputArray = inputValue.filter((item): item is string => typeof item === 'string');
+										} else if (inputValue && typeof inputValue === 'string' && inputValue.trim() !== '') {
+											// Backward compatibility: converter string para array
+											inputArray = [inputValue];
+										} else {
+											inputArray = [];
+										}
+
+										// REGRA EXISTE: Atualizar
+										await prisma.condicaoRegra.update({
+											where: {
+												id: regra.id,
+												condicao_id: condicao.id,
+											},
+											data: {
+												input: inputArray,
+												action: regra.action,
+												msg_exata: regra.msg_exata || false,
+												next_etapa_id: regra.next_etapa_id || undefined,
+												next_fluxo_id: regra.next_fluxo_id || undefined,
+												queue_id: regra.queue_id || undefined,
+												user_id: regra.user_id || undefined,
+												variavel_id: regra.variavel_id || undefined,
+												api_endpoint: regra.api_endpoint || undefined,
+												db_query: regra.db_query || undefined,
+												priority: regra.priority || 0,
+											},
+										});
+									} else {
+										// ID fornecido mas não existe: criar nova
+										const novaRegra = this.mapperRegraToDatabase(
+											regra,
+											condicao.id,
+											tenant_id,
+											regra.priority || 0,
+										);
+										await prisma.condicaoRegra.create({
+											data: novaRegra,
+										});
+									}
+								} else {
+									// REGRA NÃO TEM ID: Criar nova regra
+									const novaRegra = this.mapperRegraToDatabase(
+										regra,
+										condicao.id,
+										tenant_id,
+										regra.priority || 0,
+									);
+									await prisma.condicaoRegra.create({
+										data: novaRegra,
+									});
+								}
+							}
+						}
+					}
+				}
+
+				// Retornar a condição com suas regras atualizadas
+				return await prisma.condicao.findUnique({
+					where: { id: condicao.id },
+					include: {
+						regras: {
+							where: { is_deleted: false },
+							orderBy: { priority: 'asc' },
+						},
+					},
+				});
+			});
+
+			return this.mapperCondicaoToResponse(resultado);
+		} catch (error) {
+			console.error('Erro ao fazer upsert de condição:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+
+			throw new BadRequestException('Erro ao fazer upsert de condição');
 		}
 	}
 
@@ -321,16 +527,42 @@ export class CondicaoService {
 						break;
 					}
 
+					// Converter input para array se necessário (backward compatibility)
+					let inputArray: string[] = [];
+					if (Array.isArray(regra.input)) {
+						// Validar que todos os elementos são strings
+						inputArray = regra.input.filter((item): item is string => typeof item === 'string');
+					} else if (regra.input && typeof regra.input === 'string' && regra.input.trim() !== '') {
+						inputArray = [regra.input];
+					}
+
+					// Se não há inputs, pular esta regra
+					if (inputArray.length === 0) {
+						continue;
+					}
+
+					// Verificar se a mensagem corresponde a algum input do array
+					let encontrou = false;
 					if (regra.msg_exata) {
-						if (regra.input === mensagem) {
-							regraEncontrada = regra as unknown as CondicaoRegra;
-							break;
-						}
+						// Correspondência exata: percorrer o array e verificar se mensagem é igual a algum input (case-insensitive)
+						encontrou = inputArray.some(input => {
+							// Comparação exata, removendo espaços no início e fim
+							const inputTrimmed = input.trim();
+							const mensagemTrimmed = mensagem.trim();
+							return inputTrimmed.toLowerCase() === mensagemTrimmed.toLowerCase();
+						});
 					} else {
-						if (mensagem.includes(regra.input)) {
-							regraEncontrada = regra as unknown as CondicaoRegra;
-							break;
-						}
+						// Correspondência parcial: verificar se mensagem contém algum input
+						encontrou = inputArray.some(input => {
+							const inputTrimmed = input.trim();
+							const mensagemTrimmed = mensagem.trim();
+							return mensagemTrimmed.toLowerCase().includes(inputTrimmed.toLowerCase());
+						});
+					}
+
+					if (encontrou) {
+						regraEncontrada = regra as unknown as CondicaoRegra;
+						break;
 					}
 				}
 				if (regraEncontrada) {
@@ -371,10 +603,22 @@ export class CondicaoService {
 		tenant_id: string,
 		priority?: number,
 	) {
+		// Garantir que input seja sempre um array JSON
+		let inputArray: string[] = [];
+		if (Array.isArray(regra.input)) {
+			// Validar que todos os elementos são strings
+			inputArray = regra.input.filter((item): item is string => typeof item === 'string');
+		} else if (regra.input && typeof regra.input === 'string' && regra.input.trim() !== '') {
+			// Backward compatibility: converter string para array
+			inputArray = [regra.input];
+		} else {
+			inputArray = [];
+		}
+
 		return {
 			condicao_id,
 			tenant_id,
-			input: regra.input,
+			input: inputArray,
 			action: regra.action,
 			msg_exata: regra.msg_exata,
 			next_etapa_id: regra.next_etapa_id || undefined,
@@ -394,11 +638,23 @@ export class CondicaoService {
 	 * @returns Regra formatada para resposta
 	 */
 	private mapperRegraToResponse(regra: any): CondicaoRegra {
+		// Garantir que input seja sempre um array
+		let inputArray: string[] = [];
+		if (Array.isArray(regra.input)) {
+			// Validar que todos os elementos são strings
+			inputArray = regra.input.filter((item): item is string => typeof item === 'string');
+		} else if (regra.input && typeof regra.input === 'string' && regra.input.trim() !== '') {
+			// Backward compatibility: converter string para array
+			inputArray = [regra.input];
+		} else {
+			inputArray = [];
+		}
+
 		return {
 			id: regra.id,
 			condicao_id: regra.condicao_id,
 			tenant_id: regra.tenant_id,
-			input: regra.input,
+			input: inputArray,
 			action: regra.action,
 			msg_exata: regra.msg_exata,
 			next_etapa_id: regra.next_etapa_id,

@@ -24,17 +24,28 @@ export class FluxoService {
 		try {
 			const { etapa_id, fluxo_id, conteudo, ticket_id, executar_segunda_regra } = data;
 
+			console.log(`[FluxoService] Executando engine - etapa_id: ${etapa_id || 'vazio'}, fluxo_id: ${fluxo_id}, ticket_id: ${ticket_id}`);
+
 			if (!etapa_id) {
+				console.log(`[FluxoService] Etapa inicial - buscando etapa de início para fluxo ${fluxo_id}`);
 				const etapa = await this.etapaService.getEtapaInicio(fluxo_id);
-				return await this.responseFluxoEnginer(etapa, {
+				console.log(`[FluxoService] Etapa de início encontrada:`, {
+					id: etapa?.id,
+					hasInteracoes: !!etapa?.interacoes,
+					tipoInteracao: etapa?.interacoes?.tipo,
+				});
+				const resultado = await this.responseFluxoEnginer(etapa, {
 					etapa_id: etapa.id,
 					fluxo_id,
 					ticket_id,
 					variavel_id: etapa.variavel_id,
 				});
+				console.log(`[FluxoService] Resultado do responseFluxoEnginer:`, JSON.stringify(resultado, null, 2));
+				return resultado;
 			}
 
 			const mensagem = this.extrairMensagem(conteudo);
+			console.log(`[FluxoService] Mensagem extraída: ${mensagem}`);
 
 			// Buscar regra válida
 			const regraEncontrada = await this.condicaoService.buscarRegraValida(
@@ -45,8 +56,19 @@ export class FluxoService {
 				executar_segunda_regra || false,
 			);
 
+			console.log(`[FluxoService] Regra encontrada:`, {
+				hasRegra: !!regraEncontrada,
+				action: regraEncontrada?.action,
+			});
+
 			// Executar ação da regra
 			const resultado = await this.executarAcaoRegra(regraEncontrada, fluxo_id, etapa_id);
+
+			console.log(`[FluxoService] Resultado do executarAcaoRegra:`, {
+				etapa_id: resultado.etapa_id,
+				hasConteudo: !!resultado.conteudo,
+				conteudoMensagem: resultado.conteudo?.mensagem,
+			});
 
 			return {
 				etapa_id: resultado.etapa_id,
@@ -60,7 +82,7 @@ export class FluxoService {
 				mensagem_erro: resultado.mensagem_erro,
 			};
 		} catch (error) {
-			console.error('Erro ao executar fluxo:', error);
+			console.error('[FluxoService] Erro ao executar fluxo:', error);
 
 			if (error instanceof HttpException) {
 				throw error;
@@ -401,6 +423,10 @@ export class FluxoService {
 		mensagem_invalida?: string,
 	) {
 		try {
+			// TODO: Quando implementar variáveis de ambiente, usar:
+			// const mensagemInvalidaDefault = process.env.MENSAGEM_INVALIDA_DEFAULT || this.configService.configuracaoDefaults.MENSAGEM_INVALIDA;
+			// const mensagemFinalizacaoDefault = process.env.MENSAGEM_FINALIZACAO_DEFAULT || this.configService.configuracaoDefaults.MENSAGEM_FINALIZACAO;
+			
 			// Criar todas as configurações de uma vez, filtrando apenas chaves válidas do enum
 			const configuracoes: Array<{
 				tenant_id: string;
@@ -417,6 +443,7 @@ export class FluxoService {
 				}));
 
 			// Atualizar ou adicionar mensagem_finalizacao se fornecida
+			// Se não fornecida, usa o valor padrão já definido em configuracoes acima
 			if (mensagem_finalizacao) {
 				const index = configuracoes.findIndex(c => c.chave === 'MENSAGEM_FINALIZACAO');
 				if (index >= 0) {
@@ -432,6 +459,7 @@ export class FluxoService {
 			}
 
 			// Atualizar ou adicionar mensagem_invalida se fornecida
+			// Se não fornecida, usa o valor padrão já definido em configuracoes acima
 			if (mensagem_invalida) {
 				const index = configuracoes.findIndex(c => c.chave === 'MENSAGEM_INVALIDA');
 				if (index >= 0) {
@@ -473,7 +501,17 @@ export class FluxoService {
 		}: { etapa_id: string; fluxo_id: string; ticket_id: string; variavel_id?: string | null },
 	) {
 		const interacoes = etapa.interacoes;
-		if (!interacoes) return null;
+		if (!interacoes) {
+			console.log(`[FluxoService] Etapa ${etapa_id} não possui interações. Retornando estrutura vazia.`);
+			return {
+				etapa_id,
+				fluxo_id,
+				ticket_id,
+				conteudo: {
+					mensagem: [],
+				},
+			};
+		}
 
 		const processadoresConteudo: Record<InteracaoTipo, () => Promise<any> | any> = {
 			MENSAGEM: () => ({
@@ -562,14 +600,20 @@ export class FluxoService {
 		};
 
 		const processador = processadoresConteudo[interacoes.tipo];
+		console.log(`[FluxoService] Tipo de interação: ${interacoes.tipo}, tem processador: ${!!processador}`);
+		
 		const conteudo = processador ? await (processador() as Promise<any>) : {};
+		console.log(`[FluxoService] Conteúdo processado:`, JSON.stringify(conteudo, null, 2));
 
-		return {
+		const resultado = {
 			etapa_id,
 			fluxo_id,
 			ticket_id,
 			conteudo,
 		};
+		
+		console.log(`[FluxoService] Resultado final do responseFluxoEnginer:`, JSON.stringify(resultado, null, 2));
+		return resultado;
 	}
 
 	private async executarAcaoRegra(
@@ -603,19 +647,15 @@ export class FluxoService {
 
 		// se nenhuma regra válida encontrada, retorna resposta inválida
 		if (!regraEncontrada) {
-			const interacoes = await this.etapaService.getInteracoesByEtapaId(etapa_id);
 			const etapa = await this.etapaService.findById(etapa_id);
 
+			// Quando não encontra regra válida, retorna APENAS a mensagem de não entendido
+			// Não deve incluir o conteúdo da interação, pois isso pode estar retornando a descrição
 			const mensagemInvalida = this.normalizarParaString(
 				await this.configService.getInvalidResponseMessage(etapa_id),
 			);
 			if (mensagemInvalida.trim() !== '') {
 				data.conteudo.mensagem.push(mensagemInvalida as never);
-			}
-
-			const conteudoInteracao = this.normalizarParaString(interacoes[0]?.conteudo);
-			if (conteudoInteracao.trim() !== '') {
-				data.conteudo.mensagem.push(conteudoInteracao as never);
 			}
 
 			// Verificar se a etapa tem variavel_id configurado

@@ -108,6 +108,19 @@ export class FluxoService {
 				orderBy: {
 					created_at: 'desc',
 				},
+				include: {
+					configuracoes: {
+						where: {
+							chave: {
+								in: ['MENSAGEM_FINALIZACAO', 'MENSAGEM_INVALIDA'],
+							},
+						},
+						select: {
+							chave: true,
+							valor: true,
+						},
+					},
+				},
 			};
 
 			// Adicionar paginação apenas se page e limit estiverem presentes
@@ -118,7 +131,23 @@ export class FluxoService {
 
 			const fluxos = await this.prisma.fluxo.findMany(queryOptions);
 
-			return fluxos;
+			// Mapear configurações para campos planos
+			return fluxos.map((fluxo: any) => {
+				const mensagemFinalizacao = fluxo.configuracoes?.find(
+					(c: any) => c.chave === 'MENSAGEM_FINALIZACAO',
+				)?.valor;
+				const mensagemInvalida = fluxo.configuracoes?.find(
+					(c: any) => c.chave === 'MENSAGEM_INVALIDA',
+				)?.valor;
+
+				// Remover configuracoes do objeto e adicionar campos planos
+				const { configuracoes, ...fluxoData } = fluxo;
+				return {
+					...fluxoData,
+					mensagem_finalizacao: mensagemFinalizacao || null,
+					mensagem_invalida: mensagemInvalida || null,
+				};
+			});
 		} catch (error) {
 			console.error('Erro ao listar fluxos:', error);
 
@@ -137,13 +166,39 @@ export class FluxoService {
 					id: fluxo_id,
 					is_deleted: false, // Garantir que não retorne fluxos deletados
 				},
+				include: {
+					configuracoes: {
+						where: {
+							chave: {
+								in: ['MENSAGEM_FINALIZACAO', 'MENSAGEM_INVALIDA'],
+							},
+						},
+						select: {
+							chave: true,
+							valor: true,
+						},
+					},
+				},
 			});
 
 			if (!fluxo) {
 				throw new NotFoundException('Fluxo não encontrado');
 			}
 
-			return fluxo;
+			// Mapear configurações para campos planos
+			const mensagemFinalizacao = (fluxo as any).configuracoes?.find(
+				(c: any) => c.chave === 'MENSAGEM_FINALIZACAO',
+			)?.valor;
+			const mensagemInvalida = (fluxo as any).configuracoes?.find(
+				(c: any) => c.chave === 'MENSAGEM_INVALIDA',
+			)?.valor;
+
+			const { configuracoes, ...fluxoData } = fluxo as any;
+			return {
+				...fluxoData,
+				mensagem_finalizacao: mensagemFinalizacao || null,
+				mensagem_invalida: mensagemInvalida || null,
+			};
 		} catch (error) {
 			console.error('Erro ao obter fluxo:', error);
 

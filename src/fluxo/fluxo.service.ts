@@ -59,6 +59,8 @@ export class FluxoService {
 			console.log(`[FluxoService] Regra encontrada:`, {
 				hasRegra: !!regraEncontrada,
 				action: regraEncontrada?.action,
+				queue_id: regraEncontrada?.queue_id,
+				user_id: regraEncontrada?.user_id,
 			});
 
 			// Executar ação da regra
@@ -66,6 +68,8 @@ export class FluxoService {
 
 			console.log(`[FluxoService] Resultado do executarAcaoRegra:`, {
 				etapa_id: resultado.etapa_id,
+				queue_id: resultado.queue_id,
+				user_id: resultado.user_id,
 				hasConteudo: !!resultado.conteudo,
 				conteudoMensagem: resultado.conteudo?.mensagem,
 			});
@@ -738,6 +742,12 @@ export class FluxoService {
 		// processa a ação da regra encontrada
 		const acao = await this.configService.verificarRegra(regraEncontrada);
 
+		console.log(`[FluxoService] Ação extraída de verificarRegra:`, {
+			acao,
+			regraAction: regraEncontrada.action,
+			regraQueueId: regraEncontrada.queue_id,
+		});
+
 		// Processar variavel_id da regra (se existir) - ANTES de processar outras ações para garantir que seja preservada
 		if (regraEncontrada?.variavel_id) {
 			try {
@@ -1003,6 +1013,13 @@ export class FluxoService {
 		}
 
 		// Processar atribuição de fila ou usuário
+		console.log(`[FluxoService] Verificando condição de fila/usuário:`, {
+			temAcao: !!acao,
+			acaoQueueId: acao?.queue_id,
+			acaoUserId: acao?.user_id,
+			condicaoAtendida: acao && (acao.queue_id || acao.user_id),
+		});
+
 		if (acao && (acao.queue_id || acao.user_id)) {
 			let mensagem_encaminhamento = '';
 			let mensagem_fora_horario = '';
@@ -1010,6 +1027,7 @@ export class FluxoService {
 
 			if (acao.queue_id && !acao.user_id) {
 				data.queue_id = acao.queue_id;
+				console.log(`[FluxoService] Atribuindo queue_id ao data:`, data.queue_id);
 				mensagem_encaminhamento = await this.configService.getSendMessageQueue(acao.queue_id);
 				mensagem_fora_horario = await this.configService.getSendMessageOutOfHour(acao.queue_id);
 			} else if (acao.user_id) {

@@ -11,6 +11,13 @@ export const FLUXO_CONFIGURACAO_CHAVES = [
 	'MAXIMO_TENTATIVAS',
 	'DISTRIBUICAO_AUTOMATICA',
 	'ENCERRAR_FLUXO_CONDIÇÃO',
+	'EXPIRACAO_TRIAGEM_HABILITADA',
+	'EXPIRACAO_TRIAGEM_MINUTOS',
+	'EXPIRACAO_TRIAGEM_MENSAGEM',
+	'EXPIRACAO_NPS_HABILITADA',
+	'EXPIRACAO_NPS_HORAS',
+	'EXPIRACAO_NPS_MENSAGEM',
+	'EXPIRACAO_NPS_SILENCIOSO',
 ] as const;
 
 export const FlowConfiguracaoChaveSchema = z.enum(FLUXO_CONFIGURACAO_CHAVES);
@@ -63,12 +70,11 @@ export const CreateFlowConfiguracaoSchema = z.object({
 
 // Schema para atualização de configuração de fluxo
 export const UpdateFlowConfiguracaoSchema = z.object({
+	fluxo_id: z.string().uuid(),
 	configuracoes: z.array(
 		z.object({
-			id: z.uuid(),
+			chave: z.string(),
 			valor: z.string(),
-			mensagem_finalizacao: z.string().optional(),
-			mensagem_invalida: z.string().optional(),
 		}),
 	),
 });

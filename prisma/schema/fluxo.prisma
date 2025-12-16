@@ -52,6 +52,7 @@ model FluxoConfiguracao {
   // Relação
   fluxo Fluxo @relation(fields: [fluxo_id], references: [id])
 
+  @@unique([fluxo_id, chave])
   @@index([tenant_id, fluxo_id, chave])
   @@map("fluxo_configuracoes")
 }

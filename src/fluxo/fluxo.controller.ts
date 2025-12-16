@@ -125,6 +125,21 @@ export class FluxoController {
 		return { message: 'Fluxo deletado com sucesso!', data: fluxo };
 	}
 
+	@Put('configuracao')
+	@HttpCode(200)
+	@ApiOperation({ summary: 'Atualizar configuração do fluxo' })
+	@ApiOkResponse({ description: 'Configuração atualizada com sucesso', type: FluxoResponseDto })
+	@ApiResponse({ status: 400, description: 'Erro ao atualizar configuração do fluxo' })
+	@ApiResponse({ status: 401, description: 'Não autorizado' })
+	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
+	async atualizarConfiguracao(
+		@Body(new ZodPipe(UpdateFlowConfiguracaoSchema)) data: UpdateFluxoConfiguracaoInput,
+	) {
+		this.logger.log('PUT /fluxo/configuracao - Atualizar configuração do fluxo acessado');
+		const configuracao = await this.fluxoService.updateConfiguracao(data);
+		return { message: 'Configuração atualizada com sucesso!', data: configuracao };
+	}
+
 	@Put(':fluxo_id')
 	@HttpCode(200)
 	@ApiOperation({ summary: 'Atualizar um fluxo' })
@@ -139,23 +154,6 @@ export class FluxoController {
 		this.logger.log(`PUT /fluxo/:fluxo_id - Atualizar fluxo acessado (ID: ${fluxo_id})`);
 		const fluxo = await this.fluxoService.update({ id: fluxo_id, ...data });
 		return { message: 'Fluxo atualizado com sucesso!', data: fluxo };
-	}
-
-	// @Put(':fluxo_id')
-
-	@Put('configuracao')
-	@HttpCode(200)
-	@ApiOperation({ summary: 'Atualizar configuração do fluxo' })
-	@ApiOkResponse({ description: 'Configuração atualizada com sucesso', type: FluxoResponseDto })
-	@ApiResponse({ status: 400, description: 'Erro ao atualizar configuração do fluxo' })
-	@ApiResponse({ status: 401, description: 'Não autorizado' })
-	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
-	async atualizarConfiguracao(
-		@Body(new ZodPipe(UpdateFlowConfiguracaoSchema)) data: UpdateFluxoConfiguracaoInput,
-	) {
-		this.logger.log('PUT /fluxo/configuracao - Atualizar configuração do fluxo acessado');
-		const configuracao = await this.fluxoService.updateConfiguracao(data);
-		return { message: 'Configuração atualizada com sucesso!', data: configuracao };
 	}
 
 	@Get(':fluxo_id/expiracao')

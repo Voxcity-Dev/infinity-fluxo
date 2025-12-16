@@ -452,7 +452,17 @@ export class FluxoService {
 
 	async updateConfiguracao(data: UpdateFluxoConfiguracaoInput) {
 		try {
-			const { configuracoes } = data;
+			const { fluxo_id, configuracoes } = data;
+
+			// Buscar o fluxo para obter o tenant_id
+			const fluxo = await this.prisma.fluxo.findUnique({
+				where: { id: fluxo_id },
+				select: { tenant_id: true },
+			});
+
+			if (!fluxo) {
+				throw new BadRequestException('Fluxo não encontrado');
+			}
 
 			// Filtrar apenas configurações com valores válidos (não vazios)
 			const configuracoesValidas = configuracoes.filter(
@@ -463,12 +473,23 @@ export class FluxoService {
 				throw new BadRequestException('Nenhuma configuração válida fornecida para atualização');
 			}
 
-			// Usar transação para garantir consistência
+			// Usar transação para garantir consistência - upsert por fluxo_id + chave
 			const resultados = await this.prisma.$transaction(
 				configuracoesValidas.map(config =>
-					this.prisma.fluxoConfiguracao.update({
-						where: { id: config.id },
-						data: { valor: config.valor },
+					this.prisma.fluxoConfiguracao.upsert({
+						where: {
+							fluxo_id_chave: {
+								fluxo_id,
+								chave: config.chave as FlowConfiguracaoChave,
+							},
+						},
+						update: { valor: config.valor },
+						create: {
+							fluxo_id,
+							tenant_id: fluxo.tenant_id,
+							chave: config.chave as FlowConfiguracaoChave,
+							valor: config.valor,
+						},
 					}),
 				),
 			);

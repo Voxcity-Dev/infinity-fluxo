@@ -41,6 +41,20 @@ export class FluxoService {
 					variavel_id: etapa.variavel_id,
 				});
 				console.log(`[FluxoService] Resultado do responseFluxoEnginer:`, JSON.stringify(resultado, null, 2));
+				
+				// Log do valor do input e validação do regex (etapa inicial)
+				const mensagemInicial = this.extrairMensagem(conteudo);
+				if (resultado.conteudo?.variavel_id && resultado.conteudo?.regex && mensagemInicial) {
+					const regexValido = this.validarRegex(mensagemInicial, resultado.conteudo.regex);
+					console.log(`[FluxoService] Validação de variável (etapa inicial):`, {
+						variavel_id: resultado.conteudo.variavel_id,
+						valor_input: mensagemInicial,
+						regex: resultado.conteudo.regex,
+						passou_regex: regexValido,
+						mensagem_erro: resultado.conteudo.mensagem_erro,
+					});
+				}
+				
 				return resultado;
 			}
 
@@ -73,6 +87,18 @@ export class FluxoService {
 				hasConteudo: !!resultado.conteudo,
 				conteudoMensagem: resultado.conteudo?.mensagem,
 			});
+
+			// Log do valor do input e validação do regex
+			if (resultado.variavel_id && resultado.regex && mensagem) {
+				const regexValido = this.validarRegex(mensagem, resultado.regex);
+				console.log(`[FluxoService] Validação de variável:`, {
+					variavel_id: resultado.variavel_id,
+					valor_input: mensagem,
+					regex: resultado.regex,
+					passou_regex: regexValido,
+					mensagem_erro: resultado.mensagem_erro,
+				});
+			}
 
 			return {
 				etapa_id: resultado.etapa_id,
@@ -1074,6 +1100,26 @@ export class FluxoService {
 		if (conteudo.mensagem) return conteudo.mensagem;
 		if (conteudo.file) return conteudo.file.nome;
 		return '';
+	}
+
+	/**
+	 * Valida se um valor passa pelo regex fornecido
+	 * @param valor - Valor a ser validado
+	 * @param regex - Expressão regular (string)
+	 * @returns true se passar na validação, false caso contrário
+	 */
+	private validarRegex(valor: string, regex: string | null): boolean {
+		if (!regex || !valor) {
+			return false;
+		}
+
+		try {
+			const regexPattern = new RegExp(regex);
+			return regexPattern.test(valor);
+		} catch (error) {
+			console.error(`[FluxoService] Erro ao validar regex "${regex}":`, error);
+			return false;
+		}
 	}
 
 	// Método auxiliar para converter valor para string de forma segura

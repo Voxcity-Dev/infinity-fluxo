@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
+import axios from 'axios';
 
 // Carrega variáveis de ambiente do .env
 process.loadEnvFile();
@@ -11,14 +12,13 @@ if (!process.env.DATABASE_URL) {
 	process.exit(1);
 }
 
-if (!process.env.DATABASE_URL_CORE) {
-	console.error('❌ DATABASE_URL_CORE não está configurado no .env');
-	console.error('');
-	console.error('Adicione no .env do infinity-fluxo:');
-	console.error('DATABASE_URL_CORE="postgresql://USER:PASS@HOST:PORT/infinity_core"');
-	console.error('');
-	console.error('Exemplo (mesmo servidor):');
-	console.error('DATABASE_URL_CORE="postgresql://core:SENHA@localhost:5432/core?schema=public"');
+if (!process.env.API_CORE_URL) {
+	console.error('❌ API_CORE_URL não está configurado no .env');
+	process.exit(1);
+}
+
+if (!process.env.MICROSERVICE_TOKEN) {
+	console.error('❌ MICROSERVICE_TOKEN não está configurado no .env');
 	process.exit(1);
 }
 
@@ -26,8 +26,13 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-// Pool para o banco infinity-core (para consultar filas)
-const corePool = new Pool({ connectionString: process.env.DATABASE_URL_CORE });
+// API do core para buscar filas
+const coreApi = axios.create({
+	baseURL: process.env.API_CORE_URL,
+	headers: {
+		'x-microservice-token': process.env.MICROSERVICE_TOKEN,
+	},
+});
 
 async function main() {
 	console.log('=== Migração: NPS de Setor para Fila ===\n');
@@ -86,24 +91,22 @@ async function main() {
 
 		for (const npsSetor of npsSetores) {
 			try {
-				// 3. Buscar filas do setor no banco core
-				const filas = await corePool.query<{ id: string }>(
-					`SELECT id FROM filas_atendimento
-					 WHERE setor_id = $1
-					 AND is_deleted = false
-					 AND is_active = true`,
-					[npsSetor.setor_id]
+				// 3. Buscar filas do setor via API do core
+				const response = await coreApi.get<{ id: string }[]>(
+					`/fila/microservice/setor/${npsSetor.setor_id}`
 				);
 
-				if (filas.rows.length === 0) {
+				const filas = response.data || [];
+
+				if (filas.length === 0) {
 					console.log(`  ⚠️ Setor ${npsSetor.setor_id} não tem filas ativas. Pulando...`);
 					continue;
 				}
 
-				console.log(`  Setor ${npsSetor.setor_id}: ${filas.rows.length} fila(s) encontrada(s)`);
+				console.log(`  Setor ${npsSetor.setor_id}: ${filas.length} fila(s) encontrada(s)`);
 
 				// 4. Para cada fila, criar vínculo NPS-Fila
-				for (const fila of filas.rows) {
+				for (const fila of filas) {
 					// Verificar se já existe vínculo ativo (usando SQL raw)
 					const existente = await prisma.$queryRaw<{ id: string }[]>`
 						SELECT id FROM nps_filas
@@ -154,5 +157,4 @@ main()
 	.finally(async () => {
 		await prisma.$disconnect();
 		await pool.end();
-		await corePool.end();
 	});

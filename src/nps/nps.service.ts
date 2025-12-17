@@ -6,6 +6,9 @@ import { UpdateNpsInput } from './dto/update-nps.dto';
 import { CreateNpsSetorInput } from './dto/create-nps-setor.dto';
 import { ListNpsSetorInput } from './dto/list-nps-setor.dto';
 import { DeleteNpsSetorInput } from './dto/delete-nps-setor.dto';
+import { CreateNpsFilaInput } from './dto/create-nps-fila.dto';
+import { ListNpsFilaInput } from './dto/list-nps-fila.dto';
+import { DeleteNpsFilaInput } from './dto/delete-nps-fila.dto';
 import { RespostaNpsInput } from './dto/resposta-nps.dto';
 
 @Injectable()
@@ -414,8 +417,190 @@ export class NpsService {
 			if (error instanceof HttpException) {
 				throw error;
 			}
-			
+
 			throw new BadRequestException('Erro ao responder NPS');
+		}
+	}
+
+	// Métodos para NpsFila
+	async createFila(data: CreateNpsFilaInput) {
+		try {
+			// Verificar se o NPS existe
+			const nps = await this.prisma.nps.findUnique({
+				where: {
+					id: data.nps_id,
+					is_deleted: false
+				},
+			});
+
+			if (!nps) {
+				throw new NotFoundException('NPS não encontrado');
+			}
+
+			// Verificar se já existe vínculo ativo para esta fila
+			const existingFila = await this.prisma.npsFila.findFirst({
+				where: {
+					fila_atendimento_id: data.fila_atendimento_id,
+					is_deleted: false,
+				},
+			});
+
+			// Se existe vínculo ativo, desvincular primeiro
+			if (existingFila) {
+				await this.prisma.npsFila.update({
+					where: { id: existingFila.id },
+					data: { is_deleted: true },
+				});
+			}
+
+			// Criar novo vínculo
+			const npsFila = await this.prisma.npsFila.create({
+				data: {
+					tenant_id: data.tenant_id,
+					nps_id: data.nps_id,
+					fila_atendimento_id: data.fila_atendimento_id,
+				},
+			});
+
+			return npsFila;
+		} catch (error) {
+			console.error('Erro ao vincular fila ao NPS:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+
+			throw new BadRequestException('Erro ao vincular fila ao NPS');
+		}
+	}
+
+	async findFilasByNpsId(params: ListNpsFilaInput) {
+		try {
+			const { nps_id, page, limit } = params;
+
+			// Verificar se o NPS existe
+			const nps = await this.prisma.nps.findUnique({
+				where: {
+					id: nps_id,
+					is_deleted: false
+				},
+			});
+
+			if (!nps) {
+				throw new NotFoundException('NPS não encontrado');
+			}
+
+			// Construir objeto de query base
+			const queryOptions: any = {
+				where: {
+					nps_id: nps_id,
+					is_deleted: false
+				},
+				orderBy: { created_at: 'desc' },
+			};
+
+			// Adicionar paginação apenas se page e limit estiverem presentes
+			if (page && limit) {
+				queryOptions.skip = (page - 1) * limit;
+				queryOptions.take = limit;
+			}
+
+			const [filas, total] = await Promise.all([
+				this.prisma.npsFila.findMany(queryOptions),
+				this.prisma.npsFila.count({ where: queryOptions.where })
+			]);
+
+			const totalPages = Math.ceil(total / limit);
+
+			return {
+				data: filas,
+				meta: {
+					page,
+					limit,
+					total,
+					totalPages,
+				}
+			};
+		} catch (error) {
+			console.error('Erro ao listar filas do NPS:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+
+			throw new BadRequestException('Erro ao listar filas do NPS');
+		}
+	}
+
+	async deleteFila(data: DeleteNpsFilaInput) {
+		try {
+			// Verificar se o registro existe e não está deletado
+			const existingFila = await this.prisma.npsFila.findFirst({
+				where: {
+					fila_atendimento_id: data.id,
+					is_deleted: false
+				},
+			});
+
+			if (!existingFila) {
+				throw new NotFoundException('Vínculo de fila não encontrado ou já removido');
+			}
+
+			await this.prisma.npsFila.updateMany({
+				where: { fila_atendimento_id: data.id },
+				data: { is_deleted: true },
+			});
+			return data.id;
+		} catch (error) {
+			console.error('Erro ao remover vínculo de fila:', error);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+
+			throw new BadRequestException('Erro ao remover vínculo de fila');
+		}
+	}
+
+	async findByFilaId(fila_atendimento_id: string) {
+		try {
+			// Buscar o NPS vinculado à fila
+			const npsFila = await this.prisma.npsFila.findFirst({
+				where: {
+					fila_atendimento_id: fila_atendimento_id,
+					is_deleted: false,
+				},
+			});
+
+			if (!npsFila) {
+				throw new NotFoundException('NPS não encontrado para esta fila');
+			}
+
+			// Buscar o NPS
+			const nps = await this.prisma.nps.findUnique({
+				where: {
+					id: npsFila.nps_id,
+					is_deleted: false,
+				},
+				select: {
+					id: true,
+					nome: true,
+					pesquisa: true,
+				},
+			});
+
+			if (!nps) {
+				throw new NotFoundException('NPS não encontrado para esta fila');
+			}
+
+			return nps;
+		} catch (error) {
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+
+			throw new BadRequestException('Erro ao buscar NPS por fila');
 		}
 	}
 }

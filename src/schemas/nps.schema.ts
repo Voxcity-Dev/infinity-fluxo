@@ -55,6 +55,25 @@ export const DeleteNpsSetorSchema = z.object({
 	id: z.uuid(),
 });
 
+// Schema para criação de vínculo NpsFila
+export const CreateNpsFilaSchema = z.object({
+	tenant_id: z.uuid(),
+	nps_id: z.uuid(),
+	fila_atendimento_id: z.uuid(),
+});
+
+// Schema para listagem de filas de um NPS
+export const ListNpsFilaSchema = z.object({
+	nps_id: z.uuid(),
+	page: z.number().int().min(1).default(1),
+	limit: z.number().int().min(1).max(100).default(10),
+});
+
+// Schema para remoção de vínculo NpsFila
+export const DeleteNpsFilaSchema = z.object({
+	id: z.uuid(),
+});
+
 // Schema completo do NPS
 export const NpsSchema = z.object({
 	id: z.uuid(),
@@ -77,11 +96,23 @@ export const NpsSetorSchema = z.object({
 	updated_at: z.string(),
 });
 
+// Schema completo do NpsFila
+export const NpsFilaSchema = z.object({
+	id: z.uuid(),
+	tenant_id: z.uuid(),
+	nps_id: z.uuid(),
+	fila_atendimento_id: z.uuid(),
+	is_deleted: z.boolean(),
+	created_at: z.string(),
+	updated_at: z.string(),
+});
+
 // Schema para resposta da API com contagem de setores
 export const NpsResponseSchema = NpsSchema.extend({
 	setores_count: z.number(),
 });
 export const NpsSetorResponseSchema = NpsSetorSchema;
+export const NpsFilaResponseSchema = NpsFilaSchema;
 
 // Schema para resposta do NPSResposta
 export const NpsRespostaSchema = z.object({
@@ -99,8 +130,13 @@ export type ListNpsSetor = z.infer<typeof ListNpsSetorSchema>;
 export type DeleteNpsSetor = z.infer<typeof DeleteNpsSetorSchema>;
 export type Nps = z.infer<typeof NpsSchema>;
 export type NpsSetor = z.infer<typeof NpsSetorSchema>;
+export type NpsFila = z.infer<typeof NpsFilaSchema>;
 export type NpsResponse = z.infer<typeof NpsResponseSchema>;
 export type NpsSetorResponse = z.infer<typeof NpsSetorResponseSchema>;
+export type NpsFilaResponse = z.infer<typeof NpsFilaResponseSchema>;
+export type CreateNpsFila = z.infer<typeof CreateNpsFilaSchema>;
+export type ListNpsFila = z.infer<typeof ListNpsFilaSchema>;
+export type DeleteNpsFila = z.infer<typeof DeleteNpsFilaSchema>;
 export type RespostaNps = z.infer<typeof RespostaNpsSchema>;
 export type NpsResposta = z.infer<typeof NpsRespostaSchema>;
 export type ResponderNpsResponse = z.infer<typeof ResponderNpsResponseSchema>;

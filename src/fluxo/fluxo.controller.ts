@@ -163,8 +163,10 @@ export class FluxoController {
 	@ApiResponse({ status: 400, description: 'Erro ao obter configurações de expiração' })
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
 	async obterExpiracao(@Param('fluxo_id') fluxo_id: string) {
-		this.logger.log(`GET /fluxo/:fluxo_id/expiracao - Obter expiração do fluxo acessado (ID: ${fluxo_id})`);
+		this.logger.log(`GET /fluxo/${fluxo_id}/expiracao - Solicitado pelo cron`);
 		const config = await this.fluxoService.getExpiracaoConfig(fluxo_id);
+		this.logger.log(`  Triagem: ${config.triagem.habilitada ? `${config.triagem.minutos}min` : 'desabilitada'}`);
+		this.logger.log(`  NPS: ${config.nps.habilitada ? `${config.nps.horas}h` : 'desabilitada'}`);
 		return { message: 'Configurações obtidas com sucesso!', data: config };
 	}
 }

@@ -5,6 +5,23 @@ import { Pool } from 'pg';
 // Carrega variáveis de ambiente do .env
 process.loadEnvFile();
 
+// Verificar variáveis obrigatórias
+if (!process.env.DATABASE_URL) {
+	console.error('❌ DATABASE_URL não está configurado no .env');
+	process.exit(1);
+}
+
+if (!process.env.DATABASE_URL_CORE) {
+	console.error('❌ DATABASE_URL_CORE não está configurado no .env');
+	console.error('');
+	console.error('Adicione no .env do infinity-fluxo:');
+	console.error('DATABASE_URL_CORE="postgresql://USER:PASS@HOST:PORT/infinity_core"');
+	console.error('');
+	console.error('Exemplo (mesmo servidor):');
+	console.error('DATABASE_URL_CORE="postgresql://core:SENHA@localhost:5432/core?schema=public"');
+	process.exit(1);
+}
+
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });

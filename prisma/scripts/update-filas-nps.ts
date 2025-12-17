@@ -25,8 +25,31 @@ async function main() {
 		`;
 
 		if (!tableExists[0]?.exists) {
-			console.log('Tabela nps_filas não existe. Execute "npx prisma db push" primeiro.');
-			process.exit(1);
+			console.log('Tabela nps_filas não existe. Criando via SQL...\n');
+
+			// Criar tabela nps_filas
+			await prisma.$executeRaw`
+				CREATE TABLE nps_filas (
+					id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+					tenant_id UUID NOT NULL,
+					nps_id UUID NOT NULL,
+					fila_atendimento_id UUID NOT NULL,
+					is_deleted BOOLEAN NOT NULL DEFAULT false,
+					created_at TIMESTAMP(6) NOT NULL DEFAULT NOW(),
+					updated_at TIMESTAMP(6) NOT NULL DEFAULT NOW(),
+					CONSTRAINT fk_nps_filas_nps FOREIGN KEY (nps_id) REFERENCES nps(id) ON DELETE CASCADE ON UPDATE CASCADE
+				)
+			`;
+
+			// Criar índices
+			await prisma.$executeRaw`CREATE INDEX idx_nps_filas_tenant_id ON nps_filas(tenant_id)`;
+			await prisma.$executeRaw`CREATE INDEX idx_nps_filas_nps_id ON nps_filas(nps_id)`;
+			await prisma.$executeRaw`CREATE INDEX idx_nps_filas_fila_atendimento_id ON nps_filas(fila_atendimento_id)`;
+			await prisma.$executeRaw`CREATE INDEX idx_nps_filas_is_deleted ON nps_filas(is_deleted)`;
+
+			console.log('✅ Tabela nps_filas criada com sucesso!\n');
+		} else {
+			console.log('✅ Tabela nps_filas já existe.\n');
 		}
 
 		// 2. Buscar todos os vínculos NPS-Setor ativos
@@ -64,28 +87,25 @@ async function main() {
 
 				// 4. Para cada fila, criar vínculo NPS-Fila
 				for (const fila of filas.rows) {
-					// Verificar se já existe vínculo ativo
-					const existente = await prisma.npsFila.findFirst({
-						where: {
-							nps_id: npsSetor.nps_id,
-							fila_atendimento_id: fila.id,
-							is_deleted: false,
-						},
-					});
+					// Verificar se já existe vínculo ativo (usando SQL raw)
+					const existente = await prisma.$queryRaw<{ id: string }[]>`
+						SELECT id FROM nps_filas
+						WHERE nps_id = ${npsSetor.nps_id}::uuid
+						AND fila_atendimento_id = ${fila.id}::uuid
+						AND is_deleted = false
+						LIMIT 1
+					`;
 
-					if (existente) {
+					if (existente.length > 0) {
 						console.log(`    ⏭️ Vínculo NPS-Fila já existe para fila ${fila.id}`);
 						continue;
 					}
 
-					// Criar novo vínculo
-					await prisma.npsFila.create({
-						data: {
-							tenant_id: npsSetor.tenant_id,
-							nps_id: npsSetor.nps_id,
-							fila_atendimento_id: fila.id,
-						},
-					});
+					// Criar novo vínculo (usando SQL raw)
+					await prisma.$executeRaw`
+						INSERT INTO nps_filas (tenant_id, nps_id, fila_atendimento_id)
+						VALUES (${npsSetor.tenant_id}::uuid, ${npsSetor.nps_id}::uuid, ${fila.id}::uuid)
+					`;
 
 					console.log(`    ✅ Vínculo criado: NPS ${npsSetor.nps_id} -> Fila ${fila.id}`);
 					migrados++;

@@ -1167,6 +1167,16 @@ export class FluxoService {
 	 * Retorna configurações de expiração para triagem e NPS
 	 */
 	async getExpiracaoConfig(fluxo_id: string) {
+		// Validar existência do fluxo
+		const fluxoExists = await this.prisma.fluxo.findUnique({
+			where: { id: fluxo_id, is_deleted: false },
+			select: { id: true },
+		});
+
+		if (!fluxoExists) {
+			throw new NotFoundException(`Fluxo ${fluxo_id} não encontrado`);
+		}
+
 		const configuracoes = await this.prisma.fluxoConfiguracao.findMany({
 			where: {
 				fluxo_id,
@@ -1189,23 +1199,32 @@ export class FluxoService {
 			configuracoes.map((config) => [config.chave, config.valor]),
 		);
 
+		// Defaults do configService
+		const defaults = this.configService.configuracaoDefaults;
+
 		// Helper para pegar valor com fallback
-		const getConfig = (chave: string, defaultValue: string = ''): string => {
-			return configMap.get(chave as any) || defaultValue;
+		const getConfig = (chave: keyof typeof defaults, defaultValue: string): string => {
+			return configMap.get(chave as any) || defaults[chave] || defaultValue;
+		};
+
+		// Helper para parseInt seguro (evita NaN)
+		const parseIntSafe = (value: string, defaultValue: number): number => {
+			const parsed = parseInt(value, 10);
+			return isNaN(parsed) ? defaultValue : parsed;
 		};
 
 		// Retornar em formato estruturado
 		return {
 			triagem: {
 				habilitada: getConfig('EXPIRACAO_TRIAGEM_HABILITADA', 'false') === 'true',
-				minutos: parseInt(getConfig('EXPIRACAO_TRIAGEM_MINUTOS', '0')),
+				minutos: parseIntSafe(getConfig('EXPIRACAO_TRIAGEM_MINUTOS', '30'), 30),
 				mensagem: getConfig('EXPIRACAO_TRIAGEM_MENSAGEM', ''),
 			},
 			nps: {
 				habilitada: getConfig('EXPIRACAO_NPS_HABILITADA', 'false') === 'true',
-				horas: parseInt(getConfig('EXPIRACAO_NPS_HORAS', '0')),
+				horas: parseIntSafe(getConfig('EXPIRACAO_NPS_HORAS', '24'), 24),
 				mensagem: getConfig('EXPIRACAO_NPS_MENSAGEM', ''),
-				silencioso: getConfig('EXPIRACAO_NPS_SILENCIOSO', 'false') === 'true',
+				silencioso: getConfig('EXPIRACAO_NPS_SILENCIOSO', 'true') === 'true',
 			},
 		};
 	}

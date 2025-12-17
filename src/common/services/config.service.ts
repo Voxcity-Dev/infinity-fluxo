@@ -21,6 +21,13 @@ export class ConfigService {
         ENCERRAR_FLUXO_CONDIÇÃO: 'encerrar',
         MENSAGEM_FINALIZACAO: 'Seu atendimento foi encerrado!',
         MENSAGEM_FORA_HORARIO: 'No momento estamos fora do horário de atendimento. Por favor, tente novamente mais tarde.',
+        EXPIRACAO_TRIAGEM_HABILITADA: 'false',
+        EXPIRACAO_TRIAGEM_MINUTOS: '30',
+        EXPIRACAO_TRIAGEM_MENSAGEM: 'Seu atendimento expirou por inatividade.',
+        EXPIRACAO_NPS_HABILITADA: 'false',
+        EXPIRACAO_NPS_HORAS: '24',
+        EXPIRACAO_NPS_MENSAGEM: '',
+        EXPIRACAO_NPS_SILENCIOSO: 'true',
     } as const;
 
     async getInvalidResponseMessage(etapa_id: string) {

@@ -14,6 +14,7 @@ import { EtapaModule } from './etapa/etapa.module';
 import { CondicaoModule } from './condicao/condicao.module';
 import { InteracaoModule } from './interacao/interacao.module';
 import { NpsModule } from './nps/nps.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { UnifiedAuthGuard } from './common/guards/unified-auth.guard';
 
 @Module({
@@ -29,6 +30,7 @@ import { UnifiedAuthGuard } from './common/guards/unified-auth.guard';
 		CondicaoModule,
 		InteracaoModule,
 		NpsModule,
+		DashboardModule,
 	],
 	controllers: [AppController],
 	providers: [

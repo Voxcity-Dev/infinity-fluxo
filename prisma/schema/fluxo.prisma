@@ -33,11 +33,7 @@ enum FluxoConfiguracaoChave {
   EXPIRACAO_TRIAGEM_MINUTOS      // "30"
   EXPIRACAO_TRIAGEM_MENSAGEM     // "Seu atendimento expirou..."
 
-  // Expiração no NPS
-  EXPIRACAO_NPS_HABILITADA       // "true" | "false"
-  EXPIRACAO_NPS_HORAS            // "24"
-  EXPIRACAO_NPS_MENSAGEM         // "Prazo expirou..." (opcional)
-  EXPIRACAO_NPS_SILENCIOSO       // "true" | "false"
+  // NPS expiração foi movido para o CRUD de NPS (infinity-fluxo/src/nps)
 }
 
 model FluxoConfiguracao {

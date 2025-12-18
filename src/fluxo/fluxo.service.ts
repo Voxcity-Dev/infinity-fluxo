@@ -1169,8 +1169,8 @@ export class FluxoService {
 	}
 
 	/**
-	 * Obter configurações de expiração (TTL) do fluxo
-	 * Retorna configurações de expiração para triagem e NPS
+	 * Obter configurações de expiração de TRIAGEM do fluxo
+	 * NPS expiração foi movido para o CRUD de NPS (/nps/fila/:filaId/expiracao)
 	 */
 	async getExpiracaoConfig(fluxo_id: string) {
 		// Validar existência do fluxo
@@ -1191,10 +1191,6 @@ export class FluxoService {
 						'EXPIRACAO_TRIAGEM_HABILITADA',
 						'EXPIRACAO_TRIAGEM_MINUTOS',
 						'EXPIRACAO_TRIAGEM_MENSAGEM',
-						'EXPIRACAO_NPS_HABILITADA',
-						'EXPIRACAO_NPS_HORAS',
-						'EXPIRACAO_NPS_MENSAGEM',
-						'EXPIRACAO_NPS_SILENCIOSO',
 					],
 				},
 			},
@@ -1219,18 +1215,12 @@ export class FluxoService {
 			return isNaN(parsed) ? defaultValue : parsed;
 		};
 
-		// Retornar em formato estruturado
+		// Retornar em formato estruturado (apenas TRIAGEM)
 		return {
 			triagem: {
 				habilitada: getConfig('EXPIRACAO_TRIAGEM_HABILITADA', 'false') === 'true',
 				minutos: parseIntSafe(getConfig('EXPIRACAO_TRIAGEM_MINUTOS', '30'), 30),
 				mensagem: getConfig('EXPIRACAO_TRIAGEM_MENSAGEM', ''),
-			},
-			nps: {
-				habilitada: getConfig('EXPIRACAO_NPS_HABILITADA', 'false') === 'true',
-				horas: parseIntSafe(getConfig('EXPIRACAO_NPS_HORAS', '24'), 24),
-				mensagem: getConfig('EXPIRACAO_NPS_MENSAGEM', ''),
-				silencioso: getConfig('EXPIRACAO_NPS_SILENCIOSO', 'true') === 'true',
 			},
 		};
 	}

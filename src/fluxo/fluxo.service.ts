@@ -751,17 +751,23 @@ export class FluxoService {
 			},
 		};
 
-		// se nenhuma regra válida encontrada, retorna resposta inválida
+		// se nenhuma regra válida encontrada, retorna resposta inválida + conteúdo da etapa
 		if (!regraEncontrada) {
 			const etapa = await this.etapaService.findById(etapa_id);
 
-			// Quando não encontra regra válida, retorna APENAS a mensagem de não entendido
-			// Não deve incluir o conteúdo da interação, pois isso pode estar retornando a descrição
+			// 1. Adiciona mensagem de "não entendi"
 			const mensagemInvalida = this.normalizarParaString(
 				await this.configService.getInvalidResponseMessage(etapa_id),
 			);
 			if (mensagemInvalida.trim() !== '') {
 				data.conteudo.mensagem.push(mensagemInvalida as never);
+			}
+
+			// 2. Adiciona conteúdo da etapa (pergunta) para o cliente saber o que responder
+			const interacoes = await this.etapaService.getInteracoesByEtapaId(etapa_id);
+			const conteudoEtapa = this.normalizarParaString(interacoes[0]?.conteudo);
+			if (conteudoEtapa.trim() !== '') {
+				data.conteudo.mensagem.push(conteudoEtapa as never);
 			}
 
 			// Verificar se a etapa tem variavel_id configurado

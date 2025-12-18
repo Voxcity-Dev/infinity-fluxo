@@ -13,7 +13,7 @@ async function main() {
 
   try {
     const result = await prisma.$executeRaw`
-      DELETE FROM "FluxoConfiguracao"
+      DELETE FROM fluxo_configuracoes
       WHERE chave IN (
         'EXPIRACAO_NPS_HABILITADA',
         'EXPIRACAO_NPS_HORAS',

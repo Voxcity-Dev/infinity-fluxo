@@ -166,7 +166,6 @@ export class FluxoController {
 		this.logger.log(`GET /fluxo/${fluxo_id}/expiracao - Solicitado pelo cron`);
 		const config = await this.fluxoService.getExpiracaoConfig(fluxo_id);
 		this.logger.log(`  Triagem: ${config.triagem.habilitada ? `${config.triagem.minutos}min` : 'desabilitada'}`);
-		this.logger.log(`  NPS: ${config.nps.habilitada ? `${config.nps.horas}h` : 'desabilitada'}`);
 		return { message: 'Configurações obtidas com sucesso!', data: config };
 	}
 }

@@ -37,19 +37,45 @@ export class DashboardService {
         whereResposta.created_at = { ...whereResposta.created_at, lte: endDate };
       }
 
+      // Primeiro, buscar os IDs dos NPS que atendem aos critérios
+      const npsIds = await this.prisma.nps.findMany({
+        where: whereNps,
+        select: { id: true },
+      });
+      const npsIdsArray = npsIds.map((n) => n.id);
+
+      // Se não houver NPS, retornar valores zerados
+      if (npsIdsArray.length === 0) {
+        return {
+          totalNps: 0,
+          totalRespostas: 0,
+          taxaResposta: 0,
+          scoreNPS: 0,
+          distribuicao: Array.from({ length: 11 }, (_, i) => ({
+            nota: i,
+            quantidade: 0,
+            percentual: 0,
+          })),
+        };
+      }
+
+      // Construir where para respostas incluindo filtro de nps_id
+      const whereRespostaCompleto = {
+        ...whereResposta,
+        nps_id: { in: npsIdsArray },
+      };
+
       const [totalNps, respostas] = await Promise.all([
         this.prisma.nps.count({ where: whereNps }),
         this.prisma.npsResposta.findMany({
-          where: whereResposta,
+          where: whereRespostaCompleto,
           include: {
-            nps: {
-              where: whereNps,
-            },
+            nps: true,
           },
         }),
       ]);
 
-      const respostasFiltradas = respostas.filter((r) => r.nps);
+      const respostasFiltradas = respostas.filter((r) => r.nps !== null);
       const totalRespostas = respostasFiltradas.length;
 
       // Calcular distribuição
@@ -121,16 +147,43 @@ export class DashboardService {
         where.nps_id = npsId;
       }
 
+      // Primeiro, buscar os IDs dos NPS que atendem aos critérios
+      const whereNps: any = { is_deleted: false };
+      if (tenantId) {
+        whereNps.tenant_id = tenantId;
+      }
+
+      const npsIds = await this.prisma.nps.findMany({
+        where: whereNps,
+        select: { id: true },
+      });
+      const npsIdsArray = npsIds.map((n) => n.id);
+
+      // Se não houver NPS, retornar valores zerados
+      if (npsIdsArray.length === 0) {
+        return {
+          scoreGeral: 0,
+          npsPorCanal: [],
+          npsPorFila: [],
+          npsPorSetor: [],
+          evolucaoTemporal: [],
+        };
+      }
+
+      // Construir where para respostas incluindo filtro de nps_id
+      const whereCompleto = {
+        ...where,
+        nps_id: { in: npsIdsArray },
+      };
+
       const respostas = await this.prisma.npsResposta.findMany({
-        where,
+        where: whereCompleto,
         include: {
-          nps: {
-            where: tenantId ? { tenant_id: tenantId, is_deleted: false } : { is_deleted: false },
-          },
+          nps: true,
         },
       });
 
-      const respostasFiltradas = respostas.filter((r) => r.nps);
+      const respostasFiltradas = respostas.filter((r) => r.nps !== null);
 
       // Calcular score geral
       const promotores = respostasFiltradas.filter((r) => r.resposta >= 9).length;

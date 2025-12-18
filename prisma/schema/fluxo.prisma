@@ -68,6 +68,8 @@ model Fluxo {
   created_at    DateTime            @default(now()) @db.Timestamp(6)
   updated_at    DateTime            @updatedAt @db.Timestamp(6)
 
+  @@index([is_deleted], map: "idx_fluxo_is_deleted")
+  @@index([tenant_id], map: "idx_fluxo_tenant")
   @@index([tenant_id, nome])
   @@map("fluxos")
 }

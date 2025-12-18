@@ -13,5 +13,8 @@ model Logs {
   opcao CondicaoRegra? @relation(fields: [opcao_id], references: [id])
 
   @@index([tenant_id])
+  @@index([ticket_id], map: "idx_log_ticket")
+  @@index([fluxo_id], map: "idx_log_fluxo")
+  @@index([created_at], map: "idx_log_created")
   @@map("logs")
 }

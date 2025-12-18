@@ -27,9 +27,10 @@ model NpsResposta {
     // Relação
     nps Nps @relation(fields: [nps_id], references: [id])
 
-    @@index([nps_id])
-    @@index([resposta])
-    @@index([ticket_id])
+    @@index([created_at], map: "idx_nps_resposta_created")
+    @@index([resposta], map: "idx_nps_resposta_score")
+    @@index([nps_id, created_at], map: "idx_nps_resposta_nps_created")
+    @@index([ticket_id], map: "idx_nps_resposta_ticket")
     @@map("nps_respostas")
 }
 

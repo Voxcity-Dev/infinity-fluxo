@@ -1,12 +1,18 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
+
+process.loadEnvFile();
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  const prisma = new PrismaClient();
+  console.log('Removendo registros antigos de expiração NPS do FluxoConfiguracao...');
 
   try {
-    console.log('Removendo registros antigos de expiração NPS do FluxoConfiguracao...');
-
-    const result = await prisma.$executeRawUnsafe(`
+    const result = await prisma.$executeRaw`
       DELETE FROM "FluxoConfiguracao"
       WHERE chave IN (
         'EXPIRACAO_NPS_HABILITADA',
@@ -14,16 +20,22 @@ async function main() {
         'EXPIRACAO_NPS_MENSAGEM',
         'EXPIRACAO_NPS_SILENCIOSO'
       )
-    `);
+    `;
 
     console.log(`Registros removidos: ${result}`);
-    console.log('Limpeza concluída! Agora execute: npx prisma db push');
+    console.log('Limpeza concluída!');
   } catch (error) {
     console.error('Erro ao limpar registros:', error);
     process.exit(1);
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
-main();
+main()
+  .catch(e => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+    await pool.end();
+  });

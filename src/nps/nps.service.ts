@@ -48,17 +48,31 @@ export class NpsService {
 
 	async update(data: UpdateNpsInput) {
 		try {
-			const { id, nome, pesquisa } = data;
+			const { id, nome, pesquisa, expiracao_habilitada, expiracao_horas, expiracao_mensagem, expiracao_silenciosa } = data;
 
 			// Construir objeto de dados apenas com campos não vazios
 			const updateData: any = {};
-			
+
 			if (nome !== undefined && nome !== null && nome !== '') {
 				updateData.nome = nome;
 			}
-			
+
 			if (pesquisa !== undefined && pesquisa !== null && pesquisa !== '') {
 				updateData.pesquisa = pesquisa;
+			}
+
+			// Campos de expiração
+			if (expiracao_habilitada !== undefined) {
+				updateData.expiracao_habilitada = expiracao_habilitada;
+			}
+			if (expiracao_horas !== undefined) {
+				updateData.expiracao_horas = expiracao_horas;
+			}
+			if (expiracao_mensagem !== undefined) {
+				updateData.expiracao_mensagem = expiracao_mensagem;
+			}
+			if (expiracao_silenciosa !== undefined) {
+				updateData.expiracao_silenciosa = expiracao_silenciosa;
 			}
 
 			// Verificar se há pelo menos um campo para atualizar
@@ -67,7 +81,7 @@ export class NpsService {
 			}
 
 			const nps = await this.prisma.nps.update({
-				where: { 
+				where: {
 					id,
 					is_deleted: false // Garantir que não atualize NPS deletados
 				},
@@ -81,7 +95,7 @@ export class NpsService {
 			if (error instanceof HttpException) {
 				throw error;
 			}
-			
+
 			throw new BadRequestException('Erro ao atualizar NPS');
 		}
 	}
@@ -596,6 +610,59 @@ export class NpsService {
 			}
 
 			throw new BadRequestException('Erro ao buscar NPS por fila');
+		}
+	}
+
+	/**
+	 * Busca configuração de expiração NPS por fila de atendimento
+	 * Usado pelo Cron para verificar tickets NPS expirados
+	 */
+	async findExpiracaoByFilaId(fila_atendimento_id: string) {
+		try {
+			// Buscar o NPS vinculado à fila
+			const npsFila = await this.prisma.npsFila.findFirst({
+				where: {
+					fila_atendimento_id: fila_atendimento_id,
+				},
+			});
+
+			if (!npsFila) {
+				throw new NotFoundException('NPS não encontrado para esta fila');
+			}
+
+			// Buscar o NPS com config de expiração
+			const nps = await this.prisma.nps.findUnique({
+				where: {
+					id: npsFila.nps_id,
+					is_deleted: false,
+				},
+				select: {
+					expiracao_habilitada: true,
+					expiracao_horas: true,
+					expiracao_mensagem: true,
+					expiracao_silenciosa: true,
+				},
+			});
+
+			if (!nps) {
+				throw new NotFoundException('NPS não encontrado para esta fila');
+			}
+
+			// Retornar no formato esperado pelo Cron
+			return {
+				nps: {
+					habilitada: nps.expiracao_habilitada,
+					horas: nps.expiracao_horas,
+					mensagem: nps.expiracao_mensagem || '',
+					silencioso: nps.expiracao_silenciosa,
+				},
+			};
+		} catch (error) {
+			if (error instanceof HttpException) {
+				throw error;
+			}
+
+			throw new BadRequestException('Erro ao buscar configuração de expiração NPS');
 		}
 	}
 }

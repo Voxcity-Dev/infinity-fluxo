@@ -7,6 +7,12 @@ model Nps {
     created_at DateTime @default(now()) @db.Timestamp(6)
     updated_at DateTime @updatedAt @db.Timestamp(6)
 
+    // Configuração de expiração NPS
+    expiracao_habilitada  Boolean @default(false)
+    expiracao_horas       Int     @default(24)
+    expiracao_mensagem    String? @db.Text
+    expiracao_silenciosa  Boolean @default(true)
+
     // Relação
     respostas NpsResposta[]
     setores NpsSetor[]

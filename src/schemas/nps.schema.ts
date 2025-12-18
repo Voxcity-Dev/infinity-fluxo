@@ -26,6 +26,11 @@ export const UpdateNpsSchema = z.object({
 	id: z.uuid(),
 	nome: z.string().max(50).optional(),
 	pesquisa: z.string().optional(),
+	// Configuração de expiração
+	expiracao_habilitada: z.boolean().optional(),
+	expiracao_horas: z.number().int().min(1).max(168).optional(), // 1h a 7 dias
+	expiracao_mensagem: z.string().optional(),
+	expiracao_silenciosa: z.boolean().optional(),
 });
 
 // Schema para listagem de NPS
@@ -83,6 +88,19 @@ export const NpsSchema = z.object({
 	is_deleted: z.boolean(),
 	created_at: z.string(),
 	updated_at: z.string(),
+	// Configuração de expiração
+	expiracao_habilitada: z.boolean(),
+	expiracao_horas: z.number().int(),
+	expiracao_mensagem: z.string().nullable(),
+	expiracao_silenciosa: z.boolean(),
+});
+
+// Schema de configuração de expiração NPS (para o Cron)
+export const NpsExpiracaoConfigSchema = z.object({
+	habilitada: z.boolean(),
+	horas: z.number().int(),
+	mensagem: z.string(),
+	silencioso: z.boolean(),
 });
 
 // Schema completo do NpsSetor
@@ -140,3 +158,4 @@ export type DeleteNpsFila = z.infer<typeof DeleteNpsFilaSchema>;
 export type RespostaNps = z.infer<typeof RespostaNpsSchema>;
 export type NpsResposta = z.infer<typeof NpsRespostaSchema>;
 export type ResponderNpsResponse = z.infer<typeof ResponderNpsResponseSchema>;
+export type NpsExpiracaoConfig = z.infer<typeof NpsExpiracaoConfigSchema>;

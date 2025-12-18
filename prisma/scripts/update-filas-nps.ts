@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import axios from 'axios';
+import { JwtService } from '@nestjs/jwt';
 
 // Carrega variáveis de ambiente do .env
 process.loadEnvFile();
@@ -22,15 +23,28 @@ if (!process.env.MICROSERVICE_TOKEN) {
 	process.exit(1);
 }
 
+if (!process.env.JWT_KEY) {
+	console.error('❌ JWT_KEY não está configurado no .env');
+	process.exit(1);
+}
+
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
+
+// Criar JWT token para autenticação de microserviço
+// O token deve conter { key: JWT_KEY } e ser assinado com MICROSERVICE_TOKEN
+const jwtService = new JwtService();
+const microserviceJwt = jwtService.sign(
+	{ key: process.env.JWT_KEY },
+	{ secret: process.env.MICROSERVICE_TOKEN }
+);
 
 // API do core para buscar filas
 const coreApi = axios.create({
 	baseURL: process.env.API_CORE_URL,
 	headers: {
-		'x-microservice-token': process.env.MICROSERVICE_TOKEN,
+		'x-microservice-token': microserviceJwt,
 	},
 });
 

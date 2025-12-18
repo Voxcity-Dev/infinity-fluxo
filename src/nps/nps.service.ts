@@ -437,19 +437,17 @@ export class NpsService {
 				throw new NotFoundException('NPS não encontrado');
 			}
 
-			// Verificar se já existe vínculo ativo para esta fila
+			// Verificar se já existe vínculo para esta fila
 			const existingFila = await this.prisma.npsFila.findFirst({
 				where: {
 					fila_atendimento_id: data.fila_atendimento_id,
-					is_deleted: false,
 				},
 			});
 
-			// Se existe vínculo ativo, desvincular primeiro
+			// Se existe vínculo, deletar primeiro (hard delete)
 			if (existingFila) {
-				await this.prisma.npsFila.update({
+				await this.prisma.npsFila.delete({
 					where: { id: existingFila.id },
-					data: { is_deleted: true },
 				});
 			}
 
@@ -494,7 +492,6 @@ export class NpsService {
 			const queryOptions: any = {
 				where: {
 					nps_id: nps_id,
-					is_deleted: false
 				},
 				orderBy: { created_at: 'desc' },
 			};
@@ -534,21 +531,20 @@ export class NpsService {
 
 	async deleteFila(data: DeleteNpsFilaInput) {
 		try {
-			// Verificar se o registro existe e não está deletado
+			// Verificar se o registro existe
 			const existingFila = await this.prisma.npsFila.findFirst({
 				where: {
 					fila_atendimento_id: data.id,
-					is_deleted: false
 				},
 			});
 
 			if (!existingFila) {
-				throw new NotFoundException('Vínculo de fila não encontrado ou já removido');
+				throw new NotFoundException('Vínculo de fila não encontrado');
 			}
 
-			await this.prisma.npsFila.updateMany({
+			// Hard delete
+			await this.prisma.npsFila.deleteMany({
 				where: { fila_atendimento_id: data.id },
-				data: { is_deleted: true },
 			});
 			return data.id;
 		} catch (error) {
@@ -568,7 +564,6 @@ export class NpsService {
 			const npsFila = await this.prisma.npsFila.findFirst({
 				where: {
 					fila_atendimento_id: fila_atendimento_id,
-					is_deleted: false,
 				},
 			});
 

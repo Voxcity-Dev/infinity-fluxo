@@ -24,10 +24,7 @@ export class ConfigService {
         EXPIRACAO_TRIAGEM_HABILITADA: 'false',
         EXPIRACAO_TRIAGEM_MINUTOS: '30',
         EXPIRACAO_TRIAGEM_MENSAGEM: 'Seu atendimento expirou por inatividade.',
-        EXPIRACAO_NPS_HABILITADA: 'false',
-        EXPIRACAO_NPS_HORAS: '24',
-        EXPIRACAO_NPS_MENSAGEM: '',
-        EXPIRACAO_NPS_SILENCIOSO: 'true',
+        // NPS expiração foi movido para o CRUD de NPS
     } as const;
 
     async getInvalidResponseMessage(etapa_id: string) {

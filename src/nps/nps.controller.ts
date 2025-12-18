@@ -165,6 +165,22 @@ export class NpsController {
 		return { message: 'NPS encontrado com sucesso!', data: nps };
 	}
 
+	@Get('fila/:fila_id/expiracao')
+	@HttpCode(200)
+	@ApiOperation({ summary: 'Buscar configuração de expiração NPS por fila (usado pelo Cron)' })
+	@ApiOkResponse({ description: 'Configuração de expiração encontrada' })
+	@ApiResponse({ status: 400, description: 'Erro ao buscar configuração' })
+	@ApiResponse({ status: 404, description: 'NPS não encontrado para esta fila' })
+	async buscarExpiracaoPorFila(@Param('fila_id') fila_id: string) {
+		if (!fila_id) {
+			throw new BadRequestException('Fila ID é obrigatório');
+		}
+
+		const config = await this.npsService.findExpiracaoByFilaId(fila_id);
+		this.logger.log(`Config expiração NPS encontrada para fila ${fila_id}`);
+		return config;
+	}
+
 	@Post('fila/create')
 	@HttpCode(200)
 	@ApiOperation({ summary: 'Vincular fila ao NPS' })

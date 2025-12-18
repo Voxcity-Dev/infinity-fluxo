@@ -20,6 +20,7 @@
 		"update:fix-expires": "ts-node -r tsconfig-paths/register prisma/scripts/fix-expiracao-unique-index.ts",
 		"update:filas-nps": "ts-node -r tsconfig-paths/register prisma/scripts/update-filas-nps.ts",
 		"cleanup:nps-filas": "ts-node -r tsconfig-paths/register prisma/scripts/cleanup-nps-filas-soft-deleted.ts",
+		"fix:nps-enum": "ts-node -r tsconfig-paths/register prisma/scripts/fix-nps-enum.ts && npx prisma db push",
 		"start": "nest start",
 		"start:dev": "nest start --watch",
 		"start:debug": "nest start --debug 9233 --watch",

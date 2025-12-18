@@ -162,7 +162,7 @@ export class NpsController {
 
 		const nps = await this.npsService.findByFilaId(fila_id);
 		this.logger.log(`NPS encontrado com sucesso para fila ${fila_id}!`);
-		return nps;
+		return { message: 'NPS encontrado com sucesso!', data: nps };
 	}
 
 	@Post('fila/create')

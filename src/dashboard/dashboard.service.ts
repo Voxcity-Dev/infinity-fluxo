@@ -37,10 +37,10 @@ export class DashboardService {
         whereResposta.created_at = { ...whereResposta.created_at, lte: endDate };
       }
 
-      // Primeiro, buscar os IDs dos NPS que atendem aos critérios
+      // Primeiro, buscar os IDs dos NPS que atendem aos critérios (filtro por tenant_id)
       const npsIds = await this.prisma.nps.findMany({
         where: whereNps,
-        select: { id: true },
+        select: { id: true, tenant_id: true },
       });
       const npsIdsArray = npsIds.map((n) => n.id);
 
@@ -59,7 +59,8 @@ export class DashboardService {
         };
       }
 
-      // Construir where para respostas incluindo filtro de nps_id
+      // Construir where para respostas incluindo filtro de nps_id e data
+      // Usar a relação nps_resposta -> nps -> tenant_id através do include
       const whereRespostaCompleto = {
         ...whereResposta,
         nps_id: { in: npsIdsArray },
@@ -70,12 +71,24 @@ export class DashboardService {
         this.prisma.npsResposta.findMany({
           where: whereRespostaCompleto,
           include: {
-            nps: true,
+            nps: {
+              select: {
+                id: true,
+                tenant_id: true,
+                is_deleted: true,
+              },
+            },
           },
         }),
       ]);
 
-      const respostasFiltradas = respostas.filter((r) => r.nps !== null);
+      // Filtrar respostas que pertencem a NPS válidos e do tenant correto
+      const respostasFiltradas = respostas.filter((r) => {
+        if (!r.nps || r.nps.is_deleted) return false;
+        // Se foi passado tenantId, garantir que o NPS pertence a esse tenant
+        if (tenantId && r.nps.tenant_id !== tenantId) return false;
+        return true;
+      });
       const totalRespostas = respostasFiltradas.length;
 
       // Calcular distribuição

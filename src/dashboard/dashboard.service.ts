@@ -19,6 +19,12 @@ export class DashboardService {
     totalRespostas: number;
     taxaResposta: number;
     scoreNPS: number;
+    promotores: number;
+    neutros: number;
+    detratores: number;
+    percentualPromotores: number;
+    percentualNeutros: number;
+    percentualDetratores: number;
     distribuicao: Array<{ nota: number; quantidade: number; percentual: number }>;
   }> {
     try {
@@ -51,6 +57,12 @@ export class DashboardService {
           totalRespostas: 0,
           taxaResposta: 0,
           scoreNPS: 0,
+          promotores: 0,
+          neutros: 0,
+          detratores: 0,
+          percentualPromotores: 0,
+          percentualNeutros: 0,
+          percentualDetratores: 0,
           distribuicao: Array.from({ length: 11 }, (_, i) => ({
             nota: i,
             quantidade: 0,
@@ -109,24 +121,196 @@ export class DashboardService {
       }));
 
       // Calcular NPS: % Promotores (9-10) - % Detratores (0-6)
+      // Neutros: 7-8
       const promotores = respostasFiltradas.filter((r) => r.resposta >= 9).length;
+      const neutros = respostasFiltradas.filter((r) => r.resposta >= 7 && r.resposta <= 8).length;
       const detratores = respostasFiltradas.filter((r) => r.resposta <= 6).length;
+      
       const percentualPromotores = totalRespostas > 0 ? (promotores / totalRespostas) * 100 : 0;
+      const percentualNeutros = totalRespostas > 0 ? (neutros / totalRespostas) * 100 : 0;
       const percentualDetratores = totalRespostas > 0 ? (detratores / totalRespostas) * 100 : 0;
       const scoreNPS = percentualPromotores - percentualDetratores;
 
       // Taxa de resposta (será calculada com base em tickets que receberam NPS)
-      const taxaResposta = 0; // Será calculado quando tivermos dados de tickets
+      // Por enquanto, se temos respostas, consideramos que foram enviados
+      // Isso pode ser melhorado depois com dados da mensageria
+      const taxaResposta = totalRespostas > 0 ? 100 : 0;
 
       return {
         totalNps,
         totalRespostas,
         taxaResposta,
         scoreNPS: Math.round(scoreNPS * 100) / 100,
+        promotores,
+        neutros,
+        detratores,
+        percentualPromotores: Math.round(percentualPromotores * 100) / 100,
+        percentualNeutros: Math.round(percentualNeutros * 100) / 100,
+        percentualDetratores: Math.round(percentualDetratores * 100) / 100,
         distribuicao,
       };
     } catch (error) {
       this.logger.error(`Erro ao obter métricas NPS: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtém métricas CSAT (Customer Satisfaction)
+   * Usa dados NPS como base, convertendo escala 0-10 para 1-5 estrelas
+   */
+  async getCsatMetrics(
+    tenantId?: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<{
+    scoreCSAT: number; // Média de 1-5 estrelas
+    totalRespostas: number;
+    distribuicao: Array<{ nota: number; quantidade: number; percentual: number }>;
+    historico: Array<{ periodo: string; valor: number; respostas: number }>;
+  }> {
+    try {
+      this.logger.log(`Obtendo métricas CSAT${tenantId ? ` para tenant: ${tenantId}` : ''}`);
+
+      const whereNps: any = { is_deleted: false };
+      if (tenantId) {
+        whereNps.tenant_id = tenantId;
+      }
+
+      const whereResposta: any = {};
+      if (startDate) {
+        whereResposta.created_at = { gte: startDate };
+      }
+      if (endDate) {
+        whereResposta.created_at = { ...whereResposta.created_at, lte: endDate };
+      }
+
+      // Buscar IDs dos NPS válidos
+      const npsIds = await this.prisma.nps.findMany({
+        where: whereNps,
+        select: { id: true, tenant_id: true },
+      });
+      const npsIdsArray = npsIds.map((n) => n.id);
+
+      if (npsIdsArray.length === 0) {
+        return {
+          scoreCSAT: 0,
+          totalRespostas: 0,
+          distribuicao: Array.from({ length: 5 }, (_, i) => ({
+            nota: i + 1,
+            quantidade: 0,
+            percentual: 0,
+          })),
+          historico: [],
+        };
+      }
+
+      // Buscar respostas NPS
+      const whereRespostaCompleto = {
+        ...whereResposta,
+        nps_id: { in: npsIdsArray },
+      };
+
+      const respostas = await this.prisma.npsResposta.findMany({
+        where: whereRespostaCompleto,
+        include: {
+          nps: {
+            select: {
+              id: true,
+              tenant_id: true,
+              is_deleted: true,
+            },
+          },
+        },
+        orderBy: {
+          created_at: 'asc',
+        },
+      });
+
+      // Filtrar respostas válidas
+      const respostasFiltradas = respostas.filter((r) => {
+        if (!r.nps || r.nps.is_deleted) return false;
+        if (tenantId && r.nps.tenant_id !== tenantId) return false;
+        return true;
+      });
+
+      const totalRespostas = respostasFiltradas.length;
+
+      if (totalRespostas === 0) {
+        return {
+          scoreCSAT: 0,
+          totalRespostas: 0,
+          distribuicao: Array.from({ length: 5 }, (_, i) => ({
+            nota: i + 1,
+            quantidade: 0,
+            percentual: 0,
+          })),
+          historico: [],
+        };
+      }
+
+      // Converter NPS (0-10) para CSAT (1-5 estrelas)
+      // Mapeamento: 0-1 -> 1, 2-3 -> 2, 4-5 -> 3, 6-7 -> 4, 8-10 -> 5
+      const csatNotas = respostasFiltradas.map((r) => {
+        const notaNPS = r.resposta;
+        if (notaNPS <= 1) return 1;
+        if (notaNPS <= 3) return 2;
+        if (notaNPS <= 5) return 3;
+        if (notaNPS <= 7) return 4;
+        return 5;
+      });
+
+      // Calcular score CSAT (média)
+      const scoreCSAT = csatNotas.reduce((sum, nota) => sum + nota, 0) / totalRespostas;
+
+      // Distribuição por nota CSAT (1-5)
+      const distribuicaoMap = new Map<number, number>();
+      for (let i = 1; i <= 5; i++) {
+        distribuicaoMap.set(i, 0);
+      }
+
+      csatNotas.forEach((nota) => {
+        distribuicaoMap.set(nota, (distribuicaoMap.get(nota) || 0) + 1);
+      });
+
+      const distribuicao = Array.from(distribuicaoMap.entries()).map(([nota, quantidade]) => ({
+        nota,
+        quantidade,
+        percentual: totalRespostas > 0 ? (quantidade / totalRespostas) * 100 : 0,
+      }));
+
+      // Histórico temporal (agrupar por dia)
+      const historicoMap = new Map<string, { soma: number; count: number }>();
+
+      respostasFiltradas.forEach((r) => {
+        const data = r.created_at.toISOString().split('T')[0];
+        const notaCSAT = csatNotas[respostasFiltradas.indexOf(r)];
+
+        if (!historicoMap.has(data)) {
+          historicoMap.set(data, { soma: 0, count: 0 });
+        }
+
+        const entry = historicoMap.get(data)!;
+        entry.soma += notaCSAT;
+        entry.count += 1;
+      });
+
+      const historico = Array.from(historicoMap.entries())
+        .map(([periodo, data]) => ({
+          periodo,
+          valor: data.count > 0 ? data.soma / data.count : 0,
+          respostas: data.count,
+        }))
+        .sort((a, b) => a.periodo.localeCompare(b.periodo));
+
+      return {
+        scoreCSAT: Math.round(scoreCSAT * 100) / 100,
+        totalRespostas,
+        distribuicao,
+        historico,
+      };
+    } catch (error) {
+      this.logger.error(`Erro ao obter métricas CSAT: ${error.message}`);
       throw error;
     }
   }

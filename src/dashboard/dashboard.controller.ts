@@ -31,6 +31,12 @@ export class DashboardController {
     totalRespostas: number;
     taxaResposta: number;
     scoreNPS: number;
+    promotores: number;
+    neutros: number;
+    detratores: number;
+    percentualPromotores: number;
+    percentualNeutros: number;
+    percentualDetratores: number;
     distribuicao: Array<{ nota: number; quantidade: number; percentual: number }>;
   }> {
     this.logger.log(
@@ -72,6 +78,33 @@ export class DashboardController {
       startDate ? new Date(startDate) : undefined,
       endDate ? new Date(endDate) : undefined,
       npsId,
+    );
+  }
+
+  @Get('csat-metrics')
+  @ApiOperation({ summary: 'Obtém métricas CSAT (Customer Satisfaction)' })
+  @ApiQuery({ name: 'tenantId', required: false, type: String })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
+  @ApiResponse({ status: 200, description: 'Métricas CSAT retornadas' })
+  async getCsatMetrics(
+    @Query('tenantId') tenantId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ): Promise<{
+    scoreCSAT: number;
+    totalRespostas: number;
+    distribuicao: Array<{ nota: number; quantidade: number; percentual: number }>;
+    historico: Array<{ periodo: string; valor: number; respostas: number }>;
+  }> {
+    this.logger.log(
+      `GET csat-metrics - Tenant: ${tenantId || 'all'}, Start: ${startDate}, End: ${endDate}`,
+    );
+
+    return this.dashboardService.getCsatMetrics(
+      tenantId,
+      startDate ? new Date(startDate) : undefined,
+      endDate ? new Date(endDate) : undefined,
     );
   }
 }

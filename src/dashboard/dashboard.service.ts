@@ -206,10 +206,73 @@ export class DashboardService {
       const percentualDetratores = total > 0 ? (detratores / total) * 100 : 0;
       const scoreGeral = percentualPromotores - percentualDetratores;
 
+      // ========== Calcular NPS por Fila ==========
+      // Buscar vínculos NPS-Fila
+      const whereNpsFila: any = { is_deleted: false };
+      if (tenantId) {
+        whereNpsFila.tenant_id = tenantId;
+      }
+      if (npsId) {
+        whereNpsFila.nps_id = npsId;
+      } else {
+        // Se não foi especificado npsId, filtrar apenas pelos NPS válidos
+        whereNpsFila.nps_id = { in: npsIdsArray };
+      }
+
+      const npsFilas = await this.prisma.npsFila.findMany({
+        where: whereNpsFila,
+        select: {
+          fila_atendimento_id: true,
+          nps_id: true,
+        },
+      });
+
+      // Criar mapa: filaId -> npsIds[]
+      const filaNpsMap = new Map<string, string[]>();
+      npsFilas.forEach((npsFila) => {
+        const filaId = npsFila.fila_atendimento_id;
+        if (!filaNpsMap.has(filaId)) {
+          filaNpsMap.set(filaId, []);
+        }
+        filaNpsMap.get(filaId)!.push(npsFila.nps_id);
+      });
+
+      // Calcular NPS por fila
+      const npsPorFila: Array<{ filaId?: string; nome: string; score: number; totalRespostas: number }> = [];
+
+      for (const [filaId, npsIdsDaFila] of filaNpsMap.entries()) {
+        // Filtrar respostas que pertencem aos NPS desta fila
+        const respostasDaFila = respostasFiltradas.filter((r) =>
+          npsIdsDaFila.includes(r.nps_id)
+        );
+
+        if (respostasDaFila.length === 0) {
+          continue;
+        }
+
+        // Calcular score NPS para esta fila
+        const promotoresFila = respostasDaFila.filter((r) => r.resposta >= 9).length;
+        const detratoresFila = respostasDaFila.filter((r) => r.resposta <= 6).length;
+        const totalRespostas = respostasDaFila.length;
+        const percentualPromotoresFila = totalRespostas > 0 ? (promotoresFila / totalRespostas) * 100 : 0;
+        const percentualDetratoresFila = totalRespostas > 0 ? (detratoresFila / totalRespostas) * 100 : 0;
+        const scoreFila = percentualPromotoresFila - percentualDetratoresFila;
+
+        npsPorFila.push({
+          filaId,
+          nome: `Fila ${filaId}`, // Placeholder - frontend fará match com dados de filas
+          score: Math.round(scoreFila * 100) / 100,
+          totalRespostas,
+        });
+      }
+
+      // Ordenar por total de respostas (maior primeiro)
+      npsPorFila.sort((a, b) => b.totalRespostas - a.totalRespostas);
+
       return {
         scoreGeral: Math.round(scoreGeral * 100) / 100,
         npsPorCanal: [],
-        npsPorFila: [],
+        npsPorFila,
         npsPorSetor: [],
         evolucaoTemporal: [],
       };

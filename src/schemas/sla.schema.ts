@@ -16,8 +16,9 @@ export const CreateSlaSchema = z.object({
 
 // Schema para atualização de SLA
 export const UpdateSlaSchema = z.object({
-	id: z.uuid(),
-	tempo: z.number().int().min(0).optional(),
+	tenant_id: z.uuid(),
+	tipo: SlaTipoEnum,
+	tempo: z.number().int().min(0),
 });
 
 // Schema para listagem de SLA

@@ -46,29 +46,41 @@ export class SlaService {
 
 	async update(data: UpdateSlaInput) {
 		try {
-			const { id, tempo } = data;
+			const { tenant_id, tipo, tempo } = data;
 
-			// Construir objeto de dados apenas com campos não vazios
-			const updateData: any = {};
-
-			if (tempo !== undefined && tempo !== null) {
-				updateData.tempo = tempo;
-			}
-
-			// Verificar se há pelo menos um campo para atualizar
-			if (Object.keys(updateData).length === 0) {
-				throw new BadRequestException('Nenhum campo válido fornecido para atualização');
-			}
-
-			const sla = await this.prisma.sla.update({
+			// Buscar SLA existente por tenant_id e tipo
+			const existingSla = await this.prisma.sla.findFirst({
 				where: {
-					id,
-					is_deleted: false // Garantir que não atualize SLA deletados
+					tenant_id,
+					tipo,
+					is_deleted: false,
 				},
-				data: updateData,
 			});
 
-			return sla;
+			// Se existe, atualizar; se não, criar (UPSERT)
+			if (existingSla) {
+				const sla = await this.prisma.sla.update({
+					where: {
+						id: existingSla.id,
+					},
+					data: {
+						tempo,
+					},
+				});
+
+				return sla;
+			} else {
+				// Criar novo SLA se não existir
+				const sla = await this.prisma.sla.create({
+					data: {
+						tenant_id,
+						tipo,
+						tempo,
+					},
+				});
+
+				return sla;
+			}
 		} catch (error) {
 			console.error('Erro ao atualizar SLA:', error);
 
@@ -128,13 +140,43 @@ export class SlaService {
 
 	async findByTenant(tenant_id: string) {
 		try {
-			const slas = await this.prisma.sla.findMany({
+			const tipos: SlaTipo[] = [
+				'TEMPO_PRIMEIRA_RESPOSTA' as SlaTipo,
+				'TEMPO_ATENDIMENTO' as SlaTipo,
+				'TEMPO_RESPOSTA' as SlaTipo,
+			];
+
+			// Buscar SLAs existentes no banco
+			const slasExistentes = await this.prisma.sla.findMany({
 				where: {
 					tenant_id,
 					is_deleted: false,
 				},
 				orderBy: { tipo: 'asc' },
 			});
+
+			// Criar mapa para facilitar busca
+			const slasMap = new Map<string, Sla>();
+			slasExistentes.forEach((sla) => {
+				slasMap.set(sla.tipo, sla);
+			});
+
+			// Garantir que todos os 3 tipos estejam presentes (criar se não existirem)
+			const slas: Sla[] = [];
+			for (const tipo of tipos) {
+				let sla = slasMap.get(tipo);
+				if (!sla) {
+					// Criar SLA se não existir
+					sla = await this.prisma.sla.create({
+						data: {
+							tenant_id,
+							tipo,
+							tempo: 0,
+						},
+					});
+				}
+				slas.push(sla);
+			}
 
 			return slas;
 		} catch (error) {

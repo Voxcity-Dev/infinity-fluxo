@@ -1,0 +1,20 @@
+enum SlaTipo {
+    TEMPO_PRIMEIRA_RESPOSTA
+    TEMPO_ATENDIMENTO
+    TEMPO_RESPOSTA
+}
+
+model Sla {
+    id         String   @id @default(uuid()) @db.Uuid
+    tenant_id  String   @db.Uuid
+    tipo       SlaTipo
+    tempo      Int      @default(0) // em minutos
+    is_deleted Boolean  @default(false)
+    created_at DateTime @default(now()) @db.Timestamp(6)
+    updated_at DateTime @updatedAt @db.Timestamp(6)
+
+    // Relação
+    @@index([tenant_id])
+    @@map("slas")
+}
+

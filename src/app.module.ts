@@ -15,6 +15,7 @@ import { CondicaoModule } from './condicao/condicao.module';
 import { InteracaoModule } from './interacao/interacao.module';
 import { NpsModule } from './nps/nps.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { SlaModule } from './sla/sla.module';
 import { UnifiedAuthGuard } from './common/guards/unified-auth.guard';
 
 @Module({
@@ -31,6 +32,7 @@ import { UnifiedAuthGuard } from './common/guards/unified-auth.guard';
 		InteracaoModule,
 		NpsModule,
 		DashboardModule,
+		SlaModule,
 	],
 	controllers: [AppController],
 	providers: [

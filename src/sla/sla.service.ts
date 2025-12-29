@@ -182,6 +182,8 @@ export class SlaService {
 						},
 					});
 				}
+				// Log para debug - verificar se meta_conformidade está presente
+				console.log(`SLA ${sla.tipo}: meta_conformidade=${sla.meta_conformidade}, tipo: ${typeof sla.meta_conformidade}`);
 				slas.push(sla);
 			}
 

@@ -66,14 +66,14 @@ export class SlaService {
 
 			// Se existe, atualizar; se não, criar (UPSERT)
 			if (existingSla) {
-				const sla = await this.prisma.sla.update({
-					where: {
+			const sla = await this.prisma.sla.update({
+				where: {
 						id: existingSla.id,
-					},
-					data: updateData,
-				});
+				},
+				data: updateData,
+			});
 
-				return sla;
+			return sla;
 			} else {
 				// Criar novo SLA se não existir
 				const sla = await this.prisma.sla.create({
@@ -182,8 +182,6 @@ export class SlaService {
 						},
 					});
 				}
-				// Log para debug - verificar se meta_conformidade está presente
-				console.log(`SLA ${sla.tipo}: meta_conformidade=${sla.meta_conformidade}, tipo: ${typeof sla.meta_conformidade}`);
 				slas.push(sla);
 			}
 

@@ -29,6 +29,7 @@ export class SlaService {
 					tenant_id: data.tenant_id,
 					tipo: data.tipo,
 					tempo: data.tempo || 0,
+					meta_conformidade: data.meta_conformidade || 85,
 				},
 			});
 
@@ -46,7 +47,7 @@ export class SlaService {
 
 	async update(data: UpdateSlaInput) {
 		try {
-			const { tenant_id, tipo, tempo } = data;
+			const { tenant_id, tipo, tempo, meta_conformidade } = data;
 
 			// Buscar SLA existente por tenant_id e tipo
 			const existingSla = await this.prisma.sla.findFirst({
@@ -57,15 +58,19 @@ export class SlaService {
 				},
 			});
 
+			// Preparar dados de atualização
+			const updateData: any = { tempo };
+			if (meta_conformidade !== undefined) {
+				updateData.meta_conformidade = meta_conformidade;
+			}
+
 			// Se existe, atualizar; se não, criar (UPSERT)
 			if (existingSla) {
 				const sla = await this.prisma.sla.update({
 					where: {
 						id: existingSla.id,
 					},
-					data: {
-						tempo,
-					},
+					data: updateData,
 				});
 
 				return sla;
@@ -76,6 +81,7 @@ export class SlaService {
 						tenant_id,
 						tipo,
 						tempo,
+						meta_conformidade: meta_conformidade || 85,
 					},
 				});
 
@@ -172,6 +178,7 @@ export class SlaService {
 							tenant_id,
 							tipo,
 							tempo: 0,
+							meta_conformidade: 85,
 						},
 					});
 				}
@@ -229,6 +236,7 @@ export class SlaService {
 						tenant_id,
 						tipo,
 						tempo: 0,
+						meta_conformidade: 85,
 					});
 				}
 

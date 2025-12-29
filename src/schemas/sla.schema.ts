@@ -12,6 +12,7 @@ export const CreateSlaSchema = z.object({
 	tenant_id: z.uuid(),
 	tipo: SlaTipoEnum,
 	tempo: z.number().int().min(0).default(0), // em minutos
+	meta_conformidade: z.number().int().min(0).max(100).default(85), // porcentagem de conformidade esperada
 });
 
 // Schema para atualização de SLA
@@ -19,6 +20,7 @@ export const UpdateSlaSchema = z.object({
 	tenant_id: z.uuid(),
 	tipo: SlaTipoEnum,
 	tempo: z.number().int().min(0),
+	meta_conformidade: z.number().int().min(0).max(100).optional(),
 });
 
 // Schema para listagem de SLA
@@ -34,6 +36,7 @@ export const SlaSchema = z.object({
 	tenant_id: z.uuid(),
 	tipo: SlaTipoEnum,
 	tempo: z.number().int(),
+	meta_conformidade: z.number().int(),
 	is_deleted: z.boolean(),
 	created_at: z.string(),
 	updated_at: z.string(),

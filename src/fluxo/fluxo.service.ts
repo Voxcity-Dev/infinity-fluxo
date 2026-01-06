@@ -620,9 +620,42 @@ export class FluxoService {
 		}
 
 		const processadoresConteudo: Record<InteracaoTipo, () => Promise<any> | any> = {
-			MENSAGEM: () => ({
-				mensagem: interacoes.conteudo || '',
-			}),
+			MENSAGEM: async () => {
+				// Se a etapa tem variavel_id configurado, incluir informações da variável
+				if (variavel_id) {
+					const variavelInfo = (etapa as any).variavel;
+					if (variavelInfo) {
+						return {
+							mensagem: interacoes.conteudo || '',
+							variavel_id,
+							regex: variavelInfo.regex,
+							mensagem_erro: variavelInfo.mensagem_erro,
+						};
+					}
+
+					// Fallback: buscar do core se não vier da etapa
+					try {
+						const variavelResponse = await api_core.get(`/variaveis/${variavel_id}`);
+						const variavel = variavelResponse.data;
+						return {
+							mensagem: interacoes.conteudo || '',
+							variavel_id,
+							regex: variavel?.mascara_variaveis?.regex || null,
+							mensagem_erro: variavel?.mascara_variaveis?.mensagem_erro || null,
+						};
+					} catch (error) {
+						console.error('Erro ao buscar variável do core:', error);
+						return {
+							mensagem: interacoes.conteudo || '',
+							variavel_id,
+						};
+					}
+				}
+
+				return {
+					mensagem: interacoes.conteudo || '',
+				};
+			},
 			IMAGEM: () => ({
 				file: {
 					nome: this.extrairNomeArquivo(interacoes.url_midia),

@@ -825,19 +825,18 @@ export class FluxoService {
 		}
 
 		// Se a ação for SETAR_VARIAVEL ou OBTER_VARIAVEL, manter na mesma etapa
+		// NÃO reenviar a mensagem da etapa - ela já foi enviada na primeira interação
 		if (
 			regraEncontrada.action === 'SETAR_VARIAVEL' ||
 			regraEncontrada.action === 'OBTER_VARIAVEL'
 		) {
 			data.etapa_id = etapa_id;
-			const interacoes = await this.etapaService.getInteracoesByEtapaId(etapa_id);
-			const conteudo = this.normalizarParaString(interacoes[0]?.conteudo);
 			// Preservar variavel_id da regra se já foi definida
 			const variavelIdRegra = data.conteudo.variavel_id;
 			const regexRegra = data.conteudo.regex;
 			const mensagemErroRegra = data.conteudo.mensagem_erro;
 			data.conteudo = {
-				mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
+				mensagem: [], // NÃO reenviar mensagem - já foi enviada antes
 				...(variavelIdRegra && {
 					variavel_id: variavelIdRegra,
 					regex: regexRegra,

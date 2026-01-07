@@ -563,9 +563,19 @@ export class CondicaoService {
 				console.log(`[buscarRegraValida] Processando condição ${condicao.id} com ${condicao.regras.length} regras`);
 
 				for (const regra of condicao.regras) {
+					// Log detalhado de cada regra sendo avaliada
+					console.log(`[buscarRegraValida] === AVALIANDO REGRA ===`);
+					console.log(`[buscarRegraValida]   ID: ${regra.id}`);
+					console.log(`[buscarRegraValida]   Action: ${regra.action}`);
+					console.log(`[buscarRegraValida]   Priority: ${regra.priority}`);
+					console.log(`[buscarRegraValida]   Input: ${JSON.stringify(regra.input)}`);
+					console.log(`[buscarRegraValida]   Msg Exata: ${regra.msg_exata}`);
+					console.log(`[buscarRegraValida]   Queue ID: ${regra.queue_id}`);
+					console.log(`[buscarRegraValida]   Mensagem do usuário: "${mensagem}"`);
+
 					// Se a regra é SETAR_VARIAVEL, não precisa de input - retorna diretamente
 					if (regra.action === 'SETAR_VARIAVEL') {
-						console.log(`[buscarRegraValida] Encontrou regra SETAR_VARIAVEL - variavel_id=${regra.variavel_id}, next_etapa_id=${regra.next_etapa_id}`);
+						console.log(`[buscarRegraValida] ✅ MATCH: Regra SETAR_VARIAVEL - não precisa de input`);
 						regraEncontrada = regra as unknown as CondicaoRegra;
 						break;
 					}
@@ -581,6 +591,7 @@ export class CondicaoService {
 
 					// Se não há inputs, pular esta regra
 					if (inputArray.length === 0) {
+						console.log(`[buscarRegraValida] ⏭️ SKIP: Input vazio - pulando regra`);
 						continue;
 					}
 
@@ -588,25 +599,33 @@ export class CondicaoService {
 					let encontrou = false;
 					if (regra.msg_exata) {
 						// Correspondência exata: percorrer o array e verificar se mensagem é igual a algum input (case-insensitive)
+						console.log(`[buscarRegraValida]   Comparação EXATA:`);
 						encontrou = inputArray.some(input => {
 							// Comparação exata, removendo espaços no início e fim
 							const inputTrimmed = input.trim();
 							const mensagemTrimmed = mensagem.trim();
-							return inputTrimmed.toLowerCase() === mensagemTrimmed.toLowerCase();
+							const match = inputTrimmed.toLowerCase() === mensagemTrimmed.toLowerCase();
+							console.log(`[buscarRegraValida]     "${inputTrimmed}" === "${mensagemTrimmed}" ? ${match}`);
+							return match;
 						});
 					} else {
 						// Correspondência parcial: verificar se mensagem contém algum input
+						console.log(`[buscarRegraValida]   Comparação PARCIAL:`);
 						encontrou = inputArray.some(input => {
 							const inputTrimmed = input.trim();
 							const mensagemTrimmed = mensagem.trim();
-							return mensagemTrimmed.toLowerCase().includes(inputTrimmed.toLowerCase());
+							const match = mensagemTrimmed.toLowerCase().includes(inputTrimmed.toLowerCase());
+							console.log(`[buscarRegraValida]     "${mensagemTrimmed}" contains "${inputTrimmed}" ? ${match}`);
+							return match;
 						});
 					}
 
 					if (encontrou) {
-						console.log(`[buscarRegraValida] Mensagem "${mensagem}" corresponde à regra: action=${regra.action}, input=${JSON.stringify(inputArray)}`);
+						console.log(`[buscarRegraValida] ✅ MATCH: Mensagem "${mensagem}" corresponde à regra - Queue: ${regra.queue_id}`);
 						regraEncontrada = regra as unknown as CondicaoRegra;
 						break;
+					} else {
+						console.log(`[buscarRegraValida] ❌ NO MATCH: Mensagem não corresponde a esta regra`);
 					}
 				}
 				if (regraEncontrada) {

@@ -3,9 +3,6 @@ import { PrismaService } from 'src/infra/database/prisma/prisma.service';
 import type { CreateNpsInput } from './dto/create-nps.dto';
 import { ListNpsInput } from './dto/list-nps.dto';
 import { UpdateNpsInput } from './dto/update-nps.dto';
-import { CreateNpsSetorInput } from './dto/create-nps-setor.dto';
-import { ListNpsSetorInput } from './dto/list-nps-setor.dto';
-import { DeleteNpsSetorInput } from './dto/delete-nps-setor.dto';
 import { CreateNpsFilaInput } from './dto/create-nps-fila.dto';
 import { ListNpsFilaInput } from './dto/list-nps-fila.dto';
 import { DeleteNpsFilaInput } from './dto/delete-nps-fila.dto';
@@ -130,27 +127,10 @@ export class NpsService {
 				this.prisma.nps.count({ where: queryOptions.where })
 			]);
 
-			// Buscar contagem de setores para cada NPS
-			const npsWithSetoresCount = await Promise.all(
-				nps.map(async (npsItem) => {
-					const setoresCount = await this.prisma.npsSetor.count({
-						where: {
-							nps_id: npsItem.id,
-							is_deleted: false
-						}
-					});
-
-					return {
-						...npsItem,
-						setores_count: setoresCount
-					};
-				})
-			);
-
 			const totalPages = Math.ceil(total / limit);
 
 			return {
-				data: npsWithSetoresCount,
+				data: nps,
 				meta: {
 					page,
 					limit,
@@ -209,188 +189,6 @@ export class NpsService {
 			}
 			
 			throw new BadRequestException('Erro ao deletar NPS');
-		}
-	}
-
-	// Métodos para NpsSetor
-	async createSetor(data: CreateNpsSetorInput) {
-		try {
-			// Verificar se o NPS existe
-			const nps = await this.prisma.nps.findUnique({
-				where: { 
-					id: data.nps_id,
-					is_deleted: false
-				},
-			});
-
-			if (!nps) {
-				throw new NotFoundException('NPS não encontrado');
-			}
-
-			// Verificar se já existe vínculo ativo para este setor
-			const existingSetor = await this.prisma.npsSetor.findFirst({
-				where: {
-					setor_id: data.setor_id,
-					is_deleted: false,
-				},
-			});
-
-			// Se existe vínculo ativo, desvincular primeiro
-			if (existingSetor) {
-				await this.prisma.npsSetor.update({
-					where: { id: existingSetor.id },
-					data: { is_deleted: true },
-				});
-			}
-
-			// Criar novo vínculo
-			const npsSetor = await this.prisma.npsSetor.create({
-				data: {
-					tenant_id: data.tenant_id,
-					nps_id: data.nps_id,
-					setor_id: data.setor_id,
-				},
-			});
-
-			return npsSetor;
-		} catch (error) {
-			console.error('Erro ao vincular setor ao NPS:', error);
-
-			if (error instanceof HttpException) {
-				throw error;
-			}
-			
-			throw new BadRequestException('Erro ao vincular setor ao NPS');
-		}
-	}
-
-	async findSetoresByNpsId(params: ListNpsSetorInput) {
-		try {
-			const { nps_id, page, limit } = params;
-
-			// Verificar se o NPS existe
-			const nps = await this.prisma.nps.findUnique({
-				where: { 
-					id: nps_id,
-					is_deleted: false
-				},
-			});
-
-			if (!nps) {
-				throw new NotFoundException('NPS não encontrado');
-			}
-
-			// Construir objeto de query base
-			const queryOptions: any = {
-				where: { 
-					nps_id: nps_id,
-					is_deleted: false
-				},
-				orderBy: { created_at: 'desc' },
-			};
-
-			// Adicionar paginação apenas se page e limit estiverem presentes
-			if (page && limit) {
-				queryOptions.skip = (page - 1) * limit;
-				queryOptions.take = limit;
-			}
-
-			const [setores, total] = await Promise.all([
-				this.prisma.npsSetor.findMany(queryOptions),
-				this.prisma.npsSetor.count({ where: queryOptions.where })
-			]);
-
-			const totalPages = Math.ceil(total / limit);
-
-			return {
-				data: setores,
-				meta: {
-					page,
-					limit,
-					total,
-					totalPages,
-				}
-			};
-		} catch (error) {
-			console.error('Erro ao listar setores do NPS:', error);
-
-			if (error instanceof HttpException) {
-				throw error;
-			}
-			
-			throw new BadRequestException('Erro ao listar setores do NPS');
-		}
-	}
-
-	async deleteSetor(data: DeleteNpsSetorInput) {
-		try {
-			// Verificar se o registro existe e não está deletado
-			const existingSetor = await this.prisma.npsSetor.findFirst({
-				where: { 
-					setor_id: data.id,
-					is_deleted: false
-				},
-			});
-
-			if (!existingSetor) {
-				throw new NotFoundException('Vínculo de setor não encontrado ou já removido');
-			}
-
-			await this.prisma.npsSetor.updateMany({
-				where: { setor_id: data.id },
-				data: { is_deleted: true },
-			});
-			return data.id;
-		} catch (error) {
-			console.error('Erro ao remover vínculo de setor:', error);
-
-			if (error instanceof HttpException) {
-				throw error;
-			}
-			
-			throw new BadRequestException('Erro ao remover vínculo de setor');
-		}
-	}
-
-	async findBySetorId(setor_id: string) {
-		try {
-			// Buscar o NPS vinculado ao setor
-			const npsSetor = await this.prisma.npsSetor.findFirst({
-				where: {
-					setor_id: setor_id,
-					is_deleted: false,
-				},
-			});
-
-			if (!npsSetor) {
-				throw new NotFoundException('NPS não encontrado para este setor');
-			}
-
-			// Buscar o NPS
-			const nps = await this.prisma.nps.findUnique({
-				where: {
-					id: npsSetor.nps_id,
-					is_deleted: false,
-				},
-				select: {
-					id: true,
-					nome: true,
-					pesquisa: true,
-				},
-			});
-
-			if (!nps) {
-				throw new NotFoundException('NPS não encontrado para este setor');
-			}
-
-			return nps;
-		} catch (error) {
-
-			if (error instanceof HttpException) {
-				throw error;
-			}
-			
-			throw new BadRequestException('Erro ao buscar NPS por setor');
 		}
 	}
 

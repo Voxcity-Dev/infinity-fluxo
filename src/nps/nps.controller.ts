@@ -5,16 +5,12 @@ import { ZodPipe } from 'src/common/pipes/zod.pipe';
 import { CreateNpsDto, CreateNpsResponseDto } from './dto/create-nps.dto';
 import { UpdateNpsDto, UpdateNpsResponseDto } from './dto/update-nps.dto';
 import { ListNpsDto, ListNpsResponseDto } from './dto/list-nps.dto';
-import { CreateNpsSetorDto, CreateNpsSetorResponseDto } from './dto/create-nps-setor.dto';
-import { ListNpsSetorDto, ListNpsSetorResponseDto } from './dto/list-nps-setor.dto';
-import { DeleteNpsSetorDto } from './dto/delete-nps-setor.dto';
-import { NpsBySetorDto } from './dto/nps-by-setor.dto';
 import { CreateNpsFilaDto, CreateNpsFilaResponseDto } from './dto/create-nps-fila.dto';
 import { ListNpsFilaDto, ListNpsFilaResponseDto } from './dto/list-nps-fila.dto';
 import { DeleteNpsFilaDto } from './dto/delete-nps-fila.dto';
 import { NpsByFilaDto } from './dto/nps-by-fila.dto';
 import { RespostaNpsDto, ResponderNpsResponseDto } from './dto/resposta-nps.dto';
-import { CreateNpsSchema, UpdateNpsSchema, ListNpsSchema, CreateNpsSetorSchema, ListNpsSetorSchema, DeleteNpsSetorSchema, CreateNpsFilaSchema, ListNpsFilaSchema, DeleteNpsFilaSchema, RespostaNpsSchema } from 'src/schemas/nps.schema';
+import { CreateNpsFilaSchema, ListNpsFilaSchema, DeleteNpsFilaSchema, RespostaNpsSchema, CreateNpsSchema, UpdateNpsSchema, ListNpsSchema } from 'src/schemas/nps.schema';
 @ApiTags('NPS')
 @Controller('nps')
 export class NpsController {
@@ -22,26 +18,6 @@ export class NpsController {
 		private readonly npsService: NpsService,
 		private readonly logger: Logger
 	) {}
-
-    @Get(':setor_id')
-    @HttpCode(200)
-    @ApiOperation({ summary: 'Buscar um NPS por setor' })
-    @ApiOkResponse({ description: 'NPS encontrado com sucesso', type: NpsBySetorDto })
-    @ApiResponse({ status: 400, description: 'Erro ao buscar NPS' })
-    @ApiResponse({ status: 401, description: 'Não autorizado' })
-    @ApiResponse({ status: 404, description: 'NPS não encontrado para este setor' })
-    async buscar(@Param('setor_id') setor_id: string) {
-        
-        if (!setor_id) {
-            throw new BadRequestException('Setor ID é obrigatório');
-        }
-
-        const nps = await this.npsService.findBySetorId(setor_id);
-        
-		this.logger.log(`NPS encontrado com sucesso!`);
-
-        return { message: 'NPS encontrado com sucesso!', data: nps };
-    }
 
     @Post()
     @HttpCode(200)
@@ -106,45 +82,6 @@ export class NpsController {
 		const npsId = await this.npsService.delete(id);
 		this.logger.log(`NPS deletado com sucesso!`);
 		return { message: 'NPS deletado com sucesso!', data: { id: npsId } };
-	}
-
-	// Rotas para NpsSetor
-	@Post('setor/create')
-	@HttpCode(200)
-	@ApiOperation({ summary: 'Vincular setor ao NPS' })
-	@ApiOkResponse({ description: 'Setor vinculado com sucesso', type: CreateNpsSetorResponseDto })
-	@ApiResponse({ status: 400, description: 'Erro ao vincular setor' })
-	@ApiResponse({ status: 401, description: 'Não autorizado' })
-	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
-	async vincularSetor(@Body(new ZodPipe(CreateNpsSetorSchema)) data: CreateNpsSetorDto) {
-		const npsSetor = await this.npsService.createSetor(data);
-		this.logger.log(`Setor vinculado com sucesso!`);
-		return { message: 'Setor vinculado com sucesso!', data: npsSetor };
-	}
-
-	@Post('setor/find')
-	@HttpCode(200)
-	@ApiOperation({ summary: 'Listar setores de um NPS' })
-	@ApiOkResponse({ description: 'Setores listados com sucesso', type: ListNpsSetorResponseDto })
-	@ApiResponse({ status: 400, description: 'Erro ao listar setores' })
-	@ApiResponse({ status: 401, description: 'Não autorizado' })
-	@ApiResponse({ status: 422, description: 'Dados de validação inválidos' })
-	async listarSetores(@Body(new ZodPipe(ListNpsSetorSchema)) params: ListNpsSetorDto) {
-		const setores = await this.npsService.findSetoresByNpsId(params);
-		this.logger.log(`Setores listados com sucesso!`);
-		return { message: 'Setores listados com sucesso!', data: setores };
-	}
-
-	@Delete('setor/:id')
-	@HttpCode(200)
-	@ApiOperation({ summary: 'Remover vínculo de setor' })
-	@ApiOkResponse({ description: 'Vínculo removido com sucesso' })
-	@ApiResponse({ status: 400, description: 'Erro ao remover vínculo' })
-	@ApiResponse({ status: 401, description: 'Não autorizado' })
-	async removerSetor(@Param('id') id: string) {
-		const setId = await this.npsService.deleteSetor({ id });
-		this.logger.log(`Vínculo removido com sucesso!`);
-		return { message: 'Vínculo removido com sucesso!', data: { id: setId } };
 	}
 
 	// Rotas para NpsFila

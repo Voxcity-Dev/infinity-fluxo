@@ -15,7 +15,6 @@ model Nps {
 
     // Relação
     respostas NpsResposta[]
-    setores NpsSetor[]
     filas NpsFila[]
 
     @@index([tenant_id])
@@ -38,25 +37,6 @@ model NpsResposta {
     @@index([nps_id, created_at], map: "idx_nps_resposta_nps_created")
     @@index([ticket_id], map: "idx_nps_resposta_ticket")
     @@map("nps_respostas")
-}
-
-model NpsSetor {
-    id         String   @id @default(uuid()) @db.Uuid
-    tenant_id  String   @db.Uuid
-    nps_id     String   @db.Uuid
-    setor_id   String   @db.Uuid
-    is_deleted Boolean  @default(false)
-    created_at DateTime @default(now()) @db.Timestamp(6)
-    updated_at DateTime @updatedAt @db.Timestamp(6)
-
-    // Relação
-    nps Nps @relation(fields: [nps_id], references: [id])
-
-    @@index([tenant_id])
-    @@index([nps_id])
-    @@index([setor_id])
-    @@index([is_deleted])
-    @@map("nps_setores")
 }
 
 model NpsFila {

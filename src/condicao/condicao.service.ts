@@ -488,21 +488,50 @@ export class CondicaoService {
 				return null;
 			}
 
-			// Se executarSegundaRegra é true, buscar a segunda regra por prioridade (sem filtrar por tipo)
+			// Se executarSegundaRegra é true, buscar a segunda regra (regra de navegação após coleta de variável)
 			if (executarSegundaRegra) {
 				console.log(`[buscarRegraValida] Buscando segunda regra (executarSegundaRegra=true)`);
 
 				for (const condicao of condicoes) {
-					// Ordenar todas as regras por prioridade, SEM filtrar por tipo de ação
+					// Ordenar todas as regras por prioridade
 					const regrasOrdenadas = condicao.regras
 						.sort((a, b) => a.priority - b.priority);
 
 					console.log(`[buscarRegraValida] Total de regras ordenadas: ${regrasOrdenadas.length}`);
+					console.log(`[buscarRegraValida] Regras:`, regrasOrdenadas.map(r => ({
+						action: r.action,
+						priority: r.priority,
+						next_etapa_id: r.next_etapa_id,
+						variavel_id: r.variavel_id
+					})));
 
-					// Pegar a segunda regra (índice 1), ou a primeira se só tiver uma
-					const segundaRegra = regrasOrdenadas.length > 1 ? regrasOrdenadas[1] : regrasOrdenadas[0];
+					// Estratégia: buscar a primeira regra de navegação (ETAPA, FLUXO, FILA, USUARIO)
+					// que indica para onde ir após a coleta da variável
+					const regraNavegacao = regrasOrdenadas.find(r =>
+						r.action === 'ETAPA' ||
+						r.action === 'FLUXO' ||
+						r.action === 'FILA' ||
+						r.action === 'USUARIO'
+					);
+
+					if (regraNavegacao) {
+						console.log(`[buscarRegraValida] Regra de navegação encontrada: action=${regraNavegacao.action}, next_etapa_id=${regraNavegacao.next_etapa_id}`);
+						const logData = {
+							ticket_id,
+							etapa_id,
+							fluxo_id,
+							tenant_id: condicao.tenant_id,
+							opcao_id: regraNavegacao.id,
+						} as CreateLog;
+						await this.logService.create(logData);
+						return regraNavegacao as unknown as CondicaoRegra;
+					}
+
+					// Fallback: se não encontrou regra de navegação, pegar a segunda regra por prioridade
+					// (pode ser outra SETAR_VARIAVEL para coleta sequencial)
+					const segundaRegra = regrasOrdenadas.length > 1 ? regrasOrdenadas[1] : null;
 					if (segundaRegra) {
-						console.log(`[buscarRegraValida] Segunda regra encontrada: action=${segundaRegra.action}, next_etapa_id=${segundaRegra.next_etapa_id}, variavel_id=${segundaRegra.variavel_id}`);
+						console.log(`[buscarRegraValida] Segunda regra (fallback) encontrada: action=${segundaRegra.action}, next_etapa_id=${segundaRegra.next_etapa_id}, variavel_id=${segundaRegra.variavel_id}`);
 						const logData = {
 							ticket_id,
 							etapa_id,

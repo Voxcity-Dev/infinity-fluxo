@@ -88,10 +88,31 @@ async function main() {
 			console.log('✅ Tabela nps_filas já existe.\n');
 		}
 
-		// 2. Buscar todos os vínculos NPS-Setor ativos
-		const npsSetores = await prisma.npsSetor.findMany({
-			where: { is_deleted: false },
-		});
+		// 2. Verificar se a tabela nps_setores existe e buscar todos os vínculos NPS-Setor ativos
+		const npsSetoresTableExists = await prisma.$queryRaw<{ exists: boolean }[]>`
+			SELECT EXISTS (
+				SELECT 1 FROM information_schema.tables
+				WHERE table_name = 'nps_setores'
+			) as exists
+		`;
+
+		if (!npsSetoresTableExists[0]?.exists) {
+			console.log('⚠️ Tabela nps_setores não existe. Nenhum vínculo antigo para migrar.\n');
+			return;
+		}
+
+		// Buscar vínculos NPS-Setor usando SQL raw
+		const npsSetores = await prisma.$queryRaw<Array<{
+			id: string;
+			tenant_id: string;
+			nps_id: string;
+			setor_id: string;
+			is_deleted: boolean;
+		}>>`
+			SELECT id, tenant_id, nps_id, setor_id, is_deleted
+			FROM nps_setores
+			WHERE is_deleted = false
+		`;
 
 		console.log(`Encontrados ${npsSetores.length} vínculos NPS-Setor ativos.\n`);
 

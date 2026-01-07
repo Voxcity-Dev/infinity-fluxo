@@ -620,9 +620,42 @@ export class FluxoService {
 		}
 
 		const processadoresConteudo: Record<InteracaoTipo, () => Promise<any> | any> = {
-			MENSAGEM: () => ({
-				mensagem: interacoes.conteudo || '',
-			}),
+			MENSAGEM: async () => {
+				// Se a etapa tem variavel_id configurado, incluir informações da variável
+				if (variavel_id) {
+					const variavelInfo = (etapa as any).variavel;
+					if (variavelInfo) {
+						return {
+							mensagem: interacoes.conteudo || '',
+							variavel_id,
+							regex: variavelInfo.regex,
+							mensagem_erro: variavelInfo.mensagem_erro,
+						};
+					}
+
+					// Fallback: buscar do core se não vier da etapa
+					try {
+						const variavelResponse = await api_core.get(`/variaveis/${variavel_id}`);
+						const variavel = variavelResponse.data;
+						return {
+							mensagem: interacoes.conteudo || '',
+							variavel_id,
+							regex: variavel?.mascara_variaveis?.regex || null,
+							mensagem_erro: variavel?.mascara_variaveis?.mensagem_erro || null,
+						};
+					} catch (error) {
+						console.error('Erro ao buscar variável do core:', error);
+						return {
+							mensagem: interacoes.conteudo || '',
+							variavel_id,
+						};
+					}
+				}
+
+				return {
+					mensagem: interacoes.conteudo || '',
+				};
+			},
 			IMAGEM: () => ({
 				file: {
 					nome: this.extrairNomeArquivo(interacoes.url_midia),
@@ -727,6 +760,11 @@ export class FluxoService {
 		fluxo_id: string,
 		etapa_id: string,
 	) {
+		console.log(`[executarAcaoRegra] INÍCIO - fluxo_id=${fluxo_id}, etapa_id=${etapa_id}, hasRegra=${!!regraEncontrada}`);
+		if (regraEncontrada) {
+			console.log(`[executarAcaoRegra] Regra: action=${regraEncontrada.action}, variavel_id=${regraEncontrada.variavel_id}, next_etapa_id=${regraEncontrada.next_etapa_id}`);
+		}
+
 		const data: {
 			etapa_id: string;
 			fluxo_id: string;
@@ -825,19 +863,18 @@ export class FluxoService {
 		}
 
 		// Se a ação for SETAR_VARIAVEL ou OBTER_VARIAVEL, manter na mesma etapa
+		// NÃO reenviar a mensagem da etapa - ela já foi enviada na primeira interação
 		if (
 			regraEncontrada.action === 'SETAR_VARIAVEL' ||
 			regraEncontrada.action === 'OBTER_VARIAVEL'
 		) {
 			data.etapa_id = etapa_id;
-			const interacoes = await this.etapaService.getInteracoesByEtapaId(etapa_id);
-			const conteudo = this.normalizarParaString(interacoes[0]?.conteudo);
 			// Preservar variavel_id da regra se já foi definida
 			const variavelIdRegra = data.conteudo.variavel_id;
 			const regexRegra = data.conteudo.regex;
 			const mensagemErroRegra = data.conteudo.mensagem_erro;
 			data.conteudo = {
-				mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
+				mensagem: [], // NÃO reenviar mensagem - já foi enviada antes
 				...(variavelIdRegra && {
 					variavel_id: variavelIdRegra,
 					regex: regexRegra,
@@ -1113,6 +1150,15 @@ export class FluxoService {
 				}),
 			};
 		}
+
+		console.log(`[executarAcaoRegra] RESULTADO FINAL:`, {
+			etapa_id: data.etapa_id,
+			variavel_id: data.variavel_id || data.conteudo?.variavel_id,
+			regex: data.regex || data.conteudo?.regex,
+			mensagem_erro: data.mensagem_erro || data.conteudo?.mensagem_erro,
+			queue_id: data.queue_id,
+			user_id: data.user_id,
+		});
 
 		return data;
 	}

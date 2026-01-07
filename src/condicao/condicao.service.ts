@@ -466,6 +466,8 @@ export class CondicaoService {
 		executarSegundaRegra: boolean = false,
 	) {
 		try {
+			console.log(`[buscarRegraValida] INÍCIO - etapa_id=${etapa_id}, mensagem="${mensagem}", executarSegundaRegra=${executarSegundaRegra}`);
+
 			const condicoes = await this.prisma.condicao.findMany({
 				where: { etapa_id },
 				omit: { is_deleted: true, created_at: true, updated_at: true },
@@ -479,20 +481,28 @@ export class CondicaoService {
 				},
 			});
 
+			console.log(`[buscarRegraValida] Condições encontradas: ${condicoes.length}`);
+
 			if (condicoes.length === 0) {
+				console.log(`[buscarRegraValida] NENHUMA condição encontrada - retornando null`);
 				return null;
 			}
 
 			// Se executarSegundaRegra é true, buscar a segunda regra (prioridade 2)
 			if (executarSegundaRegra) {
+				console.log(`[buscarRegraValida] Buscando segunda regra (executarSegundaRegra=true)`);
+
 				for (const condicao of condicoes) {
 					// Filtrar regras que não são SETAR_VARIAVEL e ordenar por prioridade
-					const regras = condicao.regras
+					const regrasNaoSetarVariavel = condicao.regras
 						.filter(r => r.action !== 'SETAR_VARIAVEL')
 						.sort((a, b) => a.priority - b.priority);
 
-					const segundaRegra = regras[0]; // Primeira regra que não é SETAR_VARIAVEL (menor prioridade)
+					console.log(`[buscarRegraValida] Regras não-SETAR_VARIAVEL: ${regrasNaoSetarVariavel.length}`);
+
+					const segundaRegra = regrasNaoSetarVariavel[0]; // Primeira regra que não é SETAR_VARIAVEL
 					if (segundaRegra) {
+						console.log(`[buscarRegraValida] Segunda regra encontrada: action=${segundaRegra.action}, next_etapa_id=${segundaRegra.next_etapa_id}`);
 						const logData = {
 							ticket_id,
 							etapa_id,
@@ -501,15 +511,38 @@ export class CondicaoService {
 							opcao_id: segundaRegra.id,
 						} as CreateLog;
 						await this.logService.create(logData);
-						// Retornar a segunda regra e parar execução - não continuar para o código abaixo
 						return segundaRegra as unknown as CondicaoRegra;
 					}
 				}
-				// Se não encontrou segunda regra, retornar null e parar execução - não continuar
+
+				// Se não encontrou regra alternativa, verificar se há regra SETAR_VARIAVEL com next_etapa_id
+				// Isso permite avançar o fluxo quando todas as regras são de coleta de variável
+				console.log(`[buscarRegraValida] Não encontrou regra alternativa, buscando SETAR_VARIAVEL com next_etapa_id`);
+				for (const condicao of condicoes) {
+					const regraSetarVariavel = condicao.regras.find(
+						r => r.action === 'SETAR_VARIAVEL' && r.next_etapa_id
+					);
+
+					if (regraSetarVariavel) {
+						console.log(`[buscarRegraValida] Encontrou SETAR_VARIAVEL com next_etapa_id=${regraSetarVariavel.next_etapa_id}`);
+						const logData = {
+							ticket_id,
+							etapa_id,
+							fluxo_id,
+							tenant_id: condicao.tenant_id,
+							opcao_id: regraSetarVariavel.id,
+						} as CreateLog;
+						await this.logService.create(logData);
+						return regraSetarVariavel as unknown as CondicaoRegra;
+					}
+				}
+
+				console.log(`[buscarRegraValida] NENHUMA segunda regra encontrada - retornando null`);
 				return null;
 			}
 
 			// procurar a primeira regra válida
+			console.log(`[buscarRegraValida] Buscando primeira regra válida (executarSegundaRegra=false)`);
 			let regraEncontrada: CondicaoRegra | null = null;
 
 			const logData = {
@@ -520,9 +553,12 @@ export class CondicaoService {
 			} as CreateLog;
 
 			for (const condicao of condicoes) {
+				console.log(`[buscarRegraValida] Processando condição ${condicao.id} com ${condicao.regras.length} regras`);
+
 				for (const regra of condicao.regras) {
 					// Se a regra é SETAR_VARIAVEL, não precisa de input - retorna diretamente
 					if (regra.action === 'SETAR_VARIAVEL') {
+						console.log(`[buscarRegraValida] Encontrou regra SETAR_VARIAVEL - variavel_id=${regra.variavel_id}, next_etapa_id=${regra.next_etapa_id}`);
 						regraEncontrada = regra as unknown as CondicaoRegra;
 						break;
 					}
@@ -561,6 +597,7 @@ export class CondicaoService {
 					}
 
 					if (encontrou) {
+						console.log(`[buscarRegraValida] Mensagem "${mensagem}" corresponde à regra: action=${regra.action}, input=${JSON.stringify(inputArray)}`);
 						regraEncontrada = regra as unknown as CondicaoRegra;
 						break;
 					}
@@ -572,7 +609,10 @@ export class CondicaoService {
 			}
 
 			if (!regraEncontrada) {
+				console.log(`[buscarRegraValida] NENHUMA regra encontrada para mensagem "${mensagem}"`);
 				logData.opcao_id = null;
+			} else {
+				console.log(`[buscarRegraValida] Regra encontrada: id=${regraEncontrada.id}, action=${regraEncontrada.action}`);
 			}
 
 			await this.logService.create(logData);

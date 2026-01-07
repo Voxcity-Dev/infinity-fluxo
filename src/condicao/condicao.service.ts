@@ -577,11 +577,31 @@ export class CondicaoService {
 						return regraCorrespondente as unknown as CondicaoRegra;
 					}
 
-					// Fallback: se nenhuma regra corresponde à mensagem, usar a primeira regra de navegação
-					// (comportamento anterior para compatibilidade)
+					// Verificar se alguma regra de navegação tem input configurado
+					const regrasComInput = regrasNavegacao.filter(r => {
+						const input = Array.isArray(r.input) ? r.input : [];
+						return input.length > 0;
+					});
+
+					// Se existem regras com input mas nenhuma correspondeu = opção inválida
+					if (regrasComInput.length > 0) {
+						console.log(`[buscarRegraValida] ❌ OPÇÃO INVÁLIDA: Mensagem "${mensagem}" não corresponde a nenhuma das ${regrasComInput.length} regras com input configurado`);
+						// Retornar null para indicar opção inválida - fluxo deve usar mensagem de erro
+						const logData = {
+							ticket_id,
+							etapa_id,
+							fluxo_id,
+							tenant_id: condicao.tenant_id,
+							opcao_id: null,
+						} as CreateLog;
+						await this.logService.create(logData);
+						return null;
+					}
+
+					// Se não há regras com input, usar a primeira regra de navegação (fluxo sem menu)
 					const primeiraRegraNavegacao = regrasNavegacao[0];
 					if (primeiraRegraNavegacao) {
-						console.log(`[buscarRegraValida] ⚠️ FALLBACK: Nenhuma regra corresponde à mensagem "${mensagem}". Usando primeira regra de navegação: action=${primeiraRegraNavegacao.action}, queue_id=${primeiraRegraNavegacao.queue_id}`);
+						console.log(`[buscarRegraValida] Usando primeira regra de navegação (sem menu): action=${primeiraRegraNavegacao.action}, queue_id=${primeiraRegraNavegacao.queue_id}`);
 						const logData = {
 							ticket_id,
 							etapa_id,

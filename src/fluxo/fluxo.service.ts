@@ -760,6 +760,11 @@ export class FluxoService {
 		fluxo_id: string,
 		etapa_id: string,
 	) {
+		console.log(`[executarAcaoRegra] INÍCIO - fluxo_id=${fluxo_id}, etapa_id=${etapa_id}, hasRegra=${!!regraEncontrada}`);
+		if (regraEncontrada) {
+			console.log(`[executarAcaoRegra] Regra: action=${regraEncontrada.action}, variavel_id=${regraEncontrada.variavel_id}, next_etapa_id=${regraEncontrada.next_etapa_id}`);
+		}
+
 		const data: {
 			etapa_id: string;
 			fluxo_id: string;
@@ -1145,6 +1150,15 @@ export class FluxoService {
 				}),
 			};
 		}
+
+		console.log(`[executarAcaoRegra] RESULTADO FINAL:`, {
+			etapa_id: data.etapa_id,
+			variavel_id: data.variavel_id || data.conteudo?.variavel_id,
+			regex: data.regex || data.conteudo?.regex,
+			mensagem_erro: data.mensagem_erro || data.conteudo?.mensagem_erro,
+			queue_id: data.queue_id,
+			user_id: data.user_id,
+		});
 
 		return data;
 	}

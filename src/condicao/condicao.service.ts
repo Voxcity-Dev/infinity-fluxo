@@ -488,21 +488,21 @@ export class CondicaoService {
 				return null;
 			}
 
-			// Se executarSegundaRegra é true, buscar a segunda regra (prioridade 2)
+			// Se executarSegundaRegra é true, buscar a segunda regra por prioridade (sem filtrar por tipo)
 			if (executarSegundaRegra) {
 				console.log(`[buscarRegraValida] Buscando segunda regra (executarSegundaRegra=true)`);
 
 				for (const condicao of condicoes) {
-					// Filtrar regras que não são SETAR_VARIAVEL e ordenar por prioridade
-					const regrasNaoSetarVariavel = condicao.regras
-						.filter(r => r.action !== 'SETAR_VARIAVEL')
+					// Ordenar todas as regras por prioridade, SEM filtrar por tipo de ação
+					const regrasOrdenadas = condicao.regras
 						.sort((a, b) => a.priority - b.priority);
 
-					console.log(`[buscarRegraValida] Regras não-SETAR_VARIAVEL: ${regrasNaoSetarVariavel.length}`);
+					console.log(`[buscarRegraValida] Total de regras ordenadas: ${regrasOrdenadas.length}`);
 
-					const segundaRegra = regrasNaoSetarVariavel[0]; // Primeira regra que não é SETAR_VARIAVEL
+					// Pegar a segunda regra (índice 1), ou a primeira se só tiver uma
+					const segundaRegra = regrasOrdenadas.length > 1 ? regrasOrdenadas[1] : regrasOrdenadas[0];
 					if (segundaRegra) {
-						console.log(`[buscarRegraValida] Segunda regra encontrada: action=${segundaRegra.action}, next_etapa_id=${segundaRegra.next_etapa_id}`);
+						console.log(`[buscarRegraValida] Segunda regra encontrada: action=${segundaRegra.action}, next_etapa_id=${segundaRegra.next_etapa_id}, variavel_id=${segundaRegra.variavel_id}`);
 						const logData = {
 							ticket_id,
 							etapa_id,
@@ -512,28 +512,6 @@ export class CondicaoService {
 						} as CreateLog;
 						await this.logService.create(logData);
 						return segundaRegra as unknown as CondicaoRegra;
-					}
-				}
-
-				// Se não encontrou regra alternativa, verificar se há regra SETAR_VARIAVEL com next_etapa_id
-				// Isso permite avançar o fluxo quando todas as regras são de coleta de variável
-				console.log(`[buscarRegraValida] Não encontrou regra alternativa, buscando SETAR_VARIAVEL com next_etapa_id`);
-				for (const condicao of condicoes) {
-					const regraSetarVariavel = condicao.regras.find(
-						r => r.action === 'SETAR_VARIAVEL' && r.next_etapa_id
-					);
-
-					if (regraSetarVariavel) {
-						console.log(`[buscarRegraValida] Encontrou SETAR_VARIAVEL com next_etapa_id=${regraSetarVariavel.next_etapa_id}`);
-						const logData = {
-							ticket_id,
-							etapa_id,
-							fluxo_id,
-							tenant_id: condicao.tenant_id,
-							opcao_id: regraSetarVariavel.id,
-						} as CreateLog;
-						await this.logService.create(logData);
-						return regraSetarVariavel as unknown as CondicaoRegra;
 					}
 				}
 

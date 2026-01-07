@@ -862,19 +862,41 @@ export class FluxoService {
 			}
 		}
 
-		// Se a ação for SETAR_VARIAVEL ou OBTER_VARIAVEL, manter na mesma etapa
-		// NÃO reenviar a mensagem da etapa - ela já foi enviada na primeira interação
+		// Se a ação for SETAR_VARIAVEL ou OBTER_VARIAVEL
 		if (
 			regraEncontrada.action === 'SETAR_VARIAVEL' ||
 			regraEncontrada.action === 'OBTER_VARIAVEL'
 		) {
+			// Se tem next_etapa_id, avançar para próxima etapa e buscar seu conteúdo
+			if (regraEncontrada.next_etapa_id) {
+				console.log(`[executarAcaoRegra] SETAR_VARIAVEL com next_etapa_id=${regraEncontrada.next_etapa_id} - buscando conteúdo da próxima etapa`);
+				data.etapa_id = regraEncontrada.next_etapa_id;
+				const proximaEtapa = await this.etapaService.findById(regraEncontrada.next_etapa_id);
+				const interacoes = await this.etapaService.getInteracoesByEtapaId(regraEncontrada.next_etapa_id);
+				const conteudo = this.normalizarParaString(interacoes[0]?.conteudo);
+
+				// Buscar informações da variável da próxima etapa
+				const variavelIdProximaEtapa = proximaEtapa.variavel_id || proximaEtapa.variavel?.id;
+				const variavelInfo = proximaEtapa.variavel;
+
+				data.conteudo = {
+					mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
+					...(variavelIdProximaEtapa && {
+						variavel_id: variavelIdProximaEtapa,
+						regex: variavelInfo?.regex || null,
+						mensagem_erro: variavelInfo?.mensagem_erro || null,
+					}),
+				};
+				return data;
+			}
+
+			// Se não tem next_etapa_id, manter na mesma etapa sem reenviar mensagem
 			data.etapa_id = etapa_id;
-			// Preservar variavel_id da regra se já foi definida
 			const variavelIdRegra = data.conteudo.variavel_id;
 			const regexRegra = data.conteudo.regex;
 			const mensagemErroRegra = data.conteudo.mensagem_erro;
 			data.conteudo = {
-				mensagem: [], // NÃO reenviar mensagem - já foi enviada antes
+				mensagem: [],
 				...(variavelIdRegra && {
 					variavel_id: variavelIdRegra,
 					regex: regexRegra,

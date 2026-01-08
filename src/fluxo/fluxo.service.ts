@@ -915,13 +915,15 @@ export class FluxoService {
 				return data;
 			}
 
-			// Se não tem next_etapa_id, manter na mesma etapa sem reenviar mensagem
+			// Se não tem next_etapa_id, manter na mesma etapa E retornar mensagem da etapa
 			data.etapa_id = etapa_id;
+			const interacoes = await this.etapaService.getInteracoesByEtapaId(etapa_id);
+			const conteudo = this.normalizarParaString(interacoes[0]?.conteudo);
 			const variavelIdRegra = data.conteudo.variavel_id;
 			const regexRegra = data.conteudo.regex;
 			const mensagemErroRegra = data.conteudo.mensagem_erro;
 			data.conteudo = {
-				mensagem: [],
+				mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
 				...(variavelIdRegra && {
 					variavel_id: variavelIdRegra,
 					regex: regexRegra,

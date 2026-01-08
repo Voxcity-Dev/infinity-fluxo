@@ -34,6 +34,31 @@ export class FluxoService {
 					hasInteracoes: !!etapa?.interacoes,
 					tipoInteracao: etapa?.interacoes?.tipo,
 				});
+
+				// NOVO: Tentar match na primeira mensagem (sem mostrar "não entendido")
+				const mensagemInicial = this.extrairMensagem(conteudo);
+				if (mensagemInicial) {
+					console.log(`[FluxoService] Primeira mensagem: "${mensagemInicial}" - tentando match`);
+					const regraMatch = await this.condicaoService.buscarRegraValida(
+						etapa.id,
+						mensagemInicial,
+						ticket_id,
+						fluxo_id,
+						false, // executarSegundaRegra = false
+					);
+
+					if (regraMatch) {
+						console.log(`[FluxoService] Primeira mensagem DEU MATCH - executando regra`);
+						return await this.executarAcaoRegra(
+							regraMatch,
+							fluxo_id,
+							etapa.id,
+						);
+					}
+					console.log(`[FluxoService] Primeira mensagem SEM match - retornando etapa inicial (sem erro)`);
+				}
+
+				// Não deu match ou mensagem vazia - retornar etapa inicial normalmente
 				const resultado = await this.responseFluxoEnginer(etapa, {
 					etapa_id: etapa.id,
 					fluxo_id,
@@ -41,9 +66,8 @@ export class FluxoService {
 					variavel_id: etapa.variavel_id,
 				});
 				console.log(`[FluxoService] Resultado do responseFluxoEnginer:`, JSON.stringify(resultado, null, 2));
-				
+
 				// Log do valor do input e validação do regex (etapa inicial)
-				const mensagemInicial = this.extrairMensagem(conteudo);
 				if (resultado.conteudo?.variavel_id && resultado.conteudo?.regex && mensagemInicial) {
 					const regexValido = this.validarRegex(mensagemInicial, resultado.conteudo.regex);
 					console.log(`[FluxoService] Validação de variável (etapa inicial):`, {

@@ -478,9 +478,6 @@ export class FluxoService {
 		try {
 			const { fluxo_id, configuracoes } = data;
 
-			// DEBUG: Log dos dados recebidos
-			console.log('[updateConfiguracao] Dados recebidos:', JSON.stringify({ fluxo_id, configuracoes }, null, 2));
-
 			// Buscar o fluxo para obter o tenant_id
 			const fluxo = await this.prisma.fluxo.findUnique({
 				where: { id: fluxo_id },
@@ -491,19 +488,14 @@ export class FluxoService {
 				throw new BadRequestException('Fluxo não encontrado');
 			}
 
-			// Filtrar apenas configurações com valores válidos (não vazios)
+			// Filtrar apenas configurações com valores válidos (não vazios) E chaves válidas do enum
 			const configuracoesValidas = configuracoes.filter(
-				config => config.valor !== undefined && config.valor !== null && config.valor !== '',
+				config => config.valor !== undefined && config.valor !== null && config.valor !== '' &&
+					FLUXO_CONFIGURACAO_CHAVES.includes(config.chave as FlowConfiguracaoChave),
 			);
 
 			if (configuracoesValidas.length === 0) {
 				throw new BadRequestException('Nenhuma configuração válida fornecida para atualização');
-			}
-
-			// DEBUG: Log de cada config antes do upsert
-			console.log('[updateConfiguracao] Configurações válidas:', JSON.stringify(configuracoesValidas, null, 2));
-			for (const config of configuracoesValidas) {
-				console.log(`[updateConfiguracao] Processando chave: "${config.chave}" (tipo: ${typeof config.chave})`);
 			}
 
 			// Usar transação para garantir consistência - upsert por fluxo_id + chave

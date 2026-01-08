@@ -730,7 +730,10 @@ export class CondicaoService {
 				console.log(`[buscarRegraValida] Regra encontrada: id=${regraEncontrada.id}, action=${regraEncontrada.action}`);
 			}
 
-			await this.logService.create(logData);
+			// Só criar log se fluxo_id e ticket_id existirem
+			if (fluxo_id && ticket_id) {
+				await this.logService.create(logData);
+			}
 
 			return regraEncontrada;
 		} catch (error) {

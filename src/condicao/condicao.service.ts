@@ -477,7 +477,6 @@ export class CondicaoService {
 					regras: {
 						where: {
 							is_deleted: false,
-							is_active: true,
 						},
 						orderBy: {
 							priority: 'asc',

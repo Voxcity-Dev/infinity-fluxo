@@ -469,11 +469,16 @@ export class CondicaoService {
 			console.log(`[buscarRegraValida] INÍCIO - etapa_id=${etapa_id}, mensagem="${mensagem}", executarSegundaRegra=${executarSegundaRegra}`);
 
 			const condicoes = await this.prisma.condicao.findMany({
-				where: { etapa_id },
-				omit: { is_deleted: true, created_at: true, updated_at: true },
+				where: {
+					etapa_id,
+					is_deleted: false,
+				},
 				include: {
 					regras: {
-						omit: { is_deleted: true, created_at: true, updated_at: true, tenant_id: true },
+						where: {
+							is_deleted: false,
+							is_active: true,
+						},
 						orderBy: {
 							priority: 'asc',
 						},

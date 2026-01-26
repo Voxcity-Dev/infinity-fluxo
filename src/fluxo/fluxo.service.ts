@@ -7,6 +7,7 @@ import { EtapaService } from 'src/etapa/etapa.service';
 import { CondicaoRegra, InteracaoTipo } from 'src/schemas';
 import { CondicaoService } from 'src/condicao/condicao.service';
 import { ConfigService } from 'src/common/services/config.service';
+import { VariaveisSubstituicaoService } from 'src/common/services/variaveis-substituicao.service';
 import { FlowConfiguracaoChave, FLUXO_CONFIGURACAO_CHAVES } from 'src/schemas/fluxo.schema';
 import { api_core } from 'src/infra/config/axios/core';
 import { AxiosError } from 'axios';
@@ -18,13 +19,14 @@ export class FluxoService {
 		private readonly etapaService: EtapaService,
 		private readonly condicaoService: CondicaoService,
 		private readonly configService: ConfigService,
+		private readonly variaveisSubstituicaoService: VariaveisSubstituicaoService,
 	) {}
 
 	async engine(data: FluxoEngineInput) {
 		try {
-			const { etapa_id, fluxo_id, conteudo, ticket_id, executar_segunda_regra } = data;
+			const { etapa_id, fluxo_id, conteudo, ticket_id, contato_id, tenant_id, executar_segunda_regra } = data;
 
-			console.log(`[FluxoService] Executando engine - etapa_id: ${etapa_id || 'vazio'}, fluxo_id: ${fluxo_id}, ticket_id: ${ticket_id}`);
+			console.log(`[FluxoService] Executando engine - etapa_id: ${etapa_id || 'vazio'}, fluxo_id: ${fluxo_id}, ticket_id: ${ticket_id}, contato_id: ${contato_id || 'N/A'}`);
 
 			if (!etapa_id) {
 				console.log(`[FluxoService] Etapa inicial - buscando etapa de início para fluxo ${fluxo_id}`);
@@ -49,11 +51,12 @@ export class FluxoService {
 
 					if (regraMatch) {
 						console.log(`[FluxoService] Primeira mensagem DEU MATCH - executando regra`);
-						return await this.executarAcaoRegra(
+						const resultadoMatch = await this.executarAcaoRegra(
 							regraMatch,
 							fluxo_id,
 							etapa.id,
 						);
+						return await this.processarVariaveisResultado(resultadoMatch, { contato_id, tenant_id, ticket_id });
 					}
 					console.log(`[FluxoService] Primeira mensagem SEM match - retornando etapa inicial (sem erro)`);
 				}
@@ -78,8 +81,8 @@ export class FluxoService {
 						mensagem_erro: resultado.conteudo.mensagem_erro,
 					});
 				}
-				
-				return resultado;
+
+				return await this.processarVariaveisResultado(resultado, { contato_id, tenant_id, ticket_id });
 			}
 
 			const mensagem = this.extrairMensagem(conteudo);
@@ -124,7 +127,7 @@ export class FluxoService {
 				});
 			}
 
-			return {
+			const resultadoFinal = {
 				etapa_id: resultado.etapa_id,
 				conteudo: resultado.conteudo,
 				fluxo_id: resultado.fluxo_id || fluxo_id,
@@ -135,6 +138,8 @@ export class FluxoService {
 				regex: resultado.regex,
 				mensagem_erro: resultado.mensagem_erro,
 			};
+
+			return await this.processarVariaveisResultado(resultadoFinal, { contato_id, tenant_id, ticket_id });
 		} catch (error) {
 			console.error('[FluxoService] Erro ao executar fluxo:', error);
 
@@ -1261,6 +1266,36 @@ export class FluxoService {
 			return '';
 		}
 		return String(valor);
+	}
+
+	/**
+	 * Processa variáveis nas mensagens do resultado do fluxo
+	 * Substitui {{variavel}} por valores do contato e variáveis de sistema (ticket_id, protocolo)
+	 */
+	private async processarVariaveisResultado(
+		resultado: any,
+		contexto: { contato_id?: string; tenant_id?: string; ticket_id: string },
+	): Promise<any> {
+		if (!resultado?.conteudo?.mensagem) {
+			return resultado;
+		}
+
+		const mensagens = Array.isArray(resultado.conteudo.mensagem)
+			? resultado.conteudo.mensagem
+			: [resultado.conteudo.mensagem];
+
+		const mensagensProcessadas = await this.variaveisSubstituicaoService.processarMensagens(
+			mensagens.filter((m: string) => !!m),
+			contexto,
+		);
+
+		return {
+			...resultado,
+			conteudo: {
+				...resultado.conteudo,
+				mensagem: mensagensProcessadas,
+			},
+		};
 	}
 
 	/**

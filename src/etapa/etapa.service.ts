@@ -93,6 +93,8 @@ export class EtapaService {
 
 	async findById(id: string) {
 		try {
+			console.log(`[EtapaService.findById] 🔍 Buscando etapa ${id} no banco de dados...`);
+
 			const etapaBase = await this.prisma.etapas.findFirst({
 				where: {
 					id,
@@ -165,9 +167,35 @@ export class EtapaService {
 				},
 			});
 
+			console.log(`[EtapaService.findById] 📦 Resultado RAW do Prisma:`, JSON.stringify(etapaBase, null, 2));
+
 			if (!etapaBase) {
+				console.log(`[EtapaService.findById] ❌ Etapa ${id} não encontrada no banco!`);
 				throw new NotFoundException('Etapa não encontrada');
 			}
+
+			console.log(`[EtapaService.findById] ✅ Etapa ${id} encontrada!`);
+			console.log(`[EtapaService.findById] 📊 Análise da etapa:`, {
+				etapa_id: etapaBase.id,
+				etapa_tipo: etapaBase.tipo,
+				etapa_nome: etapaBase.nome,
+				temCondicao: !!etapaBase.condicao,
+				quantidadeCondicoes: etapaBase.condicao?.length || 0,
+				condicoes: etapaBase.condicao?.map((c, idx) => ({
+					index: idx,
+					condicao_id: c.id,
+					etapa_id: c.etapa_id,
+					temRegras: !!c.regras,
+					quantidadeRegras: c.regras?.length || 0,
+					regras: c.regras?.map(r => ({
+						id: r.id,
+						action: r.action,
+						api_endpoint: r.api_endpoint,
+						input: r.input,
+						priority: r.priority,
+					})),
+				})),
+			});
 
 			const etapa: EtapaWithVariavel<typeof etapaBase> = etapaBase;
 
@@ -175,9 +203,16 @@ export class EtapaService {
 
 			// Buscar informações da variável se a etapa tiver variavel_id
 			if (variavelId) {
+				console.log(`[EtapaService.findById] 🔗 Buscando informações da variável ${variavelId} do core...`);
 				try {
 					const variavelResponse = await api_core.get(`/variaveis/${variavelId}`);
 					const variavel = variavelResponse.data;
+
+					console.log(`[EtapaService.findById] ✅ Variável encontrada:`, {
+						id: variavelId,
+						nome: variavel?.nome,
+						regex: variavel?.mascara_variaveis?.regex,
+					});
 
 					// Adicionar informações da variável à etapa
 					etapa.variavel = {
@@ -186,10 +221,19 @@ export class EtapaService {
 						mensagem_erro: variavel?.mascara_variaveis?.mensagem_erro || null,
 					};
 				} catch (error) {
-					console.error('Erro ao buscar variável do core:', error);
+					console.error('[EtapaService.findById] ❌ Erro ao buscar variável do core:', error);
 					// Continuar mesmo se não conseguir buscar a variável
 				}
 			}
+
+			console.log(`[EtapaService.findById] 🎯 Retornando etapa completa:`, {
+				etapa_id: etapa.id,
+				temCondicao: !!etapa.condicao,
+				quantidadeCondicoes: etapa.condicao?.length || 0,
+				primeiraCondicaoId: etapa.condicao?.[0]?.id,
+				primeiraCondicaoTemRegras: !!etapa.condicao?.[0]?.regras,
+				quantidadeRegras: etapa.condicao?.[0]?.regras?.length || 0,
+			});
 
 			return etapa;
 		} catch (error) {

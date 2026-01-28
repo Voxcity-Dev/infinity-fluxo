@@ -1,4 +1,4 @@
-import { BadRequestException, HttpException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from 'src/infra/database/prisma/prisma.service';
 import type { CreateFluxoInput } from './dto/create-fluxo.dto';
 import { FluxoEngineInput, ListFluxosInput } from './dto/list-fluxo.dto';
@@ -22,11 +22,46 @@ export class FluxoService {
 		private readonly variaveisSubstituicaoService: VariaveisSubstituicaoService,
 	) {}
 
+	/**
+	 * Processa template de mensagem substituindo placeholders ${} por valores da resposta da API
+	 * Exemplo: "Olá ${dados.nome}! Seu saldo é R$ ${saldo}" -> "Olá João! Seu saldo é R$ 1500"
+	 */
+	private processarTemplateResposta(template: string, apiData: any): string {
+		// Regex para encontrar ${...}
+		const resultado = template.replace(/\$\{([^}]+)\}/g, (match, path) => {
+			// Navegar pelo objeto usando dot notation
+			// Exemplo: "dados.nome" -> apiData.dados.nome
+			const valor = this.getValueByPath(apiData, path.trim());
+
+			// Se não encontrar o valor, manter o placeholder original
+			return valor !== undefined && valor !== null ? String(valor) : match;
+		});
+
+		return resultado;
+	}
+
+	/**
+	 * Obtém valor de um objeto usando dot notation
+	 * Exemplo: getValueByPath({dados: {nome: "João"}}, "dados.nome") -> "João"
+	 */
+	private getValueByPath(obj: any, path: string): any {
+		const keys = path.split('.');
+		let current = obj;
+
+		for (const key of keys) {
+			if (current === null || current === undefined) {
+				return undefined;
+			}
+			current = current[key];
+		}
+
+		return current;
+	}
+
 	async engine(data: FluxoEngineInput) {
 		try {
 			const { etapa_id, fluxo_id, conteudo, ticket_id, contato_id, tenant_id, executar_segunda_regra } = data;
 
-			console.log(`[FluxoService] Executando engine - etapa_id: ${etapa_id || 'vazio'}, fluxo_id: ${fluxo_id}, ticket_id: ${ticket_id}, contato_id: ${contato_id || 'N/A'}`);
 
 			if (!etapa_id) {
 				console.log(`[FluxoService] Etapa inicial - buscando etapa de início para fluxo ${fluxo_id}`);
@@ -40,7 +75,6 @@ export class FluxoService {
 				// NOVO: Tentar match na primeira mensagem (sem mostrar "não entendido")
 				const mensagemInicial = this.extrairMensagem(conteudo);
 				if (mensagemInicial) {
-					console.log(`[FluxoService] Primeira mensagem: "${mensagemInicial}" - tentando match`);
 					const regraMatch = await this.condicaoService.buscarRegraValida(
 						etapa.id,
 						mensagemInicial,
@@ -50,15 +84,14 @@ export class FluxoService {
 					);
 
 					if (regraMatch) {
-						console.log(`[FluxoService] Primeira mensagem DEU MATCH - executando regra`);
 						const resultadoMatch = await this.executarAcaoRegra(
 							regraMatch,
 							fluxo_id,
 							etapa.id,
+							{ contato_id, tenant_id, ticket_id },
 						);
 						return await this.processarVariaveisResultado(resultadoMatch, { contato_id, tenant_id, ticket_id });
 					}
-					console.log(`[FluxoService] Primeira mensagem SEM match - retornando etapa inicial (sem erro)`);
 				}
 
 				// Não deu match ou mensagem vazia - retornar etapa inicial normalmente
@@ -68,25 +101,11 @@ export class FluxoService {
 					ticket_id,
 					variavel_id: etapa.variavel_id,
 				});
-				console.log(`[FluxoService] Resultado do responseFluxoEnginer:`, JSON.stringify(resultado, null, 2));
-
-				// Log do valor do input e validação do regex (etapa inicial)
-				if (resultado.conteudo?.variavel_id && resultado.conteudo?.regex && mensagemInicial) {
-					const regexValido = this.validarRegex(mensagemInicial, resultado.conteudo.regex);
-					console.log(`[FluxoService] Validação de variável (etapa inicial):`, {
-						variavel_id: resultado.conteudo.variavel_id,
-						valor_input: mensagemInicial,
-						regex: resultado.conteudo.regex,
-						passou_regex: regexValido,
-						mensagem_erro: resultado.conteudo.mensagem_erro,
-					});
-				}
 
 				return await this.processarVariaveisResultado(resultado, { contato_id, tenant_id, ticket_id });
 			}
 
 			const mensagem = this.extrairMensagem(conteudo);
-			console.log(`[FluxoService] Mensagem extraída: ${mensagem}`);
 
 			// Buscar regra válida
 			const regraEncontrada = await this.condicaoService.buscarRegraValida(
@@ -97,35 +116,8 @@ export class FluxoService {
 				executar_segunda_regra || false,
 			);
 
-			console.log(`[FluxoService] Regra encontrada:`, {
-				hasRegra: !!regraEncontrada,
-				action: regraEncontrada?.action,
-				queue_id: regraEncontrada?.queue_id,
-				user_id: regraEncontrada?.user_id,
-			});
-
 			// Executar ação da regra
-			const resultado = await this.executarAcaoRegra(regraEncontrada, fluxo_id, etapa_id);
-
-			console.log(`[FluxoService] Resultado do executarAcaoRegra:`, {
-				etapa_id: resultado.etapa_id,
-				queue_id: resultado.queue_id,
-				user_id: resultado.user_id,
-				hasConteudo: !!resultado.conteudo,
-				conteudoMensagem: resultado.conteudo?.mensagem,
-			});
-
-			// Log do valor do input e validação do regex
-			if (resultado.variavel_id && resultado.regex && mensagem) {
-				const regexValido = this.validarRegex(mensagem, resultado.regex);
-				console.log(`[FluxoService] Validação de variável:`, {
-					variavel_id: resultado.variavel_id,
-					valor_input: mensagem,
-					regex: resultado.regex,
-					passou_regex: regexValido,
-					mensagem_erro: resultado.mensagem_erro,
-				});
-			}
+			const resultado = await this.executarAcaoRegra(regraEncontrada, fluxo_id, etapa_id, { contato_id, tenant_id, ticket_id });
 
 			const resultadoFinal = {
 				etapa_id: resultado.etapa_id,
@@ -271,7 +263,6 @@ export class FluxoService {
 
 	async create(data: CreateFluxoInput) {
 		try {
-			console.log('data', data);
 
 			const fluxo = await this.prisma.fluxo.create({
 				data: {
@@ -614,8 +605,6 @@ export class FluxoService {
 				data: configuracoes,
 				skipDuplicates: true, // Evita erros se já existir
 			});
-
-			console.log(`Configurações padrão criadas para fluxo ${fluxo_id}`);
 		} catch (error) {
 			console.error('Erro ao criar configuração default:', error);
 
@@ -638,7 +627,6 @@ export class FluxoService {
 	) {
 		const interacoes = etapa.interacoes;
 		if (!interacoes) {
-			console.log(`[FluxoService] Etapa ${etapa_id} não possui interações. Retornando estrutura vazia.`);
 			return {
 				etapa_id,
 				fluxo_id,
@@ -769,10 +757,7 @@ export class FluxoService {
 		};
 
 		const processador = processadoresConteudo[interacoes.tipo];
-		console.log(`[FluxoService] Tipo de interação: ${interacoes.tipo}, tem processador: ${!!processador}`);
-		
 		const conteudo = processador ? await (processador() as Promise<any>) : {};
-		console.log(`[FluxoService] Conteúdo processado:`, JSON.stringify(conteudo, null, 2));
 
 		const resultado = {
 			etapa_id,
@@ -780,8 +765,7 @@ export class FluxoService {
 			ticket_id,
 			conteudo,
 		};
-		
-		console.log(`[FluxoService] Resultado final do responseFluxoEnginer:`, JSON.stringify(resultado, null, 2));
+
 		return resultado;
 	}
 
@@ -789,11 +773,8 @@ export class FluxoService {
 		regraEncontrada: CondicaoRegra | null,
 		fluxo_id: string,
 		etapa_id: string,
+		contexto?: { contato_id?: string; tenant_id?: string; ticket_id: string },
 	) {
-		console.log(`[executarAcaoRegra] INÍCIO - fluxo_id=${fluxo_id}, etapa_id=${etapa_id}, hasRegra=${!!regraEncontrada}`);
-		if (regraEncontrada) {
-			console.log(`[executarAcaoRegra] Regra: action=${regraEncontrada.action}, variavel_id=${regraEncontrada.variavel_id}, next_etapa_id=${regraEncontrada.next_etapa_id}`);
-		}
 
 		const data: {
 			etapa_id: string;
@@ -863,12 +844,6 @@ export class FluxoService {
 		// processa a ação da regra encontrada
 		const acao = await this.configService.verificarRegra(regraEncontrada);
 
-		console.log(`[FluxoService] Ação extraída de verificarRegra:`, {
-			acao,
-			regraAction: regraEncontrada.action,
-			regraQueueId: regraEncontrada.queue_id,
-		});
-
 		// Processar variavel_id da regra (se existir) - ANTES de processar outras ações para garantir que seja preservada
 		if (regraEncontrada?.variavel_id) {
 			try {
@@ -899,7 +874,6 @@ export class FluxoService {
 		) {
 			// Se tem next_etapa_id, avançar para próxima etapa e buscar seu conteúdo
 			if (regraEncontrada.next_etapa_id) {
-				console.log(`[executarAcaoRegra] SETAR_VARIAVEL com next_etapa_id=${regraEncontrada.next_etapa_id} - buscando conteúdo da próxima etapa`);
 				data.etapa_id = regraEncontrada.next_etapa_id;
 				const proximaEtapa = await this.etapaService.findById(regraEncontrada.next_etapa_id);
 				const interacoes = await this.etapaService.getInteracoesByEtapaId(regraEncontrada.next_etapa_id);
@@ -963,7 +937,287 @@ export class FluxoService {
 		if (acao.next_etapa_id) {
 			data.etapa_id = acao.next_etapa_id;
 			const etapa = await this.etapaService.findById(acao.next_etapa_id);
+
+			// NOVO: Verificar se a etapa é do tipo FIM - finalizar o atendimento
+			if (etapa.tipo === 'FIM') {
+				// Buscar mensagem de finalização configurada no fluxo
+				const mensagemFinalizacao = await this.configService.getEndFlowMessage(fluxo_id);
+
+				// Retornar com etapa_id null/vazio para sinalizar fim do fluxo
+				data.etapa_id = '';
+				data.conteudo = {
+					mensagem: mensagemFinalizacao ? [mensagemFinalizacao] as never[] : [],
+				};
+
+				return data;
+			}
+
 			const regra = etapa.condicao?.[0]?.regras?.[0];
+
+			// Verificar se a próxima etapa tem uma regra de API que deve ser executada automaticamente
+			if (regra?.action === 'API' && regra.api_endpoint) {
+				try {
+					// Buscar variáveis para substituição no endpoint
+					const variaveis = contexto
+						? await this.variaveisSubstituicaoService.buscarMapaVariaveis(
+								contexto.contato_id || '',
+								contexto.tenant_id || '',
+								contexto.ticket_id,
+						  )
+						: {};
+
+					// Substituir variáveis no endpoint
+					const endpointProcessado = this.variaveisSubstituicaoService.substituir(
+						regra.api_endpoint,
+						variaveis,
+					);
+
+					// Fazer requisição para a API terceira
+					const apiResponse = await fetch(endpointProcessado);
+					const apiData = await apiResponse.json();
+
+					// Se tem next_etapa_id na regra, avançar para essa etapa
+					if (regra.next_etapa_id) {
+						data.etapa_id = regra.next_etapa_id;
+						const proximaEtapa = await this.etapaService.findById(regra.next_etapa_id);
+						const interacoes = await this.etapaService.getInteracoesByEtapaId(regra.next_etapa_id);
+						const conteudo = this.normalizarParaString(interacoes[0]?.conteudo);
+
+						data.conteudo = {
+							mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
+						};
+
+						return data;
+					}
+				} catch (error) {
+					console.error(`[executarAcaoRegra] Erro ao chamar API terceira na etapa:`, error);
+					// Em caso de erro, retornar mensagem de erro e manter na mesma etapa
+					data.etapa_id = etapa_id;
+					data.conteudo = {
+						mensagem: ['Erro ao consultar informações. Tente novamente.'] as never[],
+					};
+					return data;
+				}
+			}
+
+			// Verificar se a etapa é do TIPO API (não regra de API, mas etapa completa de API)
+			// Isso acontece quando a etapa tem tipo="API" e metadados com configuração de request
+			const metadados = etapa.metadados as any;
+			if (etapa.tipo === 'API' && metadados?.request?.url && !regra) {
+				console.log(`\n${'='.repeat(60)}`);
+				console.log(`[ETAPA API] 🌐 Executando etapa do tipo API`);
+				console.log(`[ETAPA API] 📝 Nome: "${etapa.nome}"`);
+				console.log(`[ETAPA API] 🔗 URL configurada: ${metadados.request.url}`);
+				console.log(`[ETAPA API] 📤 Método: ${metadados.request.method || 'GET'}`);
+				console.log(`${'='.repeat(60)}\n`);
+
+				try {
+					// Buscar variáveis para substituição
+					const variaveis = contexto
+						? await this.variaveisSubstituicaoService.buscarMapaVariaveis(
+								contexto.contato_id || '',
+								contexto.tenant_id || '',
+								contexto.ticket_id,
+						  )
+						: {};
+
+					// Substituir variáveis na URL
+					const urlProcessada = this.variaveisSubstituicaoService.substituir(
+						metadados.request.url,
+						variaveis,
+					);
+
+					console.log(`[ETAPA API] 🔄 URL processada (com variáveis): ${urlProcessada}`);
+
+					// Montar opções da requisição
+					const requestOptions: any = {
+						method: metadados.request.method || 'GET',
+						headers: metadados.request.headers || {},
+					};
+
+					if (metadados.request.body) {
+						requestOptions.body = JSON.stringify(metadados.request.body);
+						requestOptions.headers['Content-Type'] = 'application/json';
+					}
+
+					console.log(`[ETAPA API] 📡 Fazendo requisição...`);
+
+					// Fazer requisição
+					const apiResponse = await fetch(urlProcessada, requestOptions);
+
+					if (apiResponse.status != 200) {
+						throw new UnauthorizedException("Não autorizado")
+					}
+
+					const apiData = await apiResponse.json();
+					console.log(`[ETAPA API] ✅ Resposta recebida com sucesso!`);
+
+					// Processar template de mensagem se configurado
+					let mensagemFinal: string;
+
+					if (metadados.response?.template) {
+						// Processar template com placeholders ${}
+						mensagemFinal = this.processarTemplateResposta(metadados.response.template, apiData);
+					} else {
+						// Fallback: usar campo "mensagem" da resposta ou mensagem padrão
+						mensagemFinal = apiData.mensagem || 'Consulta realizada com sucesso!';
+					}
+
+					// Verificar se a etapa API tem encaminhamento configurado
+
+					// Buscar encaminhamento: primeiro nos metadados (encaminhamento completo), depois nas condições (legado)
+					const encaminhamento = metadados.encaminhamento;
+					const encaminhamentoLegado = etapa.condicao?.[0]?.regras?.[0];
+
+					// Inicializar com mensagem da API
+					data.conteudo = {
+						mensagem: [mensagemFinal] as never[],
+					};
+
+					if (encaminhamento) {
+						const action = encaminhamento.action;
+						console.log(`[API→Encaminhamento] ✅ Encaminhamento detectado: ${action}`);
+
+						switch (action) {
+							case 'ETAPA':
+								if (encaminhamento.next_etapa_id) {
+									console.log(`[API→ETAPA] 🎯 Avançando da etapa API para: ${encaminhamento.next_etapa_id}`);
+									data.etapa_id = encaminhamento.next_etapa_id;
+									const proximaEtapa = await this.etapaService.findById(encaminhamento.next_etapa_id);
+									console.log(`[API→ETAPA] 📌 Próxima etapa carregada: "${proximaEtapa.nome}" (tipo: ${proximaEtapa.tipo})`);
+
+									// Se a próxima etapa é do tipo FIM, buscar mensagem de finalização configurada
+									if (proximaEtapa.tipo === 'FIM') {
+										console.log(`[API→ETAPA] 🏁 Etapa de destino é FIM - finalizando atendimento`);
+
+										// Buscar mensagem de finalização configurada no fluxo
+										const mensagemFinalizacao = await this.configService.getEndFlowMessage(fluxo_id);
+										console.log(`[API→ETAPA] Mensagem de finalização configurada: "${mensagemFinalizacao}"`);
+
+										// Limpar etapa_id para sinalizar fim do fluxo
+										data.etapa_id = '';
+										data.conteudo = {
+											mensagem: [
+												mensagemFinal,
+												...(mensagemFinalizacao ? [mensagemFinalizacao] : [])
+											] as never[],
+										};
+										console.log(`[API→ETAPA] ✅ Fluxo finalizado - mensagens enviadas`);
+									} else {
+										// Para outras etapas, buscar interação normalmente
+										const interacoes = await this.etapaService.getInteracoesByEtapaId(encaminhamento.next_etapa_id);
+										const conteudoProximaEtapa = this.normalizarParaString(interacoes[0]?.conteudo);
+
+										data.conteudo = {
+											mensagem: [
+												mensagemFinal,
+												...(conteudoProximaEtapa.trim() !== '' ? [conteudoProximaEtapa] : [])
+											] as never[],
+										};
+									}
+									console.log(`[API→ETAPA] ✅ Encaminhamento concluído! Mensagens: ${data.conteudo.mensagem.length}`);
+								}
+								break;
+
+							case 'FLUXO':
+								if (encaminhamento.next_fluxo_id) {
+									console.log(`[API→FLUXO] 🔄 Avançando da etapa API para fluxo: ${encaminhamento.next_fluxo_id}`);
+									data.fluxo_id = encaminhamento.next_fluxo_id;
+
+									const etapaInicio = await this.etapaService.getEtapaInicio(encaminhamento.next_fluxo_id);
+									const etapaFluxo = await this.etapaService.findById(etapaInicio.id);
+									console.log(`[API→FLUXO] 📌 Fluxo iniciado na etapa: "${etapaFluxo.nome}"`);
+									const interacaoFluxo = etapaFluxo.interacoes?.[0];
+									const conteudoFluxo = this.normalizarParaString(interacaoFluxo?.conteudo);
+
+									data.conteudo = {
+										mensagem: [
+											mensagemFinal,
+											...(conteudoFluxo.trim() !== '' ? [conteudoFluxo] : [])
+										] as never[],
+									};
+									console.log(`[API→FLUXO] ✅ Encaminhamento concluído!`);
+								}
+								break;
+
+							case 'FILA':
+								if (encaminhamento.queue_id) {
+									console.log(`[API→FILA] 👥 Transferindo para fila: ${encaminhamento.queue_id}`);
+									data.queue_id = encaminhamento.queue_id;
+
+									const mensagemFila = await this.configService.getSendMessageQueue(encaminhamento.queue_id);
+									const mensagemFilaNormalizada = this.normalizarParaString(mensagemFila);
+
+									data.conteudo = {
+										mensagem: [
+											mensagemFinal,
+											...(mensagemFilaNormalizada.trim() !== '' ? [mensagemFilaNormalizada] : [])
+										] as never[],
+									};
+									console.log(`[API→FILA] ✅ Transferência concluída!`);
+								}
+								break;
+
+							case 'USUARIO':
+								if (encaminhamento.user_id) {
+									console.log(`[API→USUARIO] 👤 Transferindo para atendente: ${encaminhamento.user_id}`);
+									data.user_id = encaminhamento.user_id;
+									if (encaminhamento.queue_id) {
+										data.queue_id = encaminhamento.queue_id;
+									}
+
+									const mensagemAtendente = await this.configService.getSendMessageDefault(fluxo_id);
+									const mensagemAtendenteNormalizada = this.normalizarParaString(mensagemAtendente);
+
+									data.conteudo = {
+										mensagem: [
+											mensagemFinal,
+											...(mensagemAtendenteNormalizada.trim() !== '' ? [mensagemAtendenteNormalizada] : [])
+										] as never[],
+									};
+									console.log(`[API→USUARIO] ✅ Transferência concluída!`);
+								}
+								break;
+
+							case 'SETAR_VARIAVEL':
+								if (encaminhamento.variable_name) {
+									console.log(`[API→VARIAVEL] 📝 Configurando próxima entrada para variável: ${encaminhamento.variable_name}`);
+									data.conteudo = {
+										mensagem: [mensagemFinal] as never[],
+										variavel_id: encaminhamento.variable_name,
+									};
+									console.log(`[API→VARIAVEL] ✅ Configuração concluída!`);
+								}
+								break;
+						}
+
+					} else if (encaminhamentoLegado?.next_etapa_id) {
+						// Fallback para compatibilidade com condições legadas
+						console.log(`[API→Encaminhamento] 🔄 Usando encaminhamento legado (condicao) para: ${encaminhamentoLegado.next_etapa_id}`);
+
+						data.etapa_id = encaminhamentoLegado.next_etapa_id;
+						const proximaEtapa = await this.etapaService.findById(encaminhamentoLegado.next_etapa_id);
+						const interacoes = await this.etapaService.getInteracoesByEtapaId(encaminhamentoLegado.next_etapa_id);
+						const conteudoProximaEtapa = this.normalizarParaString(interacoes[0]?.conteudo);
+
+						data.conteudo = {
+							mensagem: [
+								mensagemFinal,
+								...(conteudoProximaEtapa.trim() !== '' ? [conteudoProximaEtapa] : [])
+							] as never[],
+						};
+					}
+
+					return data;
+
+				} catch (error: any) {
+					// Em caso de erro, retornar mensagem de erro
+					data.conteudo = {
+						mensagem: ['Erro ao consultar informações. Tente novamente.'] as never[],
+					};
+					return data;
+				}
+			}
 
 			// Priorizar variavel_id da regra, depois da etapa
 			const variavelIdRegra = regra?.variavel_id;
@@ -1156,14 +1410,52 @@ export class FluxoService {
 			data.etapa_id = etapaInicio.id;
 		}
 
-		// Processar atribuição de fila ou usuário
-		console.log(`[FluxoService] Verificando condição de fila/usuário:`, {
-			temAcao: !!acao,
-			acaoQueueId: acao?.queue_id,
-			acaoUserId: acao?.user_id,
-			condicaoAtendida: acao && (acao.queue_id || acao.user_id),
-		});
+		// Processar ação de API
+		if (regraEncontrada?.action === 'API' && acao && 'api_endpoint' in acao && acao.api_endpoint) {
+			try {
+				// Buscar variáveis para substituição no endpoint
+				const variaveis = contexto
+					? await this.variaveisSubstituicaoService.buscarMapaVariaveis(
+							contexto.contato_id || '',
+							contexto.tenant_id || '',
+							contexto.ticket_id,
+					  )
+					: {};
 
+				// Substituir variáveis no endpoint
+				const endpointProcessado = this.variaveisSubstituicaoService.substituir(
+					acao.api_endpoint,
+					variaveis,
+				);
+
+				// Fazer requisição para a API terceira
+				const apiResponse = await fetch(endpointProcessado);
+				const apiData = await apiResponse.json();
+
+				// Se tem next_etapa_id, avançar para próxima etapa
+				if (acao.next_etapa_id) {
+					data.etapa_id = acao.next_etapa_id;
+					const proximaEtapa = await this.etapaService.findById(acao.next_etapa_id);
+					const interacoes = await this.etapaService.getInteracoesByEtapaId(acao.next_etapa_id);
+					const conteudo = this.normalizarParaString(interacoes[0]?.conteudo);
+
+					data.conteudo = {
+						mensagem: conteudo.trim() !== '' ? ([conteudo] as never[]) : [],
+					};
+
+					return data;
+				}
+			} catch (error) {
+				// Em caso de erro, retornar mensagem de erro e manter na mesma etapa
+				data.etapa_id = etapa_id;
+				data.conteudo = {
+					mensagem: ['Erro ao consultar informações. Tente novamente.'] as never[],
+				};
+				return data;
+			}
+		}
+
+		// Processar atribuição de fila ou usuário
 		if (acao && (acao.queue_id || acao.user_id)) {
 			let mensagem_encaminhamento = '';
 			let mensagem_fora_horario = '';
@@ -1171,7 +1463,6 @@ export class FluxoService {
 
 			if (acao.queue_id && !acao.user_id) {
 				data.queue_id = acao.queue_id;
-				console.log(`[FluxoService] Atribuindo queue_id ao data:`, data.queue_id);
 				mensagem_encaminhamento = await this.configService.getSendMessageQueue(acao.queue_id);
 				mensagem_fora_horario = await this.configService.getSendMessageOutOfHour(acao.queue_id);
 			} else if (acao.user_id) {
@@ -1204,15 +1495,6 @@ export class FluxoService {
 				}),
 			};
 		}
-
-		console.log(`[executarAcaoRegra] RESULTADO FINAL:`, {
-			etapa_id: data.etapa_id,
-			variavel_id: data.variavel_id || data.conteudo?.variavel_id,
-			regex: data.regex || data.conteudo?.regex,
-			mensagem_erro: data.mensagem_erro || data.conteudo?.mensagem_erro,
-			queue_id: data.queue_id,
-			user_id: data.user_id,
-		});
 
 		return data;
 	}
@@ -1353,5 +1635,39 @@ export class FluxoService {
 				mensagem: getConfig('EXPIRACAO_TRIAGEM_MENSAGEM', ''),
 			},
 		};
+	}
+
+	/**
+	 * Salva uma variável coletada em memória (apenas para testes)
+	 * Canais reais devem usar a API do core diretamente
+	 */
+	async salvarVariavelTeste(
+		contato_id: string,
+		tenant_id: string,
+		ticket_id: string,
+		variavel_id_ou_nome: string,
+		valor: string,
+	): Promise<void> {
+		// Se for um UUID, buscar o nome da variável
+		let nomeVariavel = variavel_id_ou_nome;
+		const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+		if (uuidRegex.test(variavel_id_ou_nome)) {
+			try {
+				const variavelResponse = await api_core.get(`variaveis/${variavel_id_ou_nome}`);
+				nomeVariavel = variavelResponse.data?.nome || variavel_id_ou_nome;
+			} catch (error) {
+				console.error(`[FluxoService] Erro ao buscar nome da variável:`, error);
+				// Se der erro, usar o ID mesmo
+			}
+		}
+
+		this.variaveisSubstituicaoService.salvarVariavelTeste(
+			contato_id,
+			tenant_id,
+			ticket_id,
+			nomeVariavel,
+			valor,
+		);
 	}
 }

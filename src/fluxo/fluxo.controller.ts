@@ -47,8 +47,18 @@ export class FluxoController {
 	@ApiOkResponse({ description: 'Fluxo executado com sucesso', type: FluxoEngineResponseDto })
 	@ApiResponse({ status: 400, description: 'Erro ao executar fluxo' })
 	@ApiResponse({ status: 401, description: 'Não autorizado' })
-	async executar(@Body() data: FluxoEngineInput) {
+	async executar(@Body() data: FluxoEngineInput) { // <-- Adicionado log aqui
 		this.logger.log('POST /fluxo - Executar fluxo acessado');
+		this.logger.log(`[FluxoController] Dados recebidos no body:`, JSON.stringify({
+			ticket_id: data.ticket_id,
+			contato_id: data.contato_id,
+			tenant_id: data.tenant_id,
+			fluxo_id: data.fluxo_id,
+			// Adicionei os campos abaixo para garantir que todos os dados do DTO sejam logados
+			// e para facilitar o debug
+			etapa_id: data.etapa_id,
+			executar_segunda_regra: data.executar_segunda_regra,
+		}));
 		const fluxo = await this.fluxoService.engine(data);
 		return { message: 'Fluxo executado com sucesso!', data: fluxo };
 	}
@@ -167,5 +177,27 @@ export class FluxoController {
 		const config = await this.fluxoService.getExpiracaoConfig(fluxo_id);
 		this.logger.log(`  Triagem: ${config.triagem.habilitada ? `${config.triagem.minutos}min` : 'desabilitada'}`);
 		return { message: 'Configurações obtidas com sucesso!', data: config };
+	}
+
+	@Post('test/variavel')
+	@HttpCode(200)
+	@ApiOperation({ summary: 'Salvar variável em memória para testes (não persiste no banco)' })
+	@ApiResponse({ status: 200, description: 'Variável salva em cache de teste' })
+	async salvarVariavelTeste(@Body() data: {
+		contato_id: string;
+		tenant_id: string;
+		ticket_id: string;
+		variavel_nome: string;
+		valor: string;
+	}) {
+		this.logger.log(`POST /fluxo/test/variavel - Salvando variável de teste: ${data.variavel_nome}`);
+		await this.fluxoService.salvarVariavelTeste(
+			data.contato_id,
+			data.tenant_id,
+			data.ticket_id,
+			data.variavel_nome,
+			data.valor,
+		);
+		return { message: 'Variável salva em cache de teste com sucesso!' };
 	}
 }

@@ -11,6 +11,11 @@ interface ApiResponse<T> {
 const jwt = new JwtService();
 
 export function responseConfig<T>(response: AxiosResponse<ApiResponse<T>>): AxiosResponse {
+	console.log(`[Axios Interceptor] Resposta: ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url}`, {
+		dataOriginal: response.data,
+		dataExtraida: response.data.data ?? response.data,
+	});
+
 	return {
 		...response,
 		data: response.data.data ?? response.data,
@@ -18,6 +23,11 @@ export function responseConfig<T>(response: AxiosResponse<ApiResponse<T>>): Axio
 }
 
 export function requestConfig(request: InternalAxiosRequestConfig): InternalAxiosRequestConfig {
+	console.log(`[Axios Interceptor] Requisição: ${request.method?.toUpperCase()} ${request.baseURL}${request.url}`, {
+		params: request.params,
+		data: request.data,
+	});
+
 	if (request.headers) {
 		request.headers['x-microservice-token'] = jwt.sign(
 			{

@@ -75,6 +75,23 @@ export class ConfigService {
         }
     }
 
+    async getEndFlowMessage(fluxo_id: string) {
+        try {
+            const configuracao = await this.prisma.fluxoConfiguracao.findFirst({
+                where: { fluxo_id, chave: 'MENSAGEM_FINALIZACAO' },
+            });
+
+            // TODO: Incrementar com variáveis de ambiente:
+            // return configuracao?.valor || process.env.MENSAGEM_FINALIZACAO_DEFAULT || this.configuracaoDefaults.MENSAGEM_FINALIZACAO;
+            return configuracao?.valor || this.configuracaoDefaults.MENSAGEM_FINALIZACAO;
+        } catch (error) {
+            console.error('Erro ao obter mensagem de finalização:', error);
+            // TODO: Incrementar com variáveis de ambiente:
+            // return process.env.MENSAGEM_FINALIZACAO_DEFAULT || this.configuracaoDefaults.MENSAGEM_FINALIZACAO;
+            return this.configuracaoDefaults.MENSAGEM_FINALIZACAO;
+        }
+    }
+
     async verificarRegra(regra: CondicaoRegra) {
         const acao = {
             ETAPA: {
@@ -90,9 +107,12 @@ export class ConfigService {
                 user_id: regra.user_id,
                 queue_id: regra.queue_id,
             },
+            API: {
+                api_endpoint: regra.api_endpoint,
+                next_etapa_id: regra.next_etapa_id,
+            },
             // SETAR_VARIAVEL: 'SETAR_VARIAVEL',
             // OBTER_VARIAVEL: 'OBTER_VARIAVEL',
-            // API: 'API',
             // DB: 'DB',
         } as const;
 

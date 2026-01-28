@@ -3,6 +3,7 @@
 enum NodeType {
   INICIO
   DIALOGO
+  API
   FIM
 }
 

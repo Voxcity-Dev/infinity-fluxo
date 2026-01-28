@@ -945,6 +945,7 @@ export class FluxoService {
 
 				// Retornar com etapa_id null/vazio para sinalizar fim do fluxo
 				data.etapa_id = '';
+				data.is_fim = true;
 				data.conteudo = {
 					mensagem: mensagemFinalizacao ? [mensagemFinalizacao] as never[] : [],
 				};
@@ -1096,6 +1097,7 @@ export class FluxoService {
 
 										// Limpar etapa_id para sinalizar fim do fluxo
 										data.etapa_id = '';
+										data.is_fim = true;
 										data.conteudo = {
 											mensagem: [
 												mensagemFinal,

@@ -129,6 +129,7 @@ export class FluxoService {
 				variavel_id: resultado.variavel_id,
 				regex: resultado.regex,
 				mensagem_erro: resultado.mensagem_erro,
+				is_fim: resultado.is_fim,
 			};
 
 			return await this.processarVariaveisResultado(resultadoFinal, { contato_id, tenant_id, ticket_id });

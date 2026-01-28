@@ -1496,6 +1496,45 @@ export class FluxoService {
 			};
 		}
 
+		// Verificar se a etapa destino é do tipo FIM
+		if (data.etapa_id) {
+			try {
+				const etapaDestino = await this.etapaService.findById(data.etapa_id);
+
+				if (etapaDestino?.tipo === 'FIM') {
+					console.log(`[executarAcaoRegra] Etapa FIM detectada: ${data.etapa_id}`);
+
+					// Buscar mensagem de finalização do fluxo
+					const fluxo = await this.findById(data.fluxo_id);
+					const mensagemFinalizacao =
+						fluxo?.configuracoes?.find((c) => c.chave === 'MENSAGEM_FINALIZACAO')?.valor ||
+						'Seu atendimento foi encerrado!';
+
+					// Adicionar flag e mensagem à resposta
+					data.is_fim = true;
+					data.conteudo = {
+						...data.conteudo,
+						mensagem: [mensagemFinalizacao],
+					};
+
+					console.log(`[executarAcaoRegra] FIM configurado - mensagem: ${mensagemFinalizacao}`);
+				}
+			} catch (error) {
+				console.error(`[executarAcaoRegra] Erro ao verificar etapa FIM:`, error);
+				// Não bloquear fluxo por erro na verificação
+			}
+		}
+
+		console.log(`[executarAcaoRegra] RESULTADO FINAL:`, {
+			etapa_id: data.etapa_id,
+			variavel_id: data.variavel_id || data.conteudo?.variavel_id,
+			regex: data.regex || data.conteudo?.regex,
+			mensagem_erro: data.mensagem_erro || data.conteudo?.mensagem_erro,
+			queue_id: data.queue_id,
+			user_id: data.user_id,
+			is_fim: data.is_fim,
+		});
+
 		return data;
 	}
 

@@ -781,6 +781,7 @@ export class FluxoService {
 			fluxo_id: string;
 			queue_id: string;
 			user_id: string;
+			is_fim?: boolean;
 			variavel_id?: string;
 			regex?: string | null;
 			mensagem_erro?: string | null;

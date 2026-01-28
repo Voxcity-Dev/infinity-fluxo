@@ -1517,7 +1517,7 @@ export class FluxoService {
 					data.is_fim = true;
 					data.conteudo = {
 						...data.conteudo,
-						mensagem: [mensagemFinalizacao],
+						mensagem: [mensagemFinalizacao] as never[],
 					};
 
 					console.log(`[executarAcaoRegra] FIM configurado - mensagem: ${mensagemFinalizacao}`);

@@ -12,6 +12,3 @@ export * from './condicao.schema';
 
 // Exportações dos schemas de Log
 export * from './log.schema';
-
-// Exportações dos schemas de SLA
-export * from './sla.schema';

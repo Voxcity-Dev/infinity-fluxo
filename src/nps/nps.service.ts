@@ -463,4 +463,34 @@ export class NpsService {
 			throw new BadRequestException('Erro ao buscar configuração de expiração NPS');
 		}
 	}
+
+	/**
+	 * Retorna mapa de ticketId → score NPS para os ticket IDs fornecidos.
+	 * Usado pelo infinity-ia para enriquecer o pool de aprendizado.
+	 */
+	async getScoresByTicketIds(
+		ticketIds: string[],
+		tenantId?: string,
+	): Promise<Record<string, number>> {
+		const respostas = await this.prisma.npsResposta.findMany({
+			where: {
+				ticket_id: { in: ticketIds },
+				...(tenantId
+					? { nps: { tenant_id: tenantId, is_deleted: false } }
+					: {}),
+			},
+			select: {
+				ticket_id: true,
+				resposta: true,
+			},
+		});
+
+		const scores: Record<string, number> = {};
+		for (const r of respostas) {
+			if (r.ticket_id) {
+				scores[r.ticket_id] = r.resposta;
+			}
+		}
+		return scores;
+	}
 }

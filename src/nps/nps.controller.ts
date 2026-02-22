@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, Post, Put, Delete, Param, Get, BadRequestException, Logger } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post, Put, Delete, Param, Get, Query, BadRequestException, Logger } from '@nestjs/common';
 import { ApiBody, ApiOkResponse, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { NpsService } from './nps.service';
 import { ZodPipe } from 'src/common/pipes/zod.pipe';
@@ -82,6 +82,26 @@ export class NpsController {
 		const npsId = await this.npsService.delete(id);
 		this.logger.log(`NPS deletado com sucesso!`);
 		return { message: 'NPS deletado com sucesso!', data: { id: npsId } };
+	}
+
+	@Get('scores-by-tickets')
+	@HttpCode(200)
+	@ApiOperation({
+		summary: 'Buscar scores NPS por ticket IDs',
+		description: 'Retorna mapa ticketId → score. Usado pelo infinity-ia para popular o pool de aprendizado.',
+	})
+	@ApiResponse({ status: 200, description: 'Scores retornados com sucesso' })
+	async scoresByTickets(
+		@Query('ticket_ids') ticketIds: string,
+		@Query('tenant_id') tenantId: string,
+	) {
+		const ids = ticketIds?.split(',').filter(Boolean) ?? [];
+		if (ids.length === 0) {
+			return { message: 'Nenhum ticket informado', data: { scores: {} } };
+		}
+		const scores = await this.npsService.getScoresByTicketIds(ids, tenantId);
+		this.logger.log(`Scores NPS retornados para ${ids.length} tickets`);
+		return { message: 'Scores NPS retornados com sucesso', data: { scores } };
 	}
 
 	// Rotas para NpsFila

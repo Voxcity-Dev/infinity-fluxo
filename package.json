@@ -21,6 +21,7 @@
 		"update:filas-nps": "ts-node -r tsconfig-paths/register prisma/scripts/update-filas-nps.ts",
 		"cleanup:nps-filas": "ts-node -r tsconfig-paths/register prisma/scripts/cleanup-nps-filas-soft-deleted.ts",
 		"fix:nps-enum": "ts-node -r tsconfig-paths/register prisma/scripts/fix-nps-enum.ts && npx prisma db push",
+		"export:nps-sla": "ts-node -r tsconfig-paths/register scripts/export-nps-sla.ts",
 		"start": "nest start",
 		"start:dev": "nest start --watch",
 		"start:debug": "nest start --debug 9233 --watch",

@@ -18,10 +18,18 @@ async function bootstrap() {
 	const app = await NestFactory.create(AppModule);
 
 	const isDevelopment = process.env.NODE_ENV === 'development';
+	const productionOrigins = process.env.CORS_ORIGIN
+		? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim()).filter(Boolean)
+		: [
+			'https://www.voxcity.com.br',
+			'https://infinity.voxcity.com.br',
+			'https://infinity-teste.voxcity.com.br',
+			'https://infinity-vox.voxcity.com.br',
+		];
 
 	app.use(helmet());
 	app.enableCors({
-		origin: isDevelopment ? true : ['https://www.voxcity.com.br/'],
+		origin: isDevelopment ? true : productionOrigins,
 		methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
 		allowedHeaders: [
 			'Content-Type',

@@ -35,6 +35,7 @@ const CreateCondicaoRegraBaseSchema = z.object({
 	input: z.array(z.string()).min(1, "Pelo menos uma entrada é obrigatória").optional(),
 	action: TipoAcaoSchema,
 	msg_exata: z.boolean(),
+	qualquer_resposta: z.boolean().default(false),
 	next_etapa_id: z.uuid().optional(),
 	next_fluxo_id: z.uuid().optional(),
 	queue_id: z.uuid().optional(),
@@ -47,6 +48,7 @@ const CreateCondicaoRegraBaseSchema = z.object({
 
 // Schema para criação de regra de transação (input do usuário - sem condicao_id e tenant_id)
 export const CreateCondicaoRegraInputSchema = CreateCondicaoRegraBaseSchema.refine((data) => {
+	if (data.qualquer_resposta) return true;
 	// Se msg_exata for true, input é obrigatório e não pode estar vazio
 	if (data.msg_exata && (!data.input || data.input.length === 0)) {
 		return false;
@@ -63,6 +65,7 @@ export const CreateCondicaoRegraSchema = CreateCondicaoRegraBaseSchema.extend({
 	condicao_id: z.uuid(),
 	tenant_id: z.uuid(),
 }).refine((data) => {
+	if (data.qualquer_resposta) return true;
 	// Se msg_exata for true, input é obrigatório e não pode estar vazio
 	if (data.msg_exata && (!data.input || data.input.length === 0)) {
 		return false;
@@ -93,6 +96,7 @@ export const CondicaoRegraSchema = z.object({
 	input: z.array(z.string()).nullable(),
 	action: TipoAcaoSchema,
 	msg_exata: z.boolean(),
+	qualquer_resposta: z.boolean().default(false),
 	next_etapa_id: z.uuid().nullable(),
 	next_fluxo_id: z.uuid().nullable(),
 	queue_id: z.uuid().nullable(),
@@ -105,6 +109,7 @@ export const CondicaoRegraSchema = z.object({
 	created_at: z.string().optional(),
 	updated_at: z.string().optional(),
 }).refine((data) => {
+	if (data.qualquer_resposta) return true;
 	// Se msg_exata for true, input é obrigatório e não pode estar vazio
 	if (data.msg_exata && (!data.input || data.input.length === 0)) {
 		return false;
@@ -124,6 +129,7 @@ export const UpdateCondicaoRegraSchema = z.object({
 		input: z.array(z.string()).nullable().optional(),
 		action: TipoAcaoSchema,
 		msg_exata: z.boolean(),
+		qualquer_resposta: z.boolean().default(false),
 		next_etapa_id: z.string().nullable().optional(),
 		next_fluxo_id: z.string().nullable().optional(),
 		queue_id: z.string().nullable().optional(),
@@ -147,6 +153,7 @@ export const UpsertCondicaoSchema = z
 			input: z.array(z.string()).min(1, "Pelo menos uma entrada é obrigatória").nullable().optional(),
 			action: TipoAcaoSchema,
 			msg_exata: z.boolean(),
+			qualquer_resposta: z.boolean().default(false),
 			next_etapa_id: z.string().nullable().optional(),
 			next_fluxo_id: z.string().nullable().optional(),
 			queue_id: z.string().nullable().optional(),
@@ -157,6 +164,7 @@ export const UpsertCondicaoSchema = z
 			priority: z.number().int(),
 			is_deleted: z.boolean().optional(),
 		}).passthrough().refine((data) => {
+			if (data.qualquer_resposta) return true;
 			// Se msg_exata for true, input é obrigatório e não pode estar vazio
 			if (data.msg_exata && (!data.input || data.input.length === 0)) {
 				return false;

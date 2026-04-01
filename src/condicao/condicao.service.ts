@@ -203,6 +203,7 @@ export class CondicaoService {
 								input: inputArray,
 								action: regra.action,
 								msg_exata: regra.msg_exata || false,
+								qualquer_resposta: regra.qualquer_resposta || false,
 								next_etapa_id: regra.next_etapa_id || undefined,
 								next_fluxo_id: regra.next_fluxo_id || undefined,
 								queue_id: regra.queue_id || undefined,
@@ -269,6 +270,11 @@ export class CondicaoService {
 				throw new NotFoundException(
 					`Etapa com ID ${etapa_id} não encontrada ou não pertence ao tenant. Certifique-se de que a etapa foi salva antes de criar condições.`
 				);
+			}
+
+			const wildcardRegras = regras.filter(r => r.qualquer_resposta && !r.is_deleted);
+			if (wildcardRegras.length > 1) {
+				throw new BadRequestException("Apenas uma condição 'qualquer resposta' é permitida por etapa");
 			}
 
 			const resultado = await this.prisma.$transaction(async prisma => {
@@ -366,6 +372,7 @@ export class CondicaoService {
 												input: inputArray,
 												action: regra.action,
 												msg_exata: regra.msg_exata || false,
+												qualquer_resposta: regra.qualquer_resposta || false,
 												next_etapa_id: regra.next_etapa_id || undefined,
 												next_fluxo_id: regra.next_fluxo_id || undefined,
 												queue_id: regra.queue_id || undefined,
@@ -581,6 +588,21 @@ export class CondicaoService {
 						return regraCorrespondente as unknown as CondicaoRegra;
 					}
 
+				// Fallback: buscar wildcard entre regras de navegação
+				const regraWildcardNav = regrasNavegacao.find(r => (r as any).qualquer_resposta);
+				if (regraWildcardNav) {
+					console.log(`[buscarRegraValida] 🔄 FALLBACK NAV: Usando regra wildcard id=${regraWildcardNav.id}`);
+					const logData = {
+						ticket_id,
+						etapa_id,
+						fluxo_id,
+						tenant_id: condicao.tenant_id,
+						opcao_id: regraWildcardNav.id,
+					} as CreateLog;
+					await this.logService.create(logData);
+					return regraWildcardNav as unknown as CondicaoRegra;
+				}
+
 					// Verificar se alguma regra de navegação tem input configurado
 					const regrasComInput = regrasNavegacao.filter(r => {
 						const input = Array.isArray(r.input) ? r.input : [];
@@ -640,6 +662,7 @@ export class CondicaoService {
 			// procurar a primeira regra válida
 			console.log(`[buscarRegraValida] Buscando primeira regra válida (executarSegundaRegra=false)`);
 			let regraEncontrada: CondicaoRegra | null = null;
+			let regraWildcard: CondicaoRegra | null = null;
 
 			const logData = {
 				ticket_id,
@@ -661,6 +684,13 @@ export class CondicaoService {
 					console.log(`[buscarRegraValida]   Msg Exata: ${regra.msg_exata}`);
 					console.log(`[buscarRegraValida]   Queue ID: ${regra.queue_id}`);
 					console.log(`[buscarRegraValida]   Mensagem do usuário: "${mensagem}"`);
+
+					// Regra wildcard: guardar para fallback, não avaliar agora
+					if ((regra as any).qualquer_resposta) {
+						console.log(`[buscarRegraValida] 🔄 WILDCARD: Guardando regra como fallback`);
+						regraWildcard = regra as unknown as CondicaoRegra;
+						continue;
+					}
 
 					// Se a regra é SETAR_VARIAVEL, não precisa de input - retorna diretamente
 					if (regra.action === 'SETAR_VARIAVEL') {
@@ -723,6 +753,13 @@ export class CondicaoService {
 				}
 			}
 
+			// Fallback: se nenhuma regra normal bateu, usar wildcard
+			if (!regraEncontrada && regraWildcard) {
+				console.log(`[buscarRegraValida] 🔄 FALLBACK: Usando regra wildcard id=${regraWildcard.id}`);
+				regraEncontrada = regraWildcard;
+				logData.opcao_id = regraWildcard.id;
+			}
+
 			if (!regraEncontrada) {
 				console.log(`[buscarRegraValida] NENHUMA regra encontrada para mensagem "${mensagem}"`);
 				logData.opcao_id = null;
@@ -779,6 +816,7 @@ export class CondicaoService {
 			input: inputArray,
 			action: regra.action,
 			msg_exata: regra.msg_exata,
+			qualquer_resposta: regra.qualquer_resposta || false,
 			next_etapa_id: regra.next_etapa_id || undefined,
 			next_fluxo_id: regra.next_fluxo_id || undefined,
 			queue_id: regra.queue_id || undefined,
@@ -815,6 +853,7 @@ export class CondicaoService {
 			input: inputArray,
 			action: regra.action,
 			msg_exata: regra.msg_exata,
+			qualquer_resposta: regra.qualquer_resposta || false,
 			next_etapa_id: regra.next_etapa_id,
 			next_fluxo_id: regra.next_fluxo_id,
 			queue_id: regra.queue_id,

@@ -42,8 +42,9 @@ model CondicaoRegra {
   condicao_id    String   @db.Uuid
   tenant_id      String   @db.Uuid
   input          Json     @db.JsonB // array de valores da condição
-  msg_exata      Boolean  @default(true) // se true, input deve ser exato
-  action         TipoAcao
+  msg_exata         Boolean  @default(true)  // se true, input deve ser exato
+  qualquer_resposta Boolean  @default(false) // se true, aceita qualquer resposta (fallback)
+  action            TipoAcao
   next_etapa_id  String?  @db.Uuid // se action = ETAPA
   next_fluxo_id  String?  @db.Uuid // se action = FLUXO
   queue_id       String?  @db.Uuid // se action = FILA
